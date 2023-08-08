@@ -14,6 +14,11 @@ export type SSArtistInfo = {
   smallImageUrl?: string;
 };
 
+export type NDAuthenticateParams = {
+  username: string;
+  password: string;
+};
+
 export type NDAuthenticate = {
   id: string;
   isAdmin: boolean;

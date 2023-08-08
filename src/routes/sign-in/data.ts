@@ -1,4 +1,3 @@
-import type { NDAuthenticate } from '$lib/navidrome/types';
 import { z } from 'zod';
 
 export const signInSchema = z.object({
@@ -8,15 +7,6 @@ export const signInSchema = z.object({
 
 export type SignInSchema = z.infer<typeof signInSchema>;
 
-export type SignInError = {
-  success: false;
-  message?: string;
-  errors?: z.inferFlattenedErrors<typeof signInSchema>['fieldErrors'];
-};
-
-export type SignInSuccess = {
-  success: true;
-  user: NDAuthenticate;
-};
-
-export type SignInOutput = SignInSuccess | SignInError;
+export type SignInErrors = z.inferFlattenedErrors<
+  typeof signInSchema
+>['fieldErrors'] & { message?: string };

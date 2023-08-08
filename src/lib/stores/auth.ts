@@ -1,4 +1,5 @@
 import { goto } from '$app/navigation';
+import { ndClient } from '$lib/navidrome/client';
 import type { NDAuthenticate } from '$lib/navidrome/types';
 import { derived, writable } from 'svelte/store';
 
@@ -19,6 +20,7 @@ function createUser() {
   function signOut() {
     set(undefined);
     localStorage.removeItem('user');
+    ndClient.signOut();
     goto('/sign-in');
   }
 
