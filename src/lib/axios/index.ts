@@ -23,7 +23,7 @@ export class AxiosHelper {
     this.token = null;
   }
 
-  private prepareUrl(url: string) {
+  public prepareUrl(url: string) {
     if (url.includes('http')) return url;
     return PUBLIC_API_URL + url;
   }

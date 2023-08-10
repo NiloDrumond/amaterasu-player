@@ -13,7 +13,9 @@ function createUser() {
   function loadUser() {
     const user = localStorage.getItem('user');
     if (user) {
-      setUser(JSON.parse(user));
+      const parsed = JSON.parse(user) as NDAuthenticate;
+      set(parsed);
+      ndClient.setAuth(parsed);
     }
   }
 

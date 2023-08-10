@@ -1,4 +1,3 @@
-import { PUBLIC_AUTH_URL } from '$env/static/public';
 import { api, type AxiosHelper } from '$lib/axios';
 import axios from 'axios';
 import type {
@@ -17,15 +16,19 @@ class NDClient {
     this.subsonicCredential = null;
   }
 
+  public setAuth(data: NDAuthenticate) {
+    this.api.setToken(data.token);
+    this.subsonicCredential = `u=${data.username}&s=${data.subsonicSalt}&t=${data.subsonicToken}`;
+  }
+
   public async authenticate(params: NDAuthenticateParams) {
     try {
       const response = await this.api.post<NDAuthenticate>({
-        url: `${PUBLIC_AUTH_URL}/login`,
+        url: '/auth/login',
         body: params,
       });
       const data = response.data;
-      this.api.setToken(data.token);
-      this.subsonicCredential = `u=${data.username}&s=${data.subsonicSalt}&t=${data.subsonicToken}`;
+      this.setAuth(data);
       return data;
     } catch (e) {
       if (axios.isAxiosError(e)) {
@@ -44,10 +47,28 @@ class NDClient {
 
   public async getAlbumList(params: NDAlbumListParams) {
     const response = await this.api.get<NDAlbumListResponse>({
-      url: '/album',
+      url: '/api/album',
       config: { params: params },
     });
     return response.data;
+  }
+
+  public getCoverArtUrl(args: {
+    baseUrl?: string;
+    coverArtId: string;
+    size?: number;
+  }) {
+    const size = args.size ? args.size : 250;
+    const baseUrl = this.api.prepareUrl('/rest/getCoverArt');
+    return (
+      baseUrl +
+      `?${this.subsonicCredential}` +
+      `&id=${args.coverArtId}` +
+      `&size=${size}` +
+      `&v=1.13.0` +
+      `&f=json` +
+      `&c=AmaterasuPlayer`
+    );
   }
 }
 
