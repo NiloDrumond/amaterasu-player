@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Sidebar from '$lib/components/Sidebar.svelte';
+  import Sidebar from '$lib/components/sidebar.svelte';
   import { user } from '$lib/stores/auth';
 
   $: if (!$user) {

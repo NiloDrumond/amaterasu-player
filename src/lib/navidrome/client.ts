@@ -5,6 +5,7 @@ import type {
   NDAlbumListParams,
   NDAlbumListResponse,
   NDAuthenticateParams,
+  NDAlbum,
 } from './types';
 
 class NDClient {
@@ -45,10 +46,17 @@ class NDClient {
     this.subsonicCredential = null;
   }
 
-  public async getAlbumList(params: NDAlbumListParams) {
+  public async getAlbumList(args: NDAlbumListParams) {
     const response = await this.api.get<NDAlbumListResponse>({
       url: '/api/album',
-      config: { params: params },
+      config: { params: args },
+    });
+    return response.data;
+  }
+
+  public async getAlbum(args: { albumId: string }) {
+    const response = await this.api.get<NDAlbum>({
+      url: `/api/album/${args.albumId}`,
     });
     return response.data;
   }

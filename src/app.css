@@ -11,6 +11,10 @@ body {
   html {
     @apply text-primary;
   }
+
+  svg {
+    @apply text-primary;
+  }
   
   h1 {
     @apply text-4xl font-bold;

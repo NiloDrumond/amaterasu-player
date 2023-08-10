@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import IconButton from './IconButton.svelte';
+  import IconButton from './icon-button.svelte';
   import { user } from '$lib/stores/auth';
 </script>
 
