@@ -1,4 +1,5 @@
 import axios, {
+  AxiosError,
   type AxiosInstance,
   type AxiosRequestConfig,
   type AxiosResponse,
@@ -15,15 +16,15 @@ export class AxiosHelper {
     this.instance = axios.create();
   }
 
-  public setToken(token: string) {
+  public setToken(token: string): void {
     this.token = token;
   }
 
-  public clearToken() {
+  public clearToken(): void {
     this.token = null;
   }
 
-  public prepareUrl(url: string) {
+  public prepareUrl(url: string): string {
     if (url.includes('http')) return url;
     return PUBLIC_API_URL + url;
   }
@@ -38,6 +39,20 @@ export class AxiosHelper {
       headers: { ...header, ...(params ? params.headers : {}) },
     };
     return config;
+  }
+
+  public createInterceptor(
+    onResponse?: (
+      response: AxiosResponse<unknown, unknown>,
+    ) => AxiosResponse<unknown, unknown>,
+    onReject?: (error: AxiosError) => unknown,
+  ): number {
+    const id = this.instance.interceptors.response.use(onResponse, onReject);
+    return id;
+  }
+
+  public removeInterceptor(id: number): void {
+    this.instance.interceptors.response.eject(id);
   }
 
   public async get<T = unknown, R = AxiosResponse<T, unknown>>(

@@ -6,20 +6,27 @@ import { derived, writable } from 'svelte/store';
 function createUser() {
   const { subscribe, set } = writable<NDAuthenticate | undefined>(undefined);
 
-  function setUser(user: NDAuthenticate) {
+  async function signIn(user: NDAuthenticate) {
+    ndClient.setAuth(user, () => {
+      signOut();
+    });
     set(user);
   }
 
-  function loadUser() {
+  async function authenticate(args: { username: string; password: string }) {
+    const user = await ndClient.authenticate(args);
+    signIn(user);
+  }
+
+  function loadUser(): void {
     const user = localStorage.getItem('user');
     if (user) {
       const parsed = JSON.parse(user) as NDAuthenticate;
-      set(parsed);
-      ndClient.setAuth(parsed);
+      signIn(parsed);
     }
   }
 
-  function signOut() {
+  function signOut(): void {
     set(undefined);
     localStorage.removeItem('user');
     ndClient.signOut();
@@ -28,9 +35,9 @@ function createUser() {
 
   loadUser();
   return {
+    authenticate,
     subscribe,
     loadUser,
-    setUser,
     signOut,
   };
 }

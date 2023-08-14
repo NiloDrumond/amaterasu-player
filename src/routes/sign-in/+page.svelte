@@ -3,7 +3,6 @@
   import { user } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
   import { signInSchema, type SignInErrors } from './data';
-  import { ndClient } from '$lib/navidrome/client';
 
   let loading = false;
   let errors: SignInErrors = {};
@@ -11,8 +10,7 @@
     const signInData = signInSchema.safeParse($signin);
     if (signInData.success) {
       try {
-        const response = await ndClient.authenticate(signInData.data);
-        user.setUser(response);
+        user.authenticate(signInData.data);
       } catch (e) {
         if (e instanceof Error) {
           errors.message = e.message;
