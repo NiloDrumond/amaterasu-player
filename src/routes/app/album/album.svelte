@@ -11,6 +11,7 @@
   <div
     class="bg-secondary-bg h-full overflow-hidden rounded-xl p-3 hover:bg-purple-500 hover:bg-opacity-80 transition-all flex flex-col gap-2"
   >
+    <div class="flex-1" />
     <a href={`/app/album/${album.id}`}>
       <img
         alt={album.name}
@@ -18,6 +19,7 @@
         src={coverArtUrl}
       />
     </a>
+    <div class="flex-1" />
     <a href={`/app/album/${album.id}`}>
       <p class="font-bold whitespace-nowrap text-ellipsis overflow-hidden">
         {album.name}
