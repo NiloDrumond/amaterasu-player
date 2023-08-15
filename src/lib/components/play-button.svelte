@@ -9,9 +9,9 @@
 </script>
 
 <button
-  class="p-4 rounded-full bg-purple-500 hover:bg-opacity-80"
+  class="p-4 text-primary-bg rounded-full bg-purple-500 hover:-translate-y-0.5 hover:text-black hover:bg-purple-500 hover:drop-shadow-[0_0_10px_#DB48B9]"
   {...$$restProps}
   on:click
 >
-  <Icon {...iconProps} {icon} width={24} height={24} />
+  <Icon {...iconProps} {icon} width={28} height={28} />
 </button>

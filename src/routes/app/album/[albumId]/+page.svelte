@@ -7,6 +7,8 @@
   import { formatDuration, formatFileSize } from '$lib/utils/format';
   import IconButton from '$lib/components/icon-button.svelte';
   import PlayButton from '$lib/components/play-button.svelte';
+  import TextButton from '$lib/components/text-button.svelte';
+  import Songs from './songs.svelte';
 
   const albumId = $page.params.albumId;
   let album: NDAlbum | undefined = undefined;
@@ -54,15 +56,16 @@
           {/if}
         </div>
         <div class="flex-1" />
-        <div class="flex flex-row gap-4">
+        <div class="flex flex-row gap-4 items-center">
           <PlayButton icon="mingcute:play-fill" />
-          <IconButton
-            icon="mingcute:shuffle-2-fill"
-            iconProps={{ width: 20, height: 20 }}
-          />
+          <IconButton icon="ph:shuffle-angular-bold" />
+          <TextButton label="PLAY NEXT" icon="iconamoon:playlist" />
+          <TextButton label="PLAY LATER" icon="ph:list-plus-bold" />
+          <TextButton label="ADD TO PLAYLIST" icon="ph:music-notes-plus-bold" />
         </div>
       </div>
     </div>
+    <Songs {albumId} />
   {:else}
     <Loading />
   {/if}

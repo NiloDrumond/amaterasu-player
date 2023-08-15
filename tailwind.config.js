@@ -4,6 +4,8 @@ export default {
   theme: {
     extend: {
       colors: {
+        'crystal-primary': '#f26df9',
+        'crystal-secondary': '#eb4b98',
         'primary-bg': '#1a1b26',
         'secondary-bg': '#16161e',
         primary: '#c0caf5',

@@ -6,6 +6,8 @@ import type {
   NDAlbumListResponse,
   NDAuthenticateParams,
   NDAlbum,
+  NDSong,
+  NDSongListParams,
 } from './types';
 
 class NDClient {
@@ -91,6 +93,17 @@ class NDClient {
       `&f=json` +
       `&c=AmaterasuPlayer`
     );
+  }
+
+  public async getSongList(query: NDSongListParams) {
+    const response = await this.api.get<NDSong[]>({
+      url: '/api/song',
+      config: {
+        params: query,
+      },
+    });
+
+    return response.data;
   }
 }
 

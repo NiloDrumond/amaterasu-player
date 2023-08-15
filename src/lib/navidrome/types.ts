@@ -270,7 +270,7 @@ export enum NDSongListSort {
 
 export type NDSongListParams = {
   _sort?: NDSongListSort;
-  album_id?: string[];
+  album_id?: string[] | string;
   artist_id?: string[];
   genre_id?: string;
   starred?: boolean;
