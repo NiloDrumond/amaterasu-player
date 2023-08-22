@@ -34,7 +34,7 @@
 </script>
 
 <div class="flex flex-col gap-8 items-center">
-  <h1 class="text-center text-purple-500">Welcome Home</h1>
+  <h1 class="text-center text-crystal-primary">Welcome Home</h1>
   <form on:submit|preventDefault={validate} class="space-y-5">
     <div class="flex flex-col">
       <label class="mb-1" for="username"> Username </label>
@@ -52,7 +52,7 @@
     </div>
     <button
       disabled={loading}
-      class="disabled:cursor-wait bg-purple-500 hover:bg-purple-700 w-full drop-shadow-xl"
+      class="disabled:cursor-wait bg-crystal-primary hover:bg-purple-700 w-full drop-shadow-xl"
       type="submit">Sign In</button
     >
     {#if errors.message}

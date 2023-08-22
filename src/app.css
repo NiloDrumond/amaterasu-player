@@ -8,9 +8,23 @@ body {
 
 
 @layer base {
+
   html {
     @apply text-primary;
   }
+
+  th {
+    @apply py-3;
+  }
+
+  td {
+    @apply py-2;
+  }
+
+  table a {
+@apply text-crystal-primary;
+  }
+
 
   h1 {
     @apply text-4xl font-bold;
@@ -29,7 +43,7 @@ body {
   }
 
   button {
-    @apply transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 inline-flex items-center border border-transparent text-base font-medium shadow-sm focus:outline-none p-3 rounded-xl hover:bg-blue-500 hover:bg-opacity-80 w-fit h-fit hover:text-white;
+    @apply transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-2 focus:ring-crystal-primary inline-flex items-center border border-transparent text-base font-medium shadow-sm focus:outline-none p-3 rounded-xl hover:bg-blue-500 hover:bg-opacity-80 w-fit h-fit hover:text-white;
   }
 
   input {
@@ -39,4 +53,36 @@ body {
   label {
       @apply inline-block;
     }
+
+  input[type='checkbox'] {
+    @apply w-4 h-4 text-blue-600 bg-primary-bg border-gray-300 rounded;
+  }
+
+.checkbox-container {
+  @apply relative block cursor-pointer select-none p-2;
+}
+
+.checkmark {
+  @apply w-5 h-5 bg-gray-300 absolute left-0 top-0 rounded transition duration-300 ease-in-out;
+}
+
+.checkbox-container:hover .checkmark {
+  @apply bg-gray-400;
+}
+
+.checkbox-container input:checked ~ .checkmark {
+  @apply bg-blue-500;
+}
+
+.checkmark:after {
+  @apply block content-center absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2;
+  content: "\2713"; /* Unicode for a checkmark */
+  display: none;
+  color: white;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+  display: block;
+}
+
 }

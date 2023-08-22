@@ -8,11 +8,11 @@
 </script>
 
 <div
-  class="h-[100vh] w-[100vw] flex flex-row bg-primary-bg max-w-[100vw] max-h-[100vh]"
+  class="h-[100vh] w-[100vw] flex flex-row bg-primary-bg max-w-[100vw] max-h-[100vh] overflow-hidden"
 >
-  <div class={'flex flex-row flex-1 w-full'}>
-    <Sidebar />
-    <main class={'flex justify-center items-center flex-1 p-4 max-w-full'}>
+  <Sidebar />
+  <div id="scrollableContainer" class="m-4 w-full overflow-y-auto max-h-full">
+    <main class={'flex justify-center items-center flex-1 max-w-full '}>
       <slot />
     </main>
   </div>

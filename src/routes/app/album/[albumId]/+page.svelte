@@ -26,7 +26,7 @@
 </script>
 
 <div
-  class="w-full bg-secondary-bg flex flex-col justify-start h-full rounded-xl"
+  class="w-full h-max bg-secondary-bg flex flex-col justify-start rounded-xl"
 >
   {#if album}
     <div class={`w-full flex flex-row p-8 gap-6 `}>

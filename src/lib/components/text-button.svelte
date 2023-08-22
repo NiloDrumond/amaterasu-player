@@ -6,14 +6,17 @@
     label: string;
     icon: IconProps['icon'];
     iconProps?: Omit<IconProps, 'icon'>;
+    size?: number;
   }
-  const { icon, iconProps } = $$props;
+  const { icon, iconProps, size } = $$props;
+  const width: number = size || 24;
+  const height: number = size || 24;
 </script>
 
 <button
   {...$$restProps}
   class={`flex flex-row gap-2 hover:text-white ${$$props.class}`}
 >
-  <Icon {...iconProps} {icon} width={24} height={24} />
+  <Icon {...iconProps} {icon} {width} {height} />
   <p>{label}</p>
 </button>

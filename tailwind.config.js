@@ -10,6 +10,19 @@ export default {
         'secondary-bg': '#16161e',
         primary: '#c0caf5',
         error: '#db4b4b',
+        gray: {
+          50: '#5a5b66', // This is a lighter shade of your provided color
+          100: '#4a4b56', // Slightly darker
+          200: '#3a3b46', // ...
+          300: '#2a2b36', // ...
+          400: '#23243e', // Almost halfway between the two provided colors
+          500: '#1a1b26', // Your provided color
+          600: '#18191e', // Slightly darker than your provided color
+          700: '#16161e', // Your other provided color
+          800: '#12131a', // Slightly darker than your other provided color
+          900: '#0e0f16', // The darkest shade of your provided color
+          950: '#0a0b12', // Even darker shade, just extending a bit more
+        },
         purple: {
           50: '#eda4dc',
           100: '#e991d5',

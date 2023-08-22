@@ -4,10 +4,13 @@
   interface $$Props extends HTMLButtonAttributes {
     icon: IconProps['icon'];
     iconProps?: Omit<IconProps, 'icon'>;
+    size?: number;
   }
-  const { icon, iconProps } = $$props;
+  const { icon, iconProps, size } = $$props;
+  export const width: number = size || 24;
+  export const height: number = size || 24;
 </script>
 
 <button {...$$restProps} on:click>
-  <Icon {...iconProps} {icon} width={24} height={24} />
+  <Icon {icon} {width} {height} {...iconProps} />
 </button>
