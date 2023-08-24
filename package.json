@@ -17,6 +17,7 @@
 		"@sveltejs/adapter-static": "^2.0.2",
 		"@sveltejs/kit": "^1.20.4",
 		"@types/cookie": "^0.5.1",
+		"@types/lodash": "^4.14.197",
 		"@typescript-eslint/eslint-plugin": "^6.2.0",
 		"@typescript-eslint/parser": "^6.2.0",
 		"autoprefixer": "^10.4.14",
@@ -39,6 +40,7 @@
 		"@fontsource/inter": "^5.0.5",
 		"@iconify/svelte": "^3.1.4",
 		"axios": "^1.4.0",
+		"lodash": "^4.17.21",
 		"zod": "^3.21.4"
 	}
 }

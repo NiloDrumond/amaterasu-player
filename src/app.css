@@ -46,7 +46,7 @@ body {
     @apply transition-all disabled:opacity-40 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-2 focus:ring-crystal-primary inline-flex items-center border border-transparent text-base font-medium shadow-sm focus:outline-none p-3 rounded-xl hover:bg-blue-500 hover:bg-opacity-80 w-fit h-fit hover:text-white;
   }
 
-  input {
+  input.minimal {
     @apply bg-transparent border-b border-b-primary p-2 focus:border-b-cyan-500 focus-visible:outline-none transition-colors;
   }
 

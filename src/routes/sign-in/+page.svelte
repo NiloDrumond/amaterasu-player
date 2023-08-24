@@ -3,6 +3,7 @@
   import { user } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
   import { signInSchema, type SignInErrors } from './data';
+  import { PUBLIC_WALLPAPER_COUNT } from '$env/static/public';
 
   let loading = false;
   let errors: SignInErrors = {};
@@ -31,10 +32,21 @@
   $: if ($user) {
     goto('/app');
   }
+  function getRandomWallpaper(): string {
+    let count;
+    try {
+      count = parseInt(PUBLIC_WALLPAPER_COUNT);
+    } catch (error) {
+      count = 1;
+    }
+    const index = Math.floor(Math.random() * count) + 1;
+    return `bg-wallpaper-${index}`;
+  }
+  const wallpaper = getRandomWallpaper();
 </script>
 
 <div
-  class="flex flex-col items-center justify-center w-full h-full bg-red-500 bg-wallpaper-1 bg-cover"
+  class={`flex flex-col items-center justify-center w-full h-full bg-red-500 bg-cover ${wallpaper}`}
 >
   <div
     class="flex flex-col gap-8 items-center bg-gray-500 p-8 rounded-xl border-2 border-primary bg-opacity-80"
@@ -43,7 +55,12 @@
     <form on:submit|preventDefault={validate} class="space-y-5">
       <div class="flex flex-col">
         <label class="mb-1" for="username"> Username </label>
-        <input name="username" type="text" bind:value={$signin.username} />
+        <input
+          name="username"
+          type="text"
+          bind:value={$signin.username}
+          class="minimal"
+        />
         {#if errors.username}
           <label class="mt-1 text-error" for="error">{errors.username[0]}</label
           >
@@ -51,7 +68,12 @@
       </div>
       <div class="flex flex-col">
         <label class="mb-1" for="password"> Password </label>
-        <input name="password" type="password" bind:value={$signin.password} />
+        <input
+          name="password"
+          type="password"
+          bind:value={$signin.password}
+          class="minimal"
+        />
         {#if errors.password}
           <label class="mt-1 text-error" for="error">{errors.password[0]}</label
           >

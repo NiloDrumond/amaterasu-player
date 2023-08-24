@@ -1,11 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/**/*.{html,js,svelte,ts}'],
+  safelist: ['bg-wallpaper-1', 'bg-wallpaper-2'],
   theme: {
     extend: {
       backgroundImage: {
-        'wallpaper-1': "url('/wallpapers/FFXIV4k.jpg')",
-        'wallpaper-2': "url('/wallpapers/Gris3.jpg')",
+        'wallpaper-1': "url('/wallpapers/wallpaper-1.jpg')",
+        'wallpaper-2': "url('/wallpapers/wallpaper-2.jpg')",
       },
       colors: {
         'crystal-primary': '#f26df9',
