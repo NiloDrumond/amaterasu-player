@@ -3,6 +3,10 @@ export default {
   content: ['./src/**/*.{html,js,svelte,ts}'],
   theme: {
     extend: {
+      backgroundImage: {
+        'wallpaper-1': "url('/wallpapers/FFXIV4k.jpg')",
+        'wallpaper-2': "url('/wallpapers/Gris3.jpg')",
+      },
       colors: {
         'crystal-primary': '#f26df9',
         'crystal-secondary': '#eb4b98',
