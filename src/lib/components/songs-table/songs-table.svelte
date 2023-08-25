@@ -91,7 +91,7 @@
         {#if additionalColumns.includes('album')}
           <th>ALBUM</th>
         {/if}
-        <th class="w-20 text-center"><Icon icon="mingcute:time-line" /></th>
+        <th class="w-20"><Icon class="mx-auto" icon="mingcute:time-line" /></th>
         {#if additionalColumns.includes('playCount')}
           <th>PLAYS</th>
         {/if}
