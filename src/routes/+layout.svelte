@@ -10,7 +10,7 @@
 </script>
 
 <div
-  class="h-[100vh] w-[100vw] bg-primary-bg flex items-center justify-center flex-col relative"
+  class="h-[100vh] w-[100vw] flex items-center justify-center flex-col relative"
 >
   <slot />
   <!-- <PlayerOverlay /> -->

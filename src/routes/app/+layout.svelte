@@ -8,7 +8,7 @@
 </script>
 
 <div
-  class="h-[100vh] w-[100vw] flex flex-row bg-primary-bg max-w-[100vw] max-h-[100vh] overflow-hidden"
+  class="h-[100vh] w-[100vw] flex flex-row max-w-[100vw] max-h-[100vh] overflow-hidden"
 >
   <Sidebar />
   <div id="scrollableContainer" class="m-4 w-full overflow-y-auto max-h-full">

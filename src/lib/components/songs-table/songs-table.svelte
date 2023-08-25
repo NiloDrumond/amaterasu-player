@@ -36,7 +36,7 @@
 <div>
   {#if $selected.length > 0}
     <div
-      class={'sticky h-0 z-10 top-20  w-full text-primary-bg left-0 flex flex-row gap-2 items-center'}
+      class={'sticky h-0 z-10 top-20  w-full  left-0 flex flex-row gap-2 items-center'}
     >
       <div class="relative w-full">
         <div

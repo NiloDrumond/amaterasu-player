@@ -16,7 +16,7 @@
   />
   <label
     for={id}
-    class="w-5 h-5 border-2 rounded-md border-primary bg-primary-bg block cursor-pointer transition-colors"
+    class="w-5 h-5 border-2 rounded-md border-primary block cursor-pointer transition-colors"
     aria-hidden="true"
   >
     <!-- SVG for the checkmark when the checkbox is checked -->

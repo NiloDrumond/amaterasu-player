@@ -9,7 +9,7 @@
 </script>
 
 <button
-  class="p-4 text-primary-bg rounded-full bg-crystal-primary hover:-translate-y-0.5 hover:text-black hover:bg-crystal-primary hover:drop-shadow-[0_0_10px_#DB48B9]"
+  class="p-4 rounded-full bg-crystal-primary hover:-translate-y-0.5 hover:text-black hover:bg-crystal-primary hover:drop-shadow-[0_0_10px_#DB48B9]"
   {...$$restProps}
   on:click
 >

@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import { signInSchema, type SignInErrors } from './data';
   import { PUBLIC_WALLPAPER_COUNT } from '$env/static/public';
+  import ThemePicker from '$lib/components/theme-picker.svelte';
 
   let loading = false;
   let errors: SignInErrors = {};
@@ -46,15 +47,23 @@
 </script>
 
 <div
-  class={`flex flex-col items-center justify-center w-full h-full bg-red-500 bg-cover ${wallpaper}`}
+  class={`flex flex-col items-center justify-center w-full h-full bg-cover ${wallpaper} relative`}
 >
+  <div class="absolute top-0 right-0 p-8">
+    <ThemePicker />
+  </div>
   <div
-    class="flex flex-col gap-8 items-center bg-gray-500 p-8 rounded-xl border-2 border-primary bg-opacity-80"
+    class="flex flex-col gap-8 items-center bg-slate-200 bg-opacity-50 p-8 rounded-xl border-2 border-slate-50 shadow-md dark:bg-gray-800 dark:bg-opacity-80"
   >
-    <h1 class="text-center text-crystal-primary">Welcome Home</h1>
+    <h1 class="text-center text-crystal">Welcome Home</h1>
     <form on:submit|preventDefault={validate} class="space-y-5">
-      <div class="flex flex-col">
-        <label class="mb-1" for="username"> Username </label>
+      <div class="flex flex-col group">
+        <label
+          class="mb-1 group-focus-within:text-crystal transition-all"
+          for="username"
+        >
+          Username
+        </label>
         <input
           name="username"
           type="text"
@@ -62,12 +71,18 @@
           class="minimal"
         />
         {#if errors.username}
-          <label class="mt-1 text-error" for="error">{errors.username[0]}</label
+          <label class="mt-1 text-red-600 dark:text-red-400" for="error"
+            >{errors.username[0]}</label
           >
         {/if}
       </div>
-      <div class="flex flex-col">
-        <label class="mb-1" for="password"> Password </label>
+      <div class="flex flex-col group">
+        <label
+          class="mb-1 group-focus-within:text-crystal transition-all"
+          for="password"
+        >
+          Password
+        </label>
         <input
           name="password"
           type="password"
@@ -75,17 +90,18 @@
           class="minimal"
         />
         {#if errors.password}
-          <label class="mt-1 text-error" for="error">{errors.password[0]}</label
+          <label class="mt-1 text-red-600 dark:text-red-400" for="error"
+            >{errors.password[0]}</label
           >
         {/if}
       </div>
       <button
         disabled={loading}
-        class="disabled:cursor-wait bg-crystal-primary text-gray-500 hover:text-gray-400 hover:bg-purple-700 w-full drop-shadow-xl"
+        class="disabled:cursor-wait bg-crystal text-slate-100 hover:text-slate-50 hover:bg-opacity-80 w-full shadow-md dark:text-gray-800"
         type="submit">Sign In</button
       >
       {#if errors.message}
-        <div class="text-red-500 p-1">{errors.message}</div>
+        <div class="text-red-600 dark:text-red-400 p-1">{errors.message}</div>
       {/if}
     </form>
   </div>

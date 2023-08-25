@@ -333,6 +333,11 @@
     svelte-hmr "^0.15.2"
     vitefu "^0.2.4"
 
+"@svelteuidev/composables@^0.15.3":
+  version "0.15.3"
+  resolved "https://registry.yarnpkg.com/@svelteuidev/composables/-/composables-0.15.3.tgz#57f64ff71c8ddfbf62d3eb477124ead83b56ea7c"
+  integrity sha512-Koa8oFH/jXXKeNqPxB56fvYBHBcCYgmC2jzKv826z6IAugMMBnc0w//nSmPLQUnhL60jg/5DbS5jzpofVnrR8w==
+
 "@types/cookie@^0.5.1":
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/@types/cookie/-/cookie-0.5.1.tgz#b29aa1f91a59f35e29ff8f7cb24faf1a3a750554"
