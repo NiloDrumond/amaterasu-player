@@ -7,11 +7,11 @@
 </script>
 
 <!-- TODO: add responsiveness to width -->
-<div class="w-[16.6667%] p-2 h-auto">
+<div class="w-[14.28%] p-2 h-auto">
   <div
-    class="bg-secondary-bg h-full overflow-hidden rounded-xl p-3 hover:bg-crystal-primary hover:bg-opacity-80 transition-all flex flex-col gap-2"
+    class="border border-slate-300 h-full overflow-hidden rounded-xl p-3 hover:bg-slate-200 hover:border-crystal hover:bg-opacity-80 transition-all flex flex-col shadow-sm"
   >
-    <div class="flex-1" />
+    <div class="flex-1 min-h-0" />
     <a href={`/app/album/${album.id}`}>
       <img
         alt={album.name}
@@ -21,12 +21,12 @@
     </a>
     <div class="flex-1" />
     <a href={`/app/album/${album.id}`}>
-      <p class="font-bold whitespace-nowrap text-ellipsis overflow-hidden">
+      <p class="font-bold whitespace-nowrap text-ellipsis overflow-hidden mt-2">
         {album.name}
       </p>
     </a>
     <a href={`/app/artist/${album.artistId}`}
-      ><p class="whitespace-nowrap text-ellipsis text-sm overflow-hidden">
+      ><p class="whitespace-nowrap text-ellipsis text-sm overflow-hidden mt-2">
         {album.artist}
       </p></a
     >

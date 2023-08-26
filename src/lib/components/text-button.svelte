@@ -13,10 +13,7 @@
   const height: number = size || 24;
 </script>
 
-<button
-  {...$$restProps}
-  class={`flex flex-row gap-2 hover:text-white ${$$props.class}`}
->
+<button {...$$restProps} class={`flex flex-row gap-2 ${$$props.class}`}>
   <Icon {...iconProps} {icon} {width} {height} />
   <p>{label}</p>
 </button>

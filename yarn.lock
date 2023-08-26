@@ -162,6 +162,11 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.44.0.tgz#961a5903c74139390478bdc808bcde3fc45ab7af"
   integrity sha512-Ag+9YM4ocKQx9AarydN0KY2j0ErMHNIocPDrVo8zAE44xLTjEtz81OdR68/cydGtk6m6jDb5Za3r2useMzYmSw==
 
+"@fontsource/arvo@^5.0.8":
+  version "5.0.8"
+  resolved "https://registry.yarnpkg.com/@fontsource/arvo/-/arvo-5.0.8.tgz#1da7ed454fc684738e89c2d7f72bae432e892a48"
+  integrity sha512-Y8WSELn8qlJbBlCGNY864GRc7mEu+fTKmAlXV5x2d5EB1yTMcyVCFTmXmuEKAbn5zkZBym/8JuyPGLrrkVO4VQ==
+
 "@fontsource/fira-mono@^4.5.10":
   version "4.5.10"
   resolved "https://registry.yarnpkg.com/@fontsource/fira-mono/-/fira-mono-4.5.10.tgz#443be4b2b4fc6e685b88431fcfdaf8d5f5639bbf"
