@@ -19,15 +19,11 @@ html.dark {
 
 
 @layer base {
- * {
-  @apply focus:ring-2 focus:ring-offset-0 focus:ring-crystal focus:outline-none focus-visible:outline-none;
-}
+/*  * { */
+/*   @apply focus:ring-2 focus:ring-offset-0 focus:ring-crystal focus:outline-none focus-visible:outline-none; */
+/* } */
 
-  html, label, p, input {
-    @apply text-text;
-  }
-
-  svg {
+  html {
     @apply text-text;
   }
 
@@ -69,7 +65,7 @@ button.ghost {
 }
 
   button.solid {
-    @apply disabled:opacity-40  bg-slate-100  border border-slate-400 hover:bg-slate-200  shadow-md dark:bg-gray-700 dark:border-gray-200 dark:hover:bg-gray-600;
+    @apply disabled:opacity-40  bg-slate-100  border border-slate-400 hover:bg-slate-200  shadow-md dark:bg-gray-700 dark:border-gray-950 dark:hover:bg-gray-600;
   }
 
   button.menu-item {
@@ -78,16 +74,11 @@ button.ghost {
 
 
   input.minimal {
-    @apply bg-transparent border-b border-b-slate-800 p-2 focus:border-b-crystal focus-visible:outline-none transition-colors;
-    @apply dark:border-b-gray-200;
+    @apply bg-transparent border-b-2 border-slate-800 dark:border-gray-200 p-2 focus:border-crystal dark:focus:border-crystal focus-visible:outline-none transition-colors;
   }
 
   label {
       @apply inline-block;
     }
-
-  input[type='checkbox'] {
-    @apply w-4 h-4 text-blue-600 border-gray-300 rounded;
-  }
 
 }

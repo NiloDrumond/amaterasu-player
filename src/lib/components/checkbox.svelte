@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Icon from '@iconify/svelte';
+
   const { key } = $$props;
   const id = 'checkbox' + key;
   export let checked: boolean;
@@ -8,7 +10,7 @@
 <div class="relative">
   <input
     type="checkbox"
-    class="hidden checkbox"
+    class="hidden checkbox peer"
     {id}
     {...$$restProps}
     on:change={onChange}
@@ -16,30 +18,15 @@
   />
   <label
     for={id}
-    class="w-5 h-5 border-2 rounded-md border-primary block cursor-pointer transition-colors"
+    class="w-5 h-5 border-2 rounded-md border-slate-300 cursor-pointer transition-colors flex items-center justify-center peer-checked:bg-crystal peer-checked:border-crystal"
     aria-hidden="true"
+    ><Icon
+      icon="mingcute:check-fill"
+      class={`m-auto text-slate-800 translate-y-[1px] ${
+        checked ? 'visible' : 'hidden'
+      }`}
+      width={14}
+      height={14}
+    /></label
   >
-    <!-- SVG for the checkmark when the checkbox is checked -->
-    <svg
-      class="hidden w-full h-full text-white pointer-events-none"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M20 6L9 17L4 12"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      ></path>
-    </svg>
-  </label>
 </div>
-
-<style>
-  /* When the checkbox is checked, change the border and background colors */
-  .checkbox:checked + label {
-    @apply border-crystal-primary bg-crystal-primary;
-  }
-</style>

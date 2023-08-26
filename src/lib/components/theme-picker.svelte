@@ -25,6 +25,10 @@
   }
   export let variant: 'ghost' | 'solid' = 'ghost';
   let open = false;
+  function handleChange(value: Theme) {
+    theme.setTheme(value);
+    open = false;
+  }
 </script>
 
 <div
@@ -36,21 +40,21 @@
   >
   {#if open}
     <div
-      class="absolute bg-slate-100 rounded-xl border border-slate-400 -right-4 top-[calc(100%_+_0.25rem)] overflow-hidden z-10 dark:bg-gray-800"
+      class="absolute bg-slate-100 rounded-xl border border-slate-400 -right-6 top-[calc(100%_+_1rem)] overflow-hidden z-10 dark:bg-gray-800 dark:border-gray-950"
     >
       <button
-        class="menu-item border-t border-t-slate-300"
-        on:click={() => theme.setTheme('dark')}
+        class="menu-item border-t border-slate-300 dark:border-gray-950"
+        on:click={() => handleChange('dark')}
         ><Icon width={18} height={18} icon={themeIcons.dark} />Dark</button
       >
       <button
-        class="menu-item border-t border-t-slate-300"
-        on:click={() => theme.setTheme('light')}
+        class="menu-item border-t border-slate-300 dark:border-gray-950"
+        on:click={() => handleChange('light')}
         ><Icon width={18} height={18} icon={themeIcons.light} />Light</button
       >
       <button
-        class="menu-item border-t border-t-slate-300"
-        on:click={() => theme.setTheme('system')}
+        class="menu-item border-t border-slate-300 dark:border-gray-950"
+        on:click={() => handleChange('system')}
         ><Icon width={18} height={18} icon={themeIcons.system} />System</button
       >
     </div>

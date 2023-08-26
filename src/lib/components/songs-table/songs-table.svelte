@@ -5,7 +5,7 @@
   import IconButton from '../icon-button.svelte';
   import Checkbox from '../checkbox.svelte';
   import { selected } from './store';
-  import TextButton from '../text-button.svelte';
+  import SelectedToolbar from './selected-toolbar.svelte';
 
   export let songs: NDSong[];
   export let additionalColumns: Array<'album' | 'artist' | 'playCount'> = [];
@@ -20,10 +20,6 @@
     });
   }
 
-  function handleDeselectAll() {
-    selected.set([]);
-  }
-
   function handleToggleSong(id: string) {
     if ($selected.includes(id)) {
       selected.update((ids) => ids.filter((i) => i !== id));
@@ -35,47 +31,13 @@
 
 <div>
   {#if $selected.length > 0}
-    <div
-      class={'sticky h-0 z-10 top-20  w-full  left-0 flex flex-row gap-2 items-center'}
-    >
-      <div class="relative w-full">
-        <div
-          class="absolute h-20 -top-20 w-full flex flex-row items-center bg-crystal-primary rounded-tl-lg rounded-tr-lg py-4 px-2 gap-2"
-        >
-          <IconButton size={20} icon="ph:x" on:click={handleDeselectAll} />
-          <p>{$selected.length} items selected</p>
-          <div class="flex-1" />
-          <TextButton
-            class="font-normal"
-            size={16}
-            label="PLAY NOW"
-            icon="mingcute:play-fill"
-          />
-          <TextButton
-            class="font-normal"
-            size={16}
-            label="PLAY NEXT"
-            icon="iconamoon:playlist"
-          />
-          <TextButton
-            class="font-normal"
-            size={16}
-            label="PLAY LATER"
-            icon="ph:list-plus-bold"
-          />
-          <TextButton
-            class="font-normal"
-            size={16}
-            label="ADD TO PLAYLIST"
-            icon="ph:music-notes-plus-bold"
-          />
-        </div>
-      </div>
-    </div>
+    <SelectedToolbar />
   {/if}
   <table class="w-full border-collapse">
     <thead>
-      <tr class="bg-gray-700 border-b border-crystal-primary h-16">
+      <tr
+        class="bg-slate-200 dark:bg-gray-800 border-b dark:border-gray-950 h-16"
+      >
         <th class="w-10 pl-4 text-center"
           ><Checkbox
             checked={$selected.length === songs.length}
@@ -95,12 +57,14 @@
         {#if additionalColumns.includes('playCount')}
           <th>PLAYS</th>
         {/if}
-        <th> </th>
+        <th class="w-10"> </th>
       </tr>
     </thead>
     <tbody>
       {#each songs as song}
-        <tr class="cursor-pointer hover:bg-gray-500 transition-all">
+        <tr
+          class="cursor-pointer hover:bg-slate-200 hover:bg-opacity-50 dark:hover:bg-gray-700 transition-all"
+        >
           <td class="text-center pl-4"
             ><Checkbox
               checked={$selected.includes(song.id)}

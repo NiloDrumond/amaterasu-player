@@ -5,10 +5,8 @@
   import type { NDAlbum } from '$lib/navidrome/types';
   import { onMount } from 'svelte';
   import { formatDuration, formatFileSize } from '$lib/utils/format';
-  import IconButton from '$lib/components/icon-button.svelte';
-  import PlayButton from '$lib/components/play-button.svelte';
-  import TextButton from '$lib/components/text-button.svelte';
   import Songs from './songs.svelte';
+  import Icon from '@iconify/svelte';
 
   const albumId = $page.params.albumId;
   let album: NDAlbum | undefined = undefined;
@@ -26,7 +24,7 @@
 </script>
 
 <div
-  class="w-full h-max bg-secondary-bg flex flex-col justify-start rounded-xl"
+  class="w-full h-max border border-slate-300 dark:bg-gray-900 flex flex-col justify-start rounded-xl shadow-xl dark:border-gray-950"
 >
   {#if album}
     <div class={`w-full flex flex-row p-8 gap-6 `}>
@@ -56,12 +54,34 @@
           {/if}
         </div>
         <div class="flex-1" />
-        <div class="flex flex-row gap-4 items-center">
-          <PlayButton icon="mingcute:play-fill" />
-          <IconButton icon="ph:shuffle-angular-bold" />
-          <TextButton label="PLAY NEXT" icon="iconamoon:playlist" />
-          <TextButton label="PLAY LATER" icon="ph:list-plus-bold" />
-          <TextButton label="ADD TO PLAYLIST" icon="ph:music-notes-plus-bold" />
+        <div class="flex flex-row gap-2 items-center">
+          <button
+            class="rounded-full p-4 bg-crystal hover:scale-105 hover:-translate-y-1 hover:drop-shadow-[0_0_4px_#eb4b98] dark:hover:drop-shadow-[0_0_10px_#f26df9]"
+          >
+            <Icon
+              icon="mingcute:play-fill"
+              class="text-gray-950"
+              width={26}
+              height={26}
+            />
+          </button>
+          <button class="ghost">
+            <Icon
+              icon="ph:shuffle-angular-bold"
+              width={20}
+              height={20}
+            />SHUFFLE
+          </button>
+          <button class="ghost"
+            ><Icon width={18} height={18} icon="iconamoon:playlist" />PLAY NEXT
+          </button>
+          <button class="ghost"
+            ><Icon width={18} height={18} icon="ph:list-plus-bold" />PLAY LATER
+          </button>
+          <button class="ghost"
+            ><Icon width={18} height={18} icon="ph:music-notes-plus-bold" />ADD
+            TO PLAYLIST
+          </button>
         </div>
       </div>
     </div>
