@@ -21,7 +21,7 @@
 
 <div class="w-full flex flex-col">
   <div
-    class="mx-2 mb-2 px-3 py-2 flex flex-row sticky top-0 border border-slate-300 bg-slate-100 shadow-lg rounded-xl items-center"
+    class="mx-2 mb-2 px-3 py-2 flex flex-row sticky top-0 border border-slate-300 bg-slate-100 shadow-lg rounded-xl items-center dark:bg-gray-900 dark:border-gray-950"
   >
     <SearchInput onChange={albumListParams.setName} />
     <div class="flex-1" />

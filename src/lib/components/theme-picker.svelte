@@ -23,7 +23,7 @@
       }
     }
   }
-  export const solid = false;
+  export let variant: 'ghost' | 'solid' = 'ghost';
   let open = false;
 </script>
 
@@ -31,12 +31,12 @@
   class="relative"
   use:clickoutside={{ enabled: open, callback: () => (open = false) }}
 >
-  <button class={solid ? 'solid' : 'ghost'} on:click={() => (open = !open)}
+  <button class={variant} on:click={() => (open = !open)}
     ><Icon width={18} height={18} icon={getIcon($theme)} /></button
   >
   {#if open}
     <div
-      class="absolute bg-slate-100 rounded-xl border border-slate-400 -right-4 top-[calc(100%_+_0.25rem)] overflow-hidden z-10"
+      class="absolute bg-slate-100 rounded-xl border border-slate-400 -right-4 top-[calc(100%_+_0.25rem)] overflow-hidden z-10 dark:bg-gray-800"
     >
       <button
         class="menu-item border-t border-t-slate-300"

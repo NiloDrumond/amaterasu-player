@@ -11,7 +11,7 @@
 </script>
 
 <div
-  class="h-[100vh] w-[100vw] flex items-center justify-center flex-col relative bg-slate-100"
+  class="h-[100vh] w-[100vw] flex items-center justify-center flex-col relative bg-slate-100 dark:bg-gray-800"
 >
   <slot />
 </div>

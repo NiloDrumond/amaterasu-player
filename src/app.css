@@ -65,7 +65,7 @@ button {
   }
 
 button.ghost {
-  @apply hover:bg-slate-200;
+  @apply hover:bg-slate-200 dark:hover:bg-gray-600;
 }
 
   button.solid {
@@ -73,7 +73,7 @@ button.ghost {
   }
 
   button.menu-item {
-      @apply hover:bg-slate-200 w-full rounded-none;
+      @apply hover:bg-slate-200 w-full rounded-none dark:hover:bg-gray-600;
     }
 
 

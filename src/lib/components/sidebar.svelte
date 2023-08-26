@@ -3,7 +3,7 @@
 </script>
 
 <aside
-  class={'flex flex-col bg-secondary-bg items-start border-r border-r-slate-300 shadow-md min-w-[8rem]'}
+  class={'flex flex-col bg-secondary-bg items-start border-r border-slate-300 shadow-md min-w-[8rem] dark:border-gray-950 dark:bg-gray-900 dark:shadow-none'}
 >
   <section class={'flex flex-col items-center w-full'}>
     <a href="/app/album" class="w-full">

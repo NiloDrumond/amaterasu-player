@@ -9,7 +9,7 @@
 <!-- TODO: add responsiveness to width -->
 <div class="w-[14.28%] p-2 h-auto">
   <div
-    class="border border-slate-300 h-full overflow-hidden rounded-xl p-3 hover:bg-slate-200 hover:border-crystal hover:bg-opacity-80 transition-all flex flex-col shadow-sm"
+    class="border border-slate-300 h-full overflow-hidden rounded-xl p-3 hover:bg-slate-200 hover:border-crystal hover:bg-opacity-80 transition-all flex flex-col shadow-sm dark:border-gray-950 dark:bg-gray-900 dark:hover:bg-gray-800 dark:hover:border-crystal-primary"
   >
     <div class="flex-1 min-h-0" />
     <a href={`/app/album/${album.id}`}>

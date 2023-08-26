@@ -50,7 +50,7 @@
   class={`flex flex-col items-center justify-center w-full h-full bg-cover ${wallpaper} relative`}
 >
   <div class="absolute top-0 right-0 p-8">
-    <ThemePicker />
+    <ThemePicker variant="solid" />
   </div>
   <div
     class="flex flex-col gap-8 items-center bg-slate-200 bg-opacity-50 p-8 rounded-xl border-2 border-slate-50 shadow-md dark:bg-gray-800 dark:bg-opacity-80"

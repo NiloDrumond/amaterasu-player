@@ -5,7 +5,9 @@
   import Logo from './logo.svelte';
 </script>
 
-<header class="p-2 flex flex-row border-b border-slate-300 shadow-md gap-2">
+<header
+  class="p-2 flex flex-row border-b border-slate-300 shadow-md gap-2 dark:border-gray-950 dark:bg-gray-900 dark:shadow-none"
+>
   <Logo />
   <div class="flex-1" />
   <ThemePicker />
