@@ -43,6 +43,7 @@ function createUser() {
 }
 
 export const user = createUser();
+
 user.subscribe((val) => {
   if (val) {
     localStorage.setItem('user', JSON.stringify(val));

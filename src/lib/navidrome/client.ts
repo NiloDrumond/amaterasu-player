@@ -10,6 +10,8 @@ import type {
   NDSongListParams,
 } from './types';
 
+const COMMON_SUBSONIC_PARAMS = `&v=1.13.0` + `&f=json` + `&c=AmaterasuPlayer`;
+
 class NDClient {
   private api: AxiosHelper;
   private subsonicCredential: string | null;
@@ -89,9 +91,17 @@ class NDClient {
       `?${this.subsonicCredential}` +
       `&id=${args.coverArtId}` +
       `&size=${size}` +
-      `&v=1.13.0` +
-      `&f=json` +
-      `&c=AmaterasuPlayer`
+      COMMON_SUBSONIC_PARAMS
+    );
+  }
+
+  public getSongStreamUrl(args: { songId: string }) {
+    const baseUrl = this.api.prepareUrl('/rest/stream');
+    return (
+      baseUrl +
+      `?${this.subsonicCredential}` +
+      `&id=${args.songId}` +
+      COMMON_SUBSONIC_PARAMS
     );
   }
 

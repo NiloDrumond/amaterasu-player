@@ -30,7 +30,7 @@
     <div class={`w-full flex flex-row p-8 gap-6 `}>
       <img src={coverArtUrl} alt={album.name} class="shadow-xl" />
       <div class="flex flex-col">
-        <h1 class="py-4">{album.name}</h1>
+        <h2 class="py-4">{album.name}</h2>
         <h4>{album.artist}</h4>
         <div class="flex flex-row gap-2">
           {#if album.minYear !== album.maxYear}

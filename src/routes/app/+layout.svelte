@@ -1,6 +1,6 @@
 <script lang="ts">
   import Header from '$lib/components/header.svelte';
-  import PlayerOverlay from '$lib/components/player-overlay.svelte';
+  import PlayerOverlay from '$lib/components/player/player-overlay.svelte';
   import Sidebar from '$lib/components/sidebar.svelte';
   import { user } from '$lib/stores/auth';
 

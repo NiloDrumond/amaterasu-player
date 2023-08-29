@@ -24,7 +24,7 @@ html.dark {
 /* } */
 
   html {
-    @apply text-text;
+    @apply text-text text-sm;
   }
 
   th {
@@ -44,17 +44,21 @@ html.dark {
     @apply text-4xl font-bold;
   }
   h2 {
-    @apply text-3xl font-semibold;
+    @apply text-2xl font-semibold;
   }
   h3 {
-    @apply text-2xl;
-  }
-  h4 {
     @apply text-xl;
   }
-  h5 {
+  h4 {
     @apply text-lg;
   }
+  h5 {
+    @apply text-sm;
+  }
+
+p {
+  @apply text-sm;
+}
 
 button {
  @apply transition-all disabled:cursor-not-allowed rounded-lg   p-3 flex flex-row gap-2 items-center;
@@ -81,4 +85,9 @@ button.ghost {
       @apply inline-block;
     }
 
+}
+@layer utilities {
+   .pause-animation {
+     animation-play-state: paused;
+   }
 }

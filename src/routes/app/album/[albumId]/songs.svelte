@@ -13,6 +13,7 @@
       album_id: albumId,
       ...DEFAULT_ALBUM_SONG_LIST_QUERY,
     });
+    console.log(songs);
   });
 </script>
 
