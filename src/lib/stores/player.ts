@@ -1,5 +1,6 @@
+import { ndClient } from '$lib/navidrome/client';
 import type { NDSong } from '$lib/navidrome/types';
-import { derived, writable } from 'svelte/store';
+import { derived, get, writable } from 'svelte/store';
 
 type AudioPlayerStore = {
   duration: number;
@@ -29,23 +30,26 @@ function createAudioPlayer() {
 }
 
 export const audioPlayer = createAudioPlayer();
-export const effectiveVolume = derived(audioPlayer, ($audioPlayer) => {
-  if ($audioPlayer.muted) return 0;
-  return $audioPlayer.volume;
-});
 
 type PlayerQueueStore = {
   currentSongIdx: number;
   queue: NDSong[];
+  repeat: 'no' | 'all' | 'one';
 };
 function createPlayerQueue() {
-  const { subscribe, set, update } = writable<PlayerQueueStore>({
+  const store = writable<PlayerQueueStore>({
     queue: [],
     currentSongIdx: -1,
+    repeat: 'no',
   });
+  const { subscribe, update } = store;
 
   function setQueue(queue: NDSong[], songIdx?: number) {
-    set({ currentSongIdx: songIdx === undefined ? 0 : songIdx, queue: queue });
+    update((prev) => ({
+      ...prev,
+      currentSongIdx: songIdx === undefined ? 0 : songIdx,
+      queue: queue,
+    }));
     audioPlayer.onChangeSong();
     audioPlayer.startPlaying();
   }
@@ -68,14 +72,18 @@ function createPlayerQueue() {
     }
   }
 
-  function nextSong() {
+  function nextSong(): NDSong | undefined {
+    let changed = false;
     update((prev) => {
       if (prev.currentSongIdx + 1 >= prev.queue.length) {
         return prev;
       }
+      changed = true;
       audioPlayer.onChangeSong();
       return { ...prev, currentSongIdx: prev.currentSongIdx + 1 };
     });
+    if (!changed) return undefined;
+    return get(store).queue[get(store).currentSongIdx];
   }
 
   function previousSong() {
@@ -105,4 +113,11 @@ export const currentSong = derived(playerQueue, ($playerQueue) => {
   )
     return undefined;
   return $playerQueue.queue[$playerQueue.currentSongIdx];
+});
+
+export const currentStreamUrl = derived(currentSong, ($currentSong) => {
+  if (!$currentSong) return undefined;
+  return ndClient.getSongStreamUrl({
+    songId: $currentSong.id,
+  });
 });

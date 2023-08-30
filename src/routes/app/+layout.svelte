@@ -3,6 +3,7 @@
   import PlayerOverlay from '$lib/components/player/player-overlay.svelte';
   import Sidebar from '$lib/components/sidebar.svelte';
   import { user } from '$lib/stores/auth';
+  import { currentSong } from '$lib/stores/player';
 
   $: if (!$user) {
     user.signOut();
@@ -19,7 +20,7 @@
       <section class={'flex justify-center items-center flex-1 max-w-full '}>
         <slot />
       </section>
-      <div class="h-40" />
+      <div class={$currentSong ? 'h-40' : 'h-20'} />
     </div>
   </main>
   <PlayerOverlay />

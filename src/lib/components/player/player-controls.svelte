@@ -2,21 +2,30 @@
   import Icon from '@iconify/svelte';
   import type { PointerEventHandler } from 'svelte/elements';
   import { formatDuration } from '$lib/utils/format';
-  import { audioPlayer, playerQueue } from '$lib/stores/player';
+  import { audioPlayer, currentSong, playerQueue } from '$lib/stores/player';
   import { createEventDispatcher } from 'svelte';
 
   const dispatch = createEventDispatcher<{ draggingtimeline: boolean }>();
 
+  let songChanged = false;
+  $: if ($currentSong) {
+    songChanged = true;
+  }
   export let isDragging = false;
   let movedProgress = false;
   function handlePointerDownProgress(
     e: Parameters<PointerEventHandler<HTMLDivElement>>[0],
   ) {
+    songChanged = false;
     isDragging = true;
     dispatch('draggingtimeline', true);
     const div = e.currentTarget;
 
     function seek(e: PointerEvent) {
+      if (songChanged) {
+        window.removeEventListener('pointermove', seek);
+        return;
+      }
       const { left, width } = div.getBoundingClientRect();
 
       let p = (e.clientX - left) / width;

@@ -1,11 +1,7 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
   import type { PointerEventHandler } from 'svelte/elements';
-  import {
-    audioPlayer,
-    effectiveVolume,
-    playerQueue,
-  } from '$lib/stores/player';
+  import { audioPlayer, playerQueue } from '$lib/stores/player';
 
   let isDragging = false;
   let movedProgress = false;
@@ -43,6 +39,8 @@
       },
     );
   }
+  let effectiveVolume: number;
+  $: effectiveVolume = $audioPlayer.muted ? 0 : $audioPlayer.volume;
 </script>
 
 <section class="flex flex-col justify-between items-end gap-2 pr-2 mb-1">
@@ -66,7 +64,7 @@
       on:click={() => ($audioPlayer.muted = !$audioPlayer.muted)}
     >
       <Icon
-        icon={$effectiveVolume > 0
+        icon={effectiveVolume > 0
           ? 'mingcute:volume-fill'
           : 'mingcute:volume-mute-fill'}
         width={18}
@@ -81,13 +79,13 @@
         class="h-1.5 rounded-full group-hover:bg-crystal {isDragging
           ? 'bg-crystal'
           : 'bg-slate-600 dark:bg-gray-100'}"
-        style="width: {$effectiveVolume * 100}%"
+        style="width: {effectiveVolume * 100}%"
       ></div>
       <div
         class="absolute opacity-0 w-3 h-3 group-hover:bg-crystal group-hover:opacity-100 rounded-full z-10 -top-1 -translate-x-[75%] {isDragging
           ? 'bg-crystal opacity-100'
           : 'bg-slate-600 dark:bg-gray-100 opacity-0'}"
-        style="left: calc({$effectiveVolume * 100}% + 0.25rem);"
+        style="left: calc({effectiveVolume * 100}% + 0.25rem);"
       />
     </div>
   </div>
