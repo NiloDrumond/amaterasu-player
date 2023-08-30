@@ -6,7 +6,7 @@
   import Checkbox from '../checkbox.svelte';
   import { selected } from './store';
   import SelectedToolbar from './selected-toolbar.svelte';
-  import { player } from '$lib/stores/player';
+  import { playerQueue } from '$lib/stores/player';
 
   export let songs: NDSong[];
   export let additionalColumns: Array<'album' | 'artist' | 'playCount'> = [];
@@ -29,8 +29,8 @@
     }
   }
 
-  function handleSelectSong(song: NDSong) {
-    player.selectSong(song);
+  function handleSelectSong(idx: number) {
+    playerQueue.setQueue(songs, idx);
   }
 </script>
 
@@ -66,9 +66,9 @@
       </tr>
     </thead>
     <tbody>
-      {#each songs as song}
+      {#each songs as song, index}
         <tr
-          on:click={() => handleSelectSong(song)}
+          on:click={() => handleSelectSong(index)}
           class="cursor-pointer hover:bg-slate-200 hover:bg-opacity-50 dark:hover:bg-gray-700 transition-all"
         >
           <td class="text-center pl-4"
