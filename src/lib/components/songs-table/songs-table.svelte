@@ -6,7 +6,7 @@
   import Checkbox from '../checkbox.svelte';
   import { selected } from './store';
   import SelectedToolbar from './selected-toolbar.svelte';
-  import { playerQueue } from '$lib/stores/player';
+  import { playerQueue } from '$lib/stores/player-queue';
 
   export let songs: NDSong[];
   export let additionalColumns: Array<'album' | 'artist' | 'playCount'> = [];

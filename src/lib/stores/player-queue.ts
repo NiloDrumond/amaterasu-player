@@ -1,35 +1,7 @@
 import { ndClient } from '$lib/navidrome/client';
 import type { NDSong } from '$lib/navidrome/types';
 import { derived, get, writable } from 'svelte/store';
-
-type AudioPlayerStore = {
-  duration: number;
-  currentTime: number;
-  paused: boolean;
-  volume: number;
-  muted: boolean;
-};
-function createAudioPlayer() {
-  const { subscribe, set, update } = writable<AudioPlayerStore>({
-    duration: 0,
-    currentTime: 0,
-    paused: true,
-    volume: 0.5,
-    muted: false,
-  });
-
-  function onChangeSong() {
-    update((prev) => ({ ...prev, currentTime: 0 }));
-  }
-
-  function startPlaying() {
-    update((prev) => ({ ...prev, paused: false }));
-  }
-
-  return { subscribe, set, update, onChangeSong, startPlaying };
-}
-
-export const audioPlayer = createAudioPlayer();
+import { audioPlayer } from './audio';
 
 type PlayerQueueStore = {
   currentSongIdx: number;
@@ -72,6 +44,14 @@ function createPlayerQueue() {
     }
   }
 
+  function selectSong(idx: number) {
+    const different = get(store).currentSongIdx !== idx;
+    if (different) {
+      update((prev) => ({ ...prev, currentSongIdx: idx }));
+      audioPlayer.onChangeSong();
+    }
+  }
+
   function nextSong(): NDSong | undefined {
     let changed = false;
     update((prev) => {
@@ -96,12 +76,26 @@ function createPlayerQueue() {
     });
   }
 
+  function clearQueue() {
+    update((prev) => ({ ...prev, currentSongIdx: -1, queue: [] }));
+    audioPlayer.update((prev) => ({ ...prev, paused: true }));
+  }
+
+  function reorderQueue(queue: NDSong[]) {
+    const currentSongId = get(store).queue[get(store).currentSongIdx].id;
+    const newIdx = queue.findIndex((song) => song.id === currentSongId);
+    update((prev) => ({ ...prev, queue, currentSongIdx: newIdx }));
+  }
+
   return {
     addToQueue,
     subscribe,
     setQueue,
     nextSong,
     previousSong,
+    clearQueue,
+    reorderQueue,
+    selectSong,
   };
 }
 

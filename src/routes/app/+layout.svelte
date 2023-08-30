@@ -1,9 +1,11 @@
 <script lang="ts">
   import Header from '$lib/components/header.svelte';
+  import PlayQueue from '$lib/components/play-queue.svelte';
   import PlayerOverlay from '$lib/components/player/player-overlay.svelte';
   import Sidebar from '$lib/components/sidebar.svelte';
   import { user } from '$lib/stores/auth';
-  import { currentSong } from '$lib/stores/player';
+  import { currentSong } from '$lib/stores/player-queue';
+  import { showPlayQueue } from '$lib/stores/ui';
 
   $: if (!$user) {
     user.signOut();
@@ -23,5 +25,8 @@
       <div class={$currentSong ? 'h-40' : 'h-20'} />
     </div>
   </main>
+  {#if $showPlayQueue}
+    <PlayQueue />
+  {/if}
   <PlayerOverlay />
 </div>

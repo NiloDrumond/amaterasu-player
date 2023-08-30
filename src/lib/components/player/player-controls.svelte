@@ -2,8 +2,9 @@
   import Icon from '@iconify/svelte';
   import type { PointerEventHandler } from 'svelte/elements';
   import { formatDuration } from '$lib/utils/format';
-  import { audioPlayer, currentSong, playerQueue } from '$lib/stores/player';
+  import { currentSong, playerQueue } from '$lib/stores/player-queue';
   import { createEventDispatcher } from 'svelte';
+  import { audioPlayer } from '$lib/stores/audio';
 
   const dispatch = createEventDispatcher<{ draggingtimeline: boolean }>();
 

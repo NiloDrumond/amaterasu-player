@@ -1,14 +1,14 @@
 <script lang="ts">
   import {
     currentSong,
-    audioPlayer,
     playerQueue,
     currentStreamUrl,
-  } from '$lib/stores/player';
+  } from '$lib/stores/player-queue';
   import PlayerControls from './player-controls.svelte';
   import { ndClient } from '$lib/navidrome/client';
   import PlayerOptions from './player-options.svelte';
   import type { EventHandler } from 'svelte/elements';
+  import { audioPlayer } from '$lib/stores/audio';
 
   let isDraggingTimeline = false;
   function handleDraggingTimeline(e: CustomEvent<boolean>) {
@@ -17,8 +17,7 @@
   function handleEnded(
     e: Parameters<EventHandler<Event, HTMLAudioElement>>[0],
   ) {
-    // NOTE:
-    // This needs to be manual otherwise it will fail because of "no auto-play policy"
+    // NOTE: This needs to be manual otherwise it will fail because of "no auto-play policy"
     const song = playerQueue.nextSong();
     if (song) {
       e.currentTarget.src = ndClient.getSongStreamUrl({ songId: song.id });
@@ -48,7 +47,7 @@
 />
 {#if $currentSong}
   <div
-    class="sticky bottom-0 gap-4 left-0 h-24 bg-slate-200 bg-opacity-90 border-t border-slate-300 w-full grid grid-cols-3 dark:bg-gray-900 dark:bg-opacity-90 dark:border-gray-950 p-2"
+    class="sticky bottom-0 gap-4 left-0 h-24 transparent border-t w-full grid grid-cols-3 p-2"
   >
     <section
       class="flex justify-start items-center gap-3 max-h-full overflow-y-hidden"

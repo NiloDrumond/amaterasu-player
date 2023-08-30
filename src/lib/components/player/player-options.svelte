@@ -1,7 +1,9 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
   import type { PointerEventHandler } from 'svelte/elements';
-  import { audioPlayer, playerQueue } from '$lib/stores/player';
+  import { playerQueue } from '$lib/stores/player-queue';
+  import { showPlayQueue } from '$lib/stores/ui';
+  import { audioPlayer } from '$lib/stores/audio';
 
   let isDragging = false;
   let movedProgress = false;
@@ -49,12 +51,15 @@
       <Icon icon="ph:music-notes-plus-bold" width={20} height={20} />
     </button>
     <div class="flex flex-row items-center gap-1">
-      <button class="hover:text-crystal p-0">
+      <button
+        class="hover:text-crystal p-0"
+        on:click={() => ($showPlayQueue = !$showPlayQueue)}
+      >
         <Icon icon="ph:list-bold" width={20} height={20} />
       </button>
       {$playerQueue.queue.length}
     </div>
-    <button class="hover:text-crystal p-0">
+    <button class="hover:text-crystal p-0" on:click={playerQueue.clearQueue}>
       <Icon icon="ph:x-bold" width={20} height={20} />
     </button>
   </div>
