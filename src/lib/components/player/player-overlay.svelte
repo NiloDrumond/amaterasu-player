@@ -11,25 +11,19 @@
   import type { EventHandler } from 'svelte/elements';
 
   let isDraggingTimeline = false;
-  let audioEnded = false;
-  $: if ($currentSong) {
-    audioEnded = false;
-  }
   function handleDraggingTimeline(e: CustomEvent<boolean>) {
     isDraggingTimeline = e.detail;
   }
   function handleEnded(
     e: Parameters<EventHandler<Event, HTMLAudioElement>>[0],
   ) {
+    // NOTE:
+    // This needs to be manual otherwise it will fail because of "no auto-play policy"
     const song = playerQueue.nextSong();
     if (song) {
       e.currentTarget.src = ndClient.getSongStreamUrl({ songId: song.id });
       e.currentTarget.play();
     }
-  }
-  $: if (audioEnded && !isDraggingTimeline) {
-    audioEnded = false;
-    playerQueue.nextSong();
   }
 </script>
 
