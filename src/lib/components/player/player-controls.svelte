@@ -3,13 +3,17 @@
   import type { PointerEventHandler } from 'svelte/elements';
   import { formatDuration } from '$lib/utils/format';
   import { audioPlayer, playerQueue } from '$lib/stores/player';
+  import { createEventDispatcher } from 'svelte';
 
-  let isDragging = false;
+  const dispatch = createEventDispatcher<{ draggingtimeline: boolean }>();
+
+  export let isDragging = false;
   let movedProgress = false;
   function handlePointerDownProgress(
     e: Parameters<PointerEventHandler<HTMLDivElement>>[0],
   ) {
     isDragging = true;
+    dispatch('draggingtimeline', true);
     const div = e.currentTarget;
 
     function seek(e: PointerEvent) {
@@ -34,6 +38,7 @@
         if (!movedProgress) seek(e);
         movedProgress = false;
         isDragging = false;
+        dispatch('draggingtimeline', false);
       },
       {
         once: true,

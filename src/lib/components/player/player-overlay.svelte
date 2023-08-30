@@ -3,21 +3,34 @@
     currentSong,
     audioPlayer,
     effectiveVolume,
+    playerQueue,
   } from '$lib/stores/player';
   import PlayerControls from './player-controls.svelte';
   import { ndClient } from '$lib/navidrome/client';
   import PlayerOptions from './player-options.svelte';
 
   let streamUrl: string | undefined;
+  let isDraggingTimeline = false;
+  let audioEnded = false;
+  let audioElement: HTMLAudioElement;
   $: if ($currentSong) {
     streamUrl = ndClient.getSongStreamUrl({
       songId: $currentSong.id,
     });
+    audioEnded = false;
+  }
+  function handleDraggingTimeline(e: CustomEvent<boolean>) {
+    isDraggingTimeline = e.detail;
+  }
+  $: if (audioEnded && !isDraggingTimeline) {
+    playerQueue.nextSong();
+    audioEnded = false;
   }
 </script>
 
 {#if $currentSong}
   <audio
+    bind:this={audioElement}
     src={streamUrl}
     bind:paused={$audioPlayer.paused}
     bind:currentTime={$audioPlayer.currentTime}
@@ -25,12 +38,16 @@
     on:loadstart={() => {
       $audioPlayer.duration = 0;
     }}
+    on:canplaythrough={(e) => {
+      if (!$audioPlayer.paused) {
+        e.currentTarget.play();
+      }
+    }}
     on:loadedmetadata={(e) => {
       $audioPlayer.duration = e.currentTarget.duration;
     }}
     on:ended={() => {
-      // TODO: HANDLE DRAG
-      // currentTime = 0;
+      audioEnded = true;
     }}
   />
   <div
@@ -51,7 +68,10 @@
         <p>{$currentSong.artist} - {$currentSong.album}</p>
       </div>
     </section>
-    <PlayerControls />
+    <PlayerControls
+      on:draggingtimeline={handleDraggingTimeline}
+      bind:isDragging={isDraggingTimeline}
+    />
     <PlayerOptions />
   </div>
 {/if}
