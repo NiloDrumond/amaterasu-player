@@ -23,9 +23,7 @@
   }
 </script>
 
-<div
-  class="w-full h-max border border-slate-300 dark:bg-gray-900 flex flex-col justify-start rounded-xl shadow-xl dark:border-gray-950"
->
+<div class="card">
   {#if album}
     <div class={`w-full flex flex-row p-8 gap-6 `}>
       <img src={coverArtUrl} alt={album.name} class="shadow-xl" />

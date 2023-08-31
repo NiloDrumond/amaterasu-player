@@ -97,7 +97,7 @@
       </div>
       <button
         disabled={loading}
-        class="disabled:cursor-wait bg-crystal text-slate-100 hover:text-slate-50 hover:bg-opacity-80 w-full shadow-md dark:text-gray-800"
+        class="p-3 rounded-lg disabled:cursor-wait bg-crystal text-slate-100 hover:text-slate-50 hover:bg-opacity-80 w-full shadow-md dark:text-gray-800"
         type="submit">Sign In</button
       >
       {#if errors.message}

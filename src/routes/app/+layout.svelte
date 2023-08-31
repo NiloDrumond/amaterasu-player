@@ -5,11 +5,14 @@
   import Sidebar from '$lib/components/sidebar.svelte';
   import { user } from '$lib/stores/auth';
   import { currentSong } from '$lib/stores/player-queue';
+  import { scan } from '$lib/stores/scan';
   import { showPlayQueue } from '$lib/stores/ui';
 
   $: if (!$user) {
     user.signOut();
   }
+  scan.loadStatus();
+  scan.fetchStatus();
 </script>
 
 <div
@@ -22,7 +25,7 @@
       <section class={'flex justify-center items-center flex-1 max-w-full '}>
         <slot />
       </section>
-      <div class={$currentSong ? 'h-40' : 'h-20'} />
+      <div class={$currentSong ? 'h-40' : 'h-16'} />
     </div>
   </main>
   {#if $showPlayQueue}

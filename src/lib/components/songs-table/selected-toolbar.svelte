@@ -14,7 +14,7 @@
     <div
       class="absolute h-20 -top-20 w-full flex flex-row items-center bg-crystal rounded-tl-lg rounded-tr-lg py-4 px-2 gap-2"
     >
-      <button on:click={handleDeselectAll} class="relative group">
+      <button on:click={handleDeselectAll} class="relative group p-3">
         <Icon icon="ph:x" width={20} height={20} />
         <span
           class="absolute left-3 w-5 h-[1px] bottom-[10px] bg-black transform scale-x-0 group-hover:scale-x-100"
@@ -22,19 +22,19 @@
       </button>
       <p>{$selected.length} items selected</p>
       <div class="flex-1" />
-      <button class="hover:underline">
+      <button class="contrast">
         <Icon icon="mingcute:play-fill" />
         PLAY NOW
       </button>
-      <button class="hover:underline">
+      <button class="contrast">
         <Icon icon="iconamoon:playlist" />
         PLAY NEXT
       </button>
-      <button class="hover:underline">
+      <button class="contrast">
         <Icon icon="ph:list-plus-bold" />
         PLAY LATER
       </button>
-      <button class="hover:underline">
+      <button class="contrast">
         <Icon icon="ph:music-notes-plus-bold" />
         ADD TO PLAYLIST
       </button>

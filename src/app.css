@@ -28,7 +28,7 @@ html.dark {
   }
 
   th {
-    @apply py-3;
+    @apply py-2 text-sm;
   }
 
   td {
@@ -56,24 +56,32 @@ html.dark {
   }
 
 p {
-  @apply text-sm;
+  @apply text-base;
 }
 
 div.transparent {
 @apply bg-slate-200 bg-opacity-90 border-slate-300 dark:bg-gray-900 dark:bg-opacity-90 dark:border-gray-950;
 }
 
+  div.card {
+    @apply w-full h-max border border-slate-300 dark:bg-gray-900 flex flex-col justify-start rounded-xl shadow-xl dark:border-gray-950;
+  }
+
 /* button { */
 /*  @apply transition-all disabled:cursor-not-allowed rounded-lg   p-3 flex flex-row gap-2 items-center; */
 /*   } */
 
 button.ghost {
-@apply transition-all disabled:cursor-not-allowed rounded-lg   p-3 flex flex-row gap-2 items-center;
+  @apply transition-all disabled:cursor-not-allowed rounded-lg text-sm p-2 flex flex-row gap-2 items-center;
   @apply hover:bg-slate-200 dark:hover:bg-gray-600;
 }
 
+  button.contrast {
+    @apply hover:underline flex flex-row gap-2 transition-all;
+  }
+
   button.solid {
-@apply transition-all disabled:cursor-not-allowed rounded-lg   p-3 flex flex-row gap-2 items-center;
+@apply transition-all disabled:cursor-not-allowed rounded-lg p-2 flex flex-row gap-2 items-center;
     @apply disabled:opacity-40  bg-slate-100  border border-slate-400 hover:bg-slate-200  shadow-md dark:bg-gray-700 dark:border-gray-950 dark:hover:bg-gray-600;
   }
 

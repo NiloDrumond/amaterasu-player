@@ -483,3 +483,18 @@ export type NDUserList = {
 export enum NDUserListSort {
   NAME = 'name',
 }
+
+export type NDSubsonicScanStatusResponse = {
+  'subsonic-response': {
+    status: 'ok';
+    version: string;
+    type: 'Navidrome';
+    serverVersion: string;
+    scanStatus: {
+      scanning: boolean;
+      count: number;
+      folderCount: number;
+      lastScan: Date;
+    };
+  };
+};

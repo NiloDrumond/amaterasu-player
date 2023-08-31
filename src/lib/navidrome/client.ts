@@ -8,6 +8,7 @@ import type {
   NDAlbum,
   NDSong,
   NDSongListParams,
+  NDSubsonicScanStatusResponse,
 } from './types';
 
 const COMMON_SUBSONIC_PARAMS = `&v=1.13.0` + `&f=json` + `&c=AmaterasuPlayer`;
@@ -113,6 +114,14 @@ class NDClient {
       },
     });
 
+    return response.data;
+  }
+
+  public async getScanStatus() {
+    const baseUrl = this.api.prepareUrl('/rest/getScanStatus');
+    const url =
+      baseUrl + `?${this.subsonicCredential}` + COMMON_SUBSONIC_PARAMS;
+    const response = await this.api.get<NDSubsonicScanStatusResponse>({ url });
     return response.data;
   }
 }

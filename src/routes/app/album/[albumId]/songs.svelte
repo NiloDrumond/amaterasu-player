@@ -7,7 +7,6 @@
 
   export let albumId: string;
   let songs: NDSong[] = [];
-
   onMount(async () => {
     songs = await ndClient.getSongList({
       album_id: albumId,

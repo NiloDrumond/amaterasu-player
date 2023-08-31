@@ -6,3 +6,9 @@ export const DEFAULT_ALBUM_SONG_LIST_QUERY: NDSongListParams = {
   _order: NDSortOrder.ASC,
   _sort: NDSongListSort.ALBUM,
 };
+
+export const DEFAULT_SONG_LIST_QUERY: NDSongListParams = {
+  _order: NDSortOrder.ASC,
+  _sort: NDSongListSort.TITLE,
+  _end: 100,
+};

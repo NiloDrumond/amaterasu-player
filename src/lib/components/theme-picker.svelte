@@ -40,7 +40,7 @@
   >
   {#if open}
     <div
-      class="absolute bg-slate-100 rounded-xl border border-slate-400 -right-6 top-[calc(100%_+_1rem)] overflow-hidden z-10 dark:bg-gray-800 dark:border-gray-950"
+      class="absolute bg-slate-100 rounded-xl border border-slate-400 -right-6 top-[calc(100%_+_1rem)] overflow-hidden z-20 dark:bg-gray-800 dark:border-gray-950"
     >
       <button
         class="menu-item border-t border-slate-300 dark:border-gray-950"

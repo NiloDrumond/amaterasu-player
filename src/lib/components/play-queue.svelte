@@ -20,9 +20,8 @@
     playerQueue.reorderQueue(e.detail.items);
   }
   function transformDraggedElement(
-    args: Parameters<TransformDraggedElementFunction>,
+    draggedEl: Parameters<TransformDraggedElementFunction>[0],
   ) {
-    const [draggedEl, data, index] = args;
     if (!draggedEl) return;
     const el = draggedEl.querySelector('.draggable') as HTMLButtonElement;
     el.style.cursor = 'grab';
@@ -47,11 +46,11 @@
       items: renderedList,
       flipDurationMs,
       dropTargetStyle: { outline: 'var(--color-crystal) solid 2px' },
-      // transformDraggedElement,
+      transformDraggedElement,
     }}
     on:consider={handleConsider}
     on:finalize={handleSort}
-    class="px-4 overflow-y-scroll border-t border-gray-600 py-2"
+    class="px-4 overflow-y-scroll border-t border-slate-300 dark:border-gray-700 py-2"
   >
     {#each renderedList as song, idx (song.id)}
       {@const isCurrent = $currentSong?.id === song.id}
