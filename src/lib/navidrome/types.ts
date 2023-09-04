@@ -222,7 +222,7 @@ export enum NDAlbumListSort {
   ARTIST = 'artist',
   DURATION = 'duration',
   NAME = 'name',
-  PLAY_COUNT = 'playCount',
+  PLAY_COUNT = 'play_count',
   PLAY_DATE = 'play_date',
   RANDOM = 'random',
   RATING = 'rating',

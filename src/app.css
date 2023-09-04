@@ -55,6 +55,10 @@ html.dark {
   h5 {
   }
 
+  div.filters-toolbar {
+    @apply mb-2 px-3 py-2 flex flex-row sticky top-0 border border-slate-300 bg-slate-100 shadow-lg rounded-xl items-center dark:bg-gray-900 dark:border-gray-950 gap-2 z-10;
+  }
+
 p {
   @apply text-base;
 }
@@ -81,8 +85,10 @@ button.ghost {
   }
 
   button.solid {
-@apply transition-all disabled:cursor-not-allowed rounded-lg p-2 flex flex-row gap-2 items-center;
-    @apply disabled:opacity-40  bg-slate-100  border border-slate-400 hover:bg-slate-200  shadow-md dark:bg-gray-700 dark:border-gray-950 dark:hover:bg-gray-600;
+@apply transition-all disabled:cursor-default rounded-lg p-2 flex flex-row gap-2 items-center;
+    @apply disabled:opacity-40  border  shadow-md ;
+    @apply bg-slate-100 border-slate-400 hover:bg-slate-200 disabled:hover:bg-slate-100;
+    @apply dark:bg-gray-700 dark:border-gray-950 dark:hover:bg-gray-600 dark:disabled:hover:bg-gray-700;
   }
 
   button.menu-item {

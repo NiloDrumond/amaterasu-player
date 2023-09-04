@@ -17,7 +17,7 @@
     RANDOM
   </button>
   <button class="ghost">
-    <Icon icon="mingcute:flame-line" />
+    <Icon icon="mingcute:star-fill" />
     POPULAR
   </button>
   <div class="flex-1" />

@@ -12,7 +12,6 @@ function createScan() {
 
   async function fetchStatus() {
     const response = await ndClient.getScanStatus();
-    console.log(response);
     const {
       scanStatus: { count, folderCount, lastScan },
     } = response['subsonic-response'];
