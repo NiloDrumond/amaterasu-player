@@ -15,6 +15,11 @@
   });
 </script>
 
-<div class="pb-4">
-  <SongsTable {songs} additionalColumns={['artist', 'playCount']} />
-</div>
+{#if songs.length > 0}
+  <div class="pb-4">
+    <SongsTable
+      {songs}
+      additionalColumns={['artist', 'playCount', 'trackNumber']}
+    />
+  </div>
+{/if}

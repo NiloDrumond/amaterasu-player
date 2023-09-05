@@ -7,9 +7,14 @@
   import SelectedToolbar from './selected-toolbar.svelte';
   import { currentSong, playerQueue } from '$lib/stores/player-queue';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { escapeIdSelector } from '$lib/utils/escape-id-selector';
+  import { get } from 'svelte/store';
 
   export let songs: NDSong[];
-  export let additionalColumns: Array<'album' | 'artist' | 'playCount'> = [];
+  export let additionalColumns: Array<
+    'album' | 'artist' | 'playCount' | 'trackNumber'
+  > = [];
 
   function handleToggleAll() {
     selected.update((prev) => {
@@ -32,6 +37,23 @@
   function handleSelectSong(idx: number) {
     playerQueue.setQueue(songs, idx);
   }
+
+  let tableBody: HTMLTableSectionElement;
+  let navigatedSongId: null | string = null;
+  $: navigatedSongId = $page.url.searchParams.get('songId');
+  $: if (
+    navigatedSongId &&
+    tableBody &&
+    get(currentSong)?.id === navigatedSongId
+  ) {
+    const el = tableBody.querySelector(escapeIdSelector(navigatedSongId));
+    console.log(el, navigatedSongId);
+    if (el) {
+      el.scrollIntoView({
+        behavior: 'smooth',
+      });
+    }
+  }
 </script>
 
 <div>
@@ -43,14 +65,16 @@
       <tr
         class="bg-slate-200 dark:bg-gray-800 border-b dark:border-gray-950 h-12"
       >
-        <th class="w-10 pl-4 text-center"
+        <th class="w-12 pl-4 text-center"
           ><Checkbox
             checked={$selected.length === songs.length}
             onChange={handleToggleAll}
             key="header"
           /></th
         >
-        <th class="w-10 text-center pr-2">#</th>
+        {#if additionalColumns.includes('trackNumber')}
+          <th class="w-8 text-center pr-2">#</th>
+        {/if}
         <th class="text-start w-auto">TITLE</th>
         {#if additionalColumns.includes('album')}
           <th class="w-80">ALBUM</th>
@@ -65,10 +89,11 @@
         <th class="w-10"> </th>
       </tr>
     </thead>
-    <tbody>
+    <tbody bind:this={tableBody}>
       {#each songs as song, index (song.id)}
         {@const isCurrent = $currentSong?.id === song.id}
         <tr
+          id={song.id}
           on:click={() => handleSelectSong(index)}
           class="cursor-pointer hover:bg-slate-200 hover:bg-opacity-50 dark:hover:bg-gray-700 transition-all"
         >
@@ -79,7 +104,9 @@
               key={song.id}
             /></td
           >
-          <td class="text-center pr-2">{song.trackNumber}</td>
+          {#if additionalColumns.includes('trackNumber')}
+            <td class="text-center pr-2">{song.trackNumber}</td>
+          {/if}
           <td class={isCurrent ? 'text-crystal' : ''}>{song.title}</td>
           {#if additionalColumns.includes('album')}
             <td class="text-center"

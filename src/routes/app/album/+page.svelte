@@ -14,15 +14,18 @@
   $: {
     $albumListParams, fetchAlbumList();
   }
-  const { pagination } = albumListParams;
   onMount(() => {
     fetchAlbumList();
   });
+  const { pagination } = albumListParams;
 </script>
 
 <div class="w-full flex flex-col">
   <div class="filters-toolbar">
-    <SearchInput onChange={albumListParams.setName} />
+    <SearchInput
+      initialValue={$albumListParams.name}
+      onChange={albumListParams.setName}
+    />
     <button
       class="ghost {$albumListParams._sort === NDAlbumListSort.RANDOM
         ? 'text-crystal'

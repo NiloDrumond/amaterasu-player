@@ -49,21 +49,26 @@
   <div
     class="sticky bottom-0 gap-4 left-0 h-24 transparent border-t w-full grid grid-cols-3 p-2"
   >
-    <section
-      class="flex justify-start items-center gap-3 max-h-full overflow-y-hidden"
+    <a
+      href="/app/album/{$currentSong.albumId}?songId={$currentSong.id}"
+      class="max-h-full overflow-y-hidden"
     >
-      <img
-        src={ndClient.getCoverArtUrl({
-          coverArtId: $currentSong.albumId,
-        })}
-        alt={$currentSong.album}
-        class="h-[calc(100%_-_0.5rem)] w-auto"
-      />
-      <div class="flex flex-col items-start">
-        <h4>{$currentSong.title}</h4>
-        <p>{$currentSong.artist} - {$currentSong.album}</p>
-      </div>
-    </section>
+      <section
+        class="flex justify-start items-center gap-3 h-full overflow-y-hidden"
+      >
+        <img
+          src={ndClient.getCoverArtUrl({
+            coverArtId: $currentSong.albumId,
+          })}
+          alt={$currentSong.album}
+          class="h-[calc(100%_-_0.5rem)] w-auto"
+        />
+        <div class="flex flex-col items-start">
+          <h4>{$currentSong.title}</h4>
+          <p>{$currentSong.artist} - {$currentSong.album}</p>
+        </div>
+      </section>
+    </a>
     <PlayerControls
       on:draggingtimeline={handleDraggingTimeline}
       bind:isDragging={isDraggingTimeline}

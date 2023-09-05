@@ -56,7 +56,7 @@ html.dark {
   }
 
   div.filters-toolbar {
-    @apply mb-2 px-3 py-2 flex flex-row sticky top-0 border border-slate-300 bg-slate-100 shadow-lg rounded-xl items-center dark:bg-gray-900 dark:border-gray-950 gap-2 z-10;
+    @apply w-full mb-2 px-3 py-2 flex flex-row sticky top-0 border border-slate-300 bg-slate-100 shadow-lg rounded-xl items-center dark:bg-gray-900 dark:border-gray-950 gap-2 z-10;
   }
 
 p {

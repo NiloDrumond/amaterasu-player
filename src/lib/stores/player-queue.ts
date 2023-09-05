@@ -3,18 +3,19 @@ import type { NDSong } from '$lib/navidrome/types';
 import { derived, get, writable } from 'svelte/store';
 import { audioPlayer } from './audio';
 
-type PlayerQueueStore = {
+type PlayerQueueState = {
   currentSongIdx: number;
   queue: NDSong[];
   repeat: 'no' | 'all' | 'one';
 };
+const STORAGE_KEY = 'player-queue';
 function createPlayerQueue() {
-  const store = writable<PlayerQueueStore>({
+  const store = writable<PlayerQueueState>({
     queue: [],
     currentSongIdx: -1,
     repeat: 'no',
   });
-  const { subscribe, update } = store;
+  const { subscribe, update, set } = store;
 
   function setQueue(queue: NDSong[], songIdx?: number) {
     update((prev) => ({
@@ -49,6 +50,14 @@ function createPlayerQueue() {
     if (different) {
       update((prev) => ({ ...prev, currentSongIdx: idx }));
       audioPlayer.onChangeSong();
+    }
+  }
+
+  function loadState() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as PlayerQueueState;
+      set(parsed);
     }
   }
 
@@ -87,6 +96,7 @@ function createPlayerQueue() {
     update((prev) => ({ ...prev, queue, currentSongIdx: newIdx }));
   }
 
+  loadState();
   return {
     addToQueue,
     subscribe,
@@ -100,6 +110,12 @@ function createPlayerQueue() {
 }
 
 export const playerQueue = createPlayerQueue();
+playerQueue.subscribe((state) => {
+  if (state) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+});
+
 export const currentSong = derived(playerQueue, ($playerQueue) => {
   if (
     $playerQueue.currentSongIdx < 0 ||

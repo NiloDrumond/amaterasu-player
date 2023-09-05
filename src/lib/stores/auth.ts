@@ -3,6 +3,7 @@ import { ndClient } from '$lib/navidrome/client';
 import type { NDAuthenticate } from '$lib/navidrome/types';
 import { derived, writable } from 'svelte/store';
 
+const STORAGE_KEY = 'user';
 function createUser() {
   const { subscribe, set } = writable<NDAuthenticate | undefined>(undefined);
 
@@ -19,7 +20,7 @@ function createUser() {
   }
 
   function loadUser(): void {
-    const user = localStorage.getItem('user');
+    const user = localStorage.getItem(STORAGE_KEY);
     if (user) {
       const parsed = JSON.parse(user) as NDAuthenticate;
       signIn(parsed);
@@ -28,7 +29,7 @@ function createUser() {
 
   function signOut(): void {
     set(undefined);
-    localStorage.removeItem('user');
+    localStorage.removeItem(STORAGE_KEY);
     ndClient.signOut();
     goto('/sign-in');
   }
@@ -46,7 +47,7 @@ export const user = createUser();
 
 user.subscribe((val) => {
   if (val) {
-    localStorage.setItem('user', JSON.stringify(val));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
   }
 });
 

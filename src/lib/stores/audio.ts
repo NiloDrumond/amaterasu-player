@@ -1,14 +1,15 @@
 import { writable } from 'svelte/store';
 
-type AudioPlayerStore = {
+type AudioPlayerState = {
   duration: number;
   currentTime: number;
   paused: boolean;
   volume: number;
   muted: boolean;
 };
+const STORAGE_KEY = 'audio-player';
 function createAudioPlayer() {
-  const { subscribe, set, update } = writable<AudioPlayerStore>({
+  const { subscribe, set, update } = writable<AudioPlayerState>({
     duration: 0,
     currentTime: 0,
     paused: true,
@@ -24,7 +25,21 @@ function createAudioPlayer() {
     update((prev) => ({ ...prev, paused: false }));
   }
 
+  function loadState() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as AudioPlayerState;
+      set({ ...parsed, paused: true });
+    }
+  }
+
+  loadState();
   return { subscribe, set, update, onChangeSong, startPlaying };
 }
 
 export const audioPlayer = createAudioPlayer();
+audioPlayer.subscribe((state) => {
+  if (state) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+});

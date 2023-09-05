@@ -266,10 +266,12 @@ export enum NDSongListSort {
   TITLE = 'title',
   TRACK = 'track',
   YEAR = 'year, album, discNumber, trackNumber',
+  RANDOM = 'random',
 }
 
 export type NDSongListParams = {
   _sort?: NDSongListSort;
+  title?: string;
   album_id?: string[] | string;
   artist_id?: string[];
   genre_id?: string;
