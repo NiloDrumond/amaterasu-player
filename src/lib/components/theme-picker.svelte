@@ -31,6 +31,16 @@
   }
 </script>
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+{#if open}
+  <div
+    class="absolute w-[100vw] h-[100vh] cursor-default left-0 top-0 z-10"
+    on:click={() => {
+      open = false;
+    }}
+  />
+{/if}
 <div
   class="relative"
   use:clickoutside={{ enabled: open, callback: () => (open = false) }}

@@ -79,10 +79,7 @@
         height={20}
       />
     </button>
-    <button
-      class="hover:text-crystal p-0"
-      on:click={() => ($audioPlayer.paused = !$audioPlayer.paused)}
-    >
+    <button class="hover:text-crystal p-0" on:click={audioPlayer.togglePlaying}>
       <Icon
         icon={$audioPlayer.paused
           ? 'mingcute:play-circle-fill'

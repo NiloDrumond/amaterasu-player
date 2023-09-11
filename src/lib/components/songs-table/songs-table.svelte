@@ -10,6 +10,8 @@
   import { page } from '$app/stores';
   import { escapeIdSelector } from '$lib/utils/escape-id-selector';
   import { get } from 'svelte/store';
+  import SongMenu from '../song-menu.svelte';
+  import SongOptions from './song-options.svelte';
 
   export let songs: NDSong[];
   export let additionalColumns: Array<
@@ -47,7 +49,6 @@
     get(currentSong)?.id === navigatedSongId
   ) {
     const el = tableBody.querySelector(escapeIdSelector(navigatedSongId));
-    console.log(el, navigatedSongId);
     if (el) {
       el.scrollIntoView({
         behavior: 'smooth',
@@ -107,7 +108,9 @@
           {#if additionalColumns.includes('trackNumber')}
             <td class="text-center pr-2">{song.trackNumber}</td>
           {/if}
-          <td class={isCurrent ? 'text-crystal' : ''}>{song.title}</td>
+          <td class={isCurrent ? 'text-crystal' : ''}
+            >{isCurrent ? `> ${song.title}` : song.title}</td
+          >
           {#if additionalColumns.includes('album')}
             <td class="text-center"
               ><a
@@ -128,15 +131,9 @@
             <td class="text-center w-20">{song.playCount}</td>
           {/if}
           <td class="text-end pr-4">
-            <button
-              class="ghost !p-1"
-              on:click={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-            >
-              <Icon icon="mingcute:more-1-fill" width={20} height={20} />
-            </button>
+            <SongMenu {song}>
+              <SongOptions />
+            </SongMenu>
           </td>
         </tr>
       {/each}

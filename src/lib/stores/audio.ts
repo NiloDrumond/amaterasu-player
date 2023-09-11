@@ -33,8 +33,24 @@ function createAudioPlayer() {
     }
   }
 
+  function togglePlaying() {
+    update((prev) => ({ ...prev, paused: !prev.paused }));
+  }
+
+  function toggleMute() {
+    update((prev) => ({ ...prev, muted: !prev.muted }));
+  }
+
   loadState();
-  return { subscribe, set, update, onChangeSong, startPlaying };
+  return {
+    subscribe,
+    set,
+    update,
+    onChangeSong,
+    startPlaying,
+    togglePlaying,
+    toggleMute,
+  };
 }
 
 export const audioPlayer = createAudioPlayer();

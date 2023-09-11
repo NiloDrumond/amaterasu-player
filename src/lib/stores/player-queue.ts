@@ -27,9 +27,9 @@ function createPlayerQueue() {
     audioPlayer.startPlaying();
   }
 
-  function addToQueue(song: NDSong, position: 'next' | 'later') {
+  function addToQueue(songs: NDSong[], position: 'next' | 'later') {
     if (position === 'later') {
-      update((prev) => ({ ...prev, queue: [...prev.queue, song] }));
+      update((prev) => ({ ...prev, queue: [...prev.queue, ...songs] }));
     }
     if (position === 'next') {
       update((prev) => {
@@ -37,7 +37,7 @@ function createPlayerQueue() {
           ...prev,
           queue: [
             ...prev.queue.slice(0, prev.currentSongIdx + 1),
-            song,
+            ...songs,
             ...prev.queue.slice(prev.currentSongIdx + 1),
           ],
         };

@@ -52,7 +52,7 @@
     on:finalize={handleSort}
     class="px-4 overflow-y-scroll border-t border-slate-300 dark:border-gray-700 py-2"
   >
-    {#each renderedList as song, idx (song.id)}
+    {#each renderedList as song, idx (`${song.id}-${idx}`)}
       {@const isCurrent = $currentSong?.id === song.id}
       <div animate:flip={{ duration: flipDurationMs }}>
         <button

@@ -8,8 +8,11 @@
   import Icon from '@iconify/svelte';
 
   let songs: NDSong[] = [];
+  let loading = false;
   async function fetchSongList() {
+    loading = true;
     songs = await ndClient.getSongList($songListParams);
+    loading = false;
   }
   $: {
     $songListParams, fetchSongList();
@@ -68,7 +71,7 @@
         additionalColumns={['album', 'artist', 'playCount']}
       />
     </div>
-  {:else}
+  {:else if !loading}
     <div class="card !w-max p-8">
       <div class="flex flex-row gap-2 items-center">
         <Icon icon="ph:folder-simple-dashed-bold" width={20} height={20} />

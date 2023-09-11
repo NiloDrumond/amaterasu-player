@@ -26,7 +26,12 @@ function createScan() {
     }
   }
 
-  return { subscribe, loadStatus, fetchStatus };
+  function initialize() {
+    loadStatus();
+    fetchStatus();
+  }
+
+  return { subscribe, loadStatus, fetchStatus, initialize };
 }
 
 export const scan = createScan();

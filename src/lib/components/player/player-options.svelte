@@ -66,7 +66,7 @@
   <div class="flex flex-row gap-2 w-full max-w-[300px] items-center">
     <button
       class="hover:text-crystal p-0"
-      on:click={() => ($audioPlayer.muted = !$audioPlayer.muted)}
+      on:click={audioPlayer.toggleMute}
     >
       <Icon
         icon={effectiveVolume > 0
