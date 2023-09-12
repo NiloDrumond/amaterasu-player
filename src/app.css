@@ -75,6 +75,10 @@ div.transparent {
 /*  @apply transition-all disabled:cursor-not-allowed rounded-lg   p-3 flex flex-row gap-2 items-center; */
 /*   } */
 
+  button.play {
+    @apply rounded-full p-4 bg-crystal hover:scale-105 hover:-translate-y-1 hover:drop-shadow-[0_0_4px_#eb4b98] dark:hover:drop-shadow-[0_0_10px_#f26df9];
+  }
+
 button.ghost {
   @apply transition-all disabled:cursor-not-allowed rounded-lg text-sm p-2 flex flex-row gap-2 items-center;
   @apply hover:bg-slate-200 dark:hover:bg-gray-600;
@@ -92,7 +96,7 @@ button.ghost {
   }
 
   button.menu-item {
-@apply transition-all disabled:cursor-not-allowed rounded-lg   p-3 flex flex-row gap-2 items-center;
+      @apply transition-all disabled:cursor-not-allowed rounded-lg p-3 flex flex-row gap-2 items-center;
       @apply hover:bg-slate-200 w-full rounded-none dark:hover:bg-gray-600;
     }
 

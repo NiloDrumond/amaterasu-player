@@ -1,23 +1,20 @@
 <script lang="ts">
   import SongsTable from '$lib/components/songs-table/songs-table.svelte';
-  import { ndClient } from '$lib/navidrome/client';
-  import type { NDAlbum, NDSong } from '$lib/navidrome/types';
+  import type { NDPlaylist, NDPlaylistSong } from '$lib/navidrome/types';
   import { formatDuration, formatFileSize } from '$lib/utils/format';
-  import { onMount } from 'svelte';
   import Icon from '@iconify/svelte';
-  import { DEFAULT_ALBUM_SONG_LIST_QUERY } from '$lib/navidrome/constants';
   import { playerQueue } from '$lib/stores/player-queue';
+  import { ndClient } from '$lib/navidrome/client';
+  import { onMount } from 'svelte';
+  import { DEFAULT_PLAYLIST_SONG_LIST_QUERY } from '$lib/navidrome/constants';
 
-  export let album: NDAlbum;
-  let coverArtUrl: string = '';
-  $: if (album) {
-    coverArtUrl = ndClient.getCoverArtUrl({ coverArtId: album.id });
-  }
-  let songs: NDSong[] = [];
+  export let playlist: NDPlaylist;
+
+  let songs: NDPlaylistSong[] = [];
   onMount(async () => {
-    songs = await ndClient.getSongList({
-      album_id: album.id,
-      ...DEFAULT_ALBUM_SONG_LIST_QUERY,
+    songs = await ndClient.getPlaylistSongList({
+      playlist_id: playlist.id,
+      ...DEFAULT_PLAYLIST_SONG_LIST_QUERY,
     });
   });
 
@@ -33,30 +30,18 @@
 
 <div class="card">
   <div class={`w-full flex flex-row p-8 gap-6 `}>
-    <img src={coverArtUrl} alt={album.name} class="shadow-xl" />
     <div class="flex flex-col">
-      <h2 class="py-4">{album.name}</h2>
-      <h4>{album.artist}</h4>
+      <h2 class="py-4">{playlist.name}</h2>
       <div class="flex flex-row gap-2">
-        {#if album.minYear !== album.maxYear}
-          <p>{album.minYear}-{album.maxYear}</p>
-        {:else}
-          <p>{album.minYear}</p>
-        {/if}
-        ·
-        <p>{album.songCount} Songs</p>
+        <p>{playlist.songCount} Songs</p>
         ·
         <p>
-          {formatDuration(album.duration)}
+          {formatDuration(playlist.duration)}
         </p>
         ·
         <p>
-          {formatFileSize(album.size)}
+          {formatFileSize(playlist.size)}
         </p>
-        {#if album.playCount > 0}
-          ·
-          <p>Played {album.playCount} times</p>
-        {/if}
       </div>
       <div class="flex-1" />
       <div class="flex flex-row gap-2 items-center">

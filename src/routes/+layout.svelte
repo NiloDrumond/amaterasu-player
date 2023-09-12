@@ -9,14 +9,16 @@
   import { currentSong } from '$lib/stores/player-queue';
 
   $: user.loadUser();
+  let title = 'Amaterasu';
+  $: if ($currentSong) {
+    title = $currentSong.title;
+  } else {
+    title = 'Amaterasu';
+  }
 </script>
 
 <svelte:head>
-  {#if $currentSong}
-    <title>{$currentSong.title}</title>
-  {:else}
-    <title>Amaterasu</title>
-  {/if}
+  <title>{title}</title>
 </svelte:head>
 <div
   class="h-[100vh] w-[100vw] flex items-center justify-center flex-col relative bg-slate-100 dark:bg-gray-800"

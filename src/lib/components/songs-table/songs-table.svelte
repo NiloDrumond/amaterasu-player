@@ -57,86 +57,90 @@
   }
 </script>
 
-<div>
-  {#if $selected.length > 0}
-    <SelectedToolbar />
-  {/if}
-  <table class="w-full border-collapse">
-    <thead>
-      <tr
-        class="bg-slate-200 dark:bg-gray-800 border-b dark:border-gray-950 h-12"
-      >
-        <th class="w-12 pl-4 text-center"
-          ><Checkbox
-            checked={$selected.length === songs.length}
-            onChange={handleToggleAll}
-            key="header"
-          /></th
-        >
-        {#if additionalColumns.includes('trackNumber')}
-          <th class="w-8 text-center pr-2">#</th>
-        {/if}
-        <th class="text-start w-auto">TITLE</th>
-        {#if additionalColumns.includes('album')}
-          <th class="w-80">ALBUM</th>
-        {/if}
-        {#if additionalColumns.includes('artist')}
-          <th class="w-60">ARTIST</th>
-        {/if}
-        <th class="w-20"><Icon class="mx-auto" icon="mingcute:time-line" /></th>
-        {#if additionalColumns.includes('playCount')}
-          <th>PLAYS</th>
-        {/if}
-        <th class="w-10"> </th>
-      </tr>
-    </thead>
-    <tbody bind:this={tableBody}>
-      {#each songs as song, index (song.id)}
-        {@const isCurrent = $currentSong?.id === song.id}
+{#if songs.length > 0}
+  <div>
+    {#if $selected.length > 0}
+      <SelectedToolbar />
+    {/if}
+    <table class="w-full border-collapse">
+      <thead>
         <tr
-          id={song.id}
-          on:click={() => handleSelectSong(index)}
-          class="cursor-pointer hover:bg-slate-200 hover:bg-opacity-50 dark:hover:bg-gray-700 transition-all"
+          class="bg-slate-200 dark:bg-gray-800 border-b dark:border-gray-950 h-12"
         >
-          <td class="text-center pl-4"
+          <th class="w-12 pl-4 text-center"
             ><Checkbox
-              checked={$selected.includes(song.id)}
-              onChange={() => handleToggleSong(song.id)}
-              key={song.id}
-            /></td
+              checked={$selected.length === songs.length}
+              onChange={handleToggleAll}
+              key="header"
+            /></th
           >
           {#if additionalColumns.includes('trackNumber')}
-            <td class="text-center pr-2">{song.trackNumber}</td>
+            <th class="w-8 text-center pr-2">#</th>
           {/if}
-          <td class={isCurrent ? 'text-crystal' : ''}
-            >{isCurrent ? `> ${song.title}` : song.title}</td
-          >
+          <th class="text-start w-auto">TITLE</th>
           {#if additionalColumns.includes('album')}
-            <td class="text-center"
-              ><a
-                href="/app/album/{song.albumId}"
-                on:click={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  goto(`/app/album/${song.albumId}`, { replaceState: false });
-                }}>{song.album}</a
-              ></td
-            >
+            <th class="w-80">ALBUM</th>
           {/if}
           {#if additionalColumns.includes('artist')}
-            <td class="text-center">{song.artist}</td>
+            <th class="w-60">ARTIST</th>
           {/if}
-          <td class="text-center w-20">{formatDuration(song.duration)}</td>
+          <th class="w-20"
+            ><Icon class="mx-auto" icon="mingcute:time-line" /></th
+          >
           {#if additionalColumns.includes('playCount')}
-            <td class="text-center w-20">{song.playCount}</td>
+            <th>PLAYS</th>
           {/if}
-          <td class="text-end pr-4">
-            <SongMenu {song}>
-              <SongOptions />
-            </SongMenu>
-          </td>
+          <th class="w-10"> </th>
         </tr>
-      {/each}
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody bind:this={tableBody}>
+        {#each songs as song, index (song.id)}
+          {@const isCurrent = $currentSong?.id === song.id}
+          <tr
+            id={song.id}
+            on:click={() => handleSelectSong(index)}
+            class="cursor-pointer hover:bg-slate-200 hover:bg-opacity-50 dark:hover:bg-gray-700 transition-all"
+          >
+            <td class="text-center pl-4"
+              ><Checkbox
+                checked={$selected.includes(song.id)}
+                onChange={() => handleToggleSong(song.id)}
+                key={song.id}
+              /></td
+            >
+            {#if additionalColumns.includes('trackNumber')}
+              <td class="text-center pr-2">{song.trackNumber}</td>
+            {/if}
+            <td class={isCurrent ? 'text-crystal' : ''}
+              >{isCurrent ? `> ${song.title}` : song.title}</td
+            >
+            {#if additionalColumns.includes('album')}
+              <td class="text-center"
+                ><a
+                  href="/app/album/{song.albumId}"
+                  on:click={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goto(`/app/album/${song.albumId}`, { replaceState: false });
+                  }}>{song.album}</a
+                ></td
+              >
+            {/if}
+            {#if additionalColumns.includes('artist')}
+              <td class="text-center">{song.artist}</td>
+            {/if}
+            <td class="text-center w-20">{formatDuration(song.duration)}</td>
+            {#if additionalColumns.includes('playCount')}
+              <td class="text-center w-20">{song.playCount}</td>
+            {/if}
+            <td class="text-end pr-4">
+              <SongMenu {song}>
+                <SongOptions />
+              </SongMenu>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+{/if}

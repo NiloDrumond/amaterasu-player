@@ -385,6 +385,10 @@ export type NDPlaylistListParams = {
 } & NDPagination &
   NDOrder;
 
+export type NDPlaylistSongListParams = NDSongListParams & {
+  playlist_id: string;
+};
+
 export type NDPlaylistSong = NDSong & {
   mediaFileId: string;
   playlistId: string;

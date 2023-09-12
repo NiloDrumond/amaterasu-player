@@ -2,7 +2,7 @@
   import Header from '$lib/components/header.svelte';
   import PlayQueue from '$lib/components/play-queue.svelte';
   import PlayerOverlay from '$lib/components/player/player-overlay.svelte';
-  import Sidebar from '$lib/components/sidebar.svelte';
+  import Sidebar from '$lib/components/sidebar/sidebar.svelte';
   import { audioPlayer } from '$lib/stores/audio';
   import { user } from '$lib/stores/auth';
   import { currentSong } from '$lib/stores/player-queue';

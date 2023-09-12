@@ -9,6 +9,10 @@ import type {
   NDSong,
   NDSongListParams,
   NDSubsonicScanStatusResponse,
+  NDPlaylistListParams,
+  NDPlaylist,
+  NDPlaylistSong,
+  NDPlaylistSongListParams,
 } from './types';
 
 const COMMON_SUBSONIC_PARAMS = `&v=1.13.0` + `&f=json` + `&c=AmaterasuPlayer`;
@@ -80,6 +84,13 @@ class NDClient {
     return response.data;
   }
 
+  public async getPlaylist(args: { playlistId: string }) {
+    const response = await this.api.get<NDPlaylist>({
+      url: `/api/playlist/${args.playlistId}`,
+    });
+    return response.data;
+  }
+
   public getCoverArtUrl(args: {
     baseUrl?: string;
     coverArtId: string;
@@ -106,11 +117,11 @@ class NDClient {
     );
   }
 
-  public async getSongList(query: NDSongListParams) {
+  public async getSongList(params: NDSongListParams) {
     const response = await this.api.get<NDSong[]>({
       url: '/api/song',
       config: {
-        params: query,
+        params,
       },
     });
 
@@ -122,6 +133,29 @@ class NDClient {
     const url =
       baseUrl + `?${this.subsonicCredential}` + COMMON_SUBSONIC_PARAMS;
     const response = await this.api.get<NDSubsonicScanStatusResponse>({ url });
+    return response.data;
+  }
+
+  public async getPlaylistList(params: NDPlaylistListParams) {
+    const response = await this.api.get<NDPlaylist[]>({
+      url: '/api/playlist',
+      config: {
+        params,
+      },
+    });
+
+    return response.data;
+  }
+
+  public async getPlaylistSongList(args: NDPlaylistSongListParams) {
+    const { playlist_id, ...params } = args;
+    const response = await this.api.get<NDPlaylistSong[]>({
+      url: `/api/playlist/${playlist_id}/tracks`,
+      config: {
+        params,
+      },
+    });
+
     return response.data;
   }
 }
