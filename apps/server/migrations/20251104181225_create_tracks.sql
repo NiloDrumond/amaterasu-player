@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS tracks (
     comment TEXT,
     
     -- Technical metadata (read-only, from file)
+    codec BIGINT NOT NULL,
     duration_ms INT NOT NULL,
     format TEXT NOT NULL,
     bitrate INT,

@@ -5,6 +5,7 @@ pub struct Config {
     pub database_url: String,
     pub server_host: String,
     pub server_port: u16,
+    pub library_path: String,
 }
 
 impl Config {
@@ -15,6 +16,7 @@ impl Config {
             database_url: env::var("DATABASE_URL")?,
             server_host: env::var("SERVER_HOST")?,
             server_port: env::var("SERVER_PORT")?.parse()?,
+            library_path: env::var("LIBRARY_PATH")?,
         })
     }
 }

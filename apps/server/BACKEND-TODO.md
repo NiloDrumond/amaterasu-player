@@ -295,8 +295,8 @@ fn api_routes() -> Router<AppState> {
 
 ### 1.1 Create Base Migrations
 - [ ] Migration 001: Create users table
-- [ ] Migration 002: Create artists, albums, tracks tables
-- [ ] Migration 003: Create track_metadata table
+- [x] Migration 002: Create artists, albums, tracks tables
+- [x] Migration 003: Create track_metadata table
 - [ ] Migration 004: Create tags and track_tags tables
 - [ ] Migration 005: Create playlists table
 - [ ] Migration 006: Create sessions table

@@ -8,6 +8,7 @@ mod error;
 mod handlers;
 mod repositories;
 mod routes;
+mod scanner;
 mod services;
 mod state;
 
@@ -34,7 +35,15 @@ async fn main() -> anyhow::Result<()> {
     let db_pool = db::create_pool(&config.database_url).await?;
     tracing::info!("Database connected");
 
-    let app_state = AppState::new(db_pool);
+    let library_scanner = scanner::LibraryScanner::new(config.library_path);
+    
+    // Try to scan the library but don't crash if it fails
+    if let Err(e) = library_scanner.scan_library() {
+        tracing::warn!("Failed to scan music library: {}", e);
+        tracing::warn!("Server will continue running, but library may not be fully indexed");
+    }
+    
+    let app_state = AppState::new(db_pool, library_scanner);
 
     let app = routes::create_api_router().with_state(app_state);
 

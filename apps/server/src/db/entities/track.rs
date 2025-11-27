@@ -9,7 +9,6 @@ pub struct Track {
     pub album_id: Option<Uuid>,
     pub file_path: String,
     
-    // Metadata - initially from file, fully editable by user
     pub title: String,
     pub artist: Option<String>,
     pub album: Option<String>,
@@ -20,7 +19,7 @@ pub struct Track {
     pub composer: Option<String>,
     pub comment: Option<String>,
     
-    // Technical metadata (read-only, from file)
+    pub codec: u32,
     pub duration_ms: i32,
     pub format: String,
     pub bitrate: Option<i32>,
@@ -29,11 +28,9 @@ pub struct Track {
     pub file_size_bytes: Option<i64>,
     pub file_modified_at: Option<DateTime<Utc>>,
     
-    // Audio analysis (optional)
     pub replaygain_track_gain: Option<f32>,
     pub replaygain_album_gain: Option<f32>,
     
-    // Tracking user modifications
     pub metadata_modified_at: Option<DateTime<Utc>>,
     
     pub created_at: DateTime<Utc>,
@@ -41,37 +38,6 @@ pub struct Track {
 }
 
 impl Track {
-    /// Create a new track from file scan
-    pub fn new(file_path: String, title: String, duration_ms: i32, format: String) -> Self {
-        let now = Utc::now();
-        Self {
-            id: Uuid::new_v4(),
-            album_id: None,
-            file_path,
-            title,
-            artist: None,
-            album: None,
-            album_artist: None,
-            disc: None,
-            track_no: None,
-            year: None,
-            composer: None,
-            comment: None,
-            duration_ms,
-            format,
-            bitrate: None,
-            sample_rate: None,
-            channels: None,
-            file_size_bytes: None,
-            file_modified_at: None,
-            replaygain_track_gain: None,
-            replaygain_album_gain: None,
-            metadata_modified_at: None,
-            created_at: now,
-            updated_at: now,
-        }
-    }
-    
     /// Mark that user has edited the metadata
     pub fn mark_as_user_edited(&mut self) {
         self.metadata_modified_at = Some(Utc::now());
