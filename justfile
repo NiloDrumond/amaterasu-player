@@ -26,6 +26,9 @@ check:
     cd apps/server && cargo check
     cd apps/server && cargo clippy
 
+docker:
+    docker compose -f infra/docker-compose.yml up
+
 infra:
     docker compose -f infra/docker-compose.yml up -d
 

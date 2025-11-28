@@ -19,7 +19,7 @@ impl TrackRepository {
             r#"
             INSERT INTO tracks (
                 id, album_id, file_path, title, artist, album, album_artist,
-                disc, track_no, year, composer, comment, duration_ms, format,
+                disc, track_no, year, composer, comment, codec, duration_ms, format,
                 bitrate, sample_rate, channels, file_size_bytes, file_modified_at,
                 replaygain_track_gain, replaygain_album_gain, metadata_modified_at,
                 created_at, updated_at
@@ -42,6 +42,7 @@ impl TrackRepository {
             track.year,
             track.composer,
             track.comment,
+            track.codec,
             track.duration_ms,
             track.format,
             track.bitrate,
@@ -254,4 +255,3 @@ impl TrackRepository {
         Ok(tracks)
     }
 }
-
