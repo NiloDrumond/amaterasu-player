@@ -17,18 +17,10 @@ impl TrackRepository {
         let created = sqlx::query_as!(
             Track,
             r#"
-            INSERT INTO tracks (
-                id, album_id, file_path, title, artist, album, album_artist,
-                disc, track_no, year, composer, comment, codec, duration_ms, format,
-                bitrate, sample_rate, channels, file_size_bytes, file_modified_at,
-                replaygain_track_gain, replaygain_album_gain, metadata_modified_at,
-                created_at, updated_at
-            )
-            VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-                $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
-            )
-            RETURNING *
+            INSERT INTO tracks (id, album_id, file_path, title, artist, album, album_artist, disc, track_no, year, composer, comment, codec, duration_ms, format, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_album_gain, metadata_modified_at, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+            RETURNING
+                *
             "#,
             track.id,
             track.album_id,
@@ -67,8 +59,15 @@ impl TrackRepository {
         let tracks = sqlx::query_as!(
             Track,
             r#"
-            SELECT * FROM tracks
-            ORDER BY album, disc, track_no, title
+            SELECT
+                *
+            FROM
+                tracks
+            ORDER BY
+                album,
+                disc,
+                track_no,
+                title
             LIMIT $1 OFFSET $2
             "#,
             limit,
@@ -85,8 +84,12 @@ impl TrackRepository {
         let track = sqlx::query_as!(
             Track,
             r#"
-            SELECT * FROM tracks
-            WHERE id = $1
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                id = $1
             "#,
             id
         )
@@ -101,8 +104,12 @@ impl TrackRepository {
         let track = sqlx::query_as!(
             Track,
             r#"
-            SELECT * FROM tracks
-            WHERE file_path = $1
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                file_path = $1
             "#,
             file_path
         )
@@ -117,9 +124,16 @@ impl TrackRepository {
         let tracks = sqlx::query_as!(
             Track,
             r#"
-            SELECT * FROM tracks
-            WHERE album_id = $1
-            ORDER BY disc, track_no, title
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                album_id = $1
+            ORDER BY
+                disc,
+                track_no,
+                title
             "#,
             album_id
         )
@@ -134,12 +148,24 @@ impl TrackRepository {
         let updated = sqlx::query_as!(
             Track,
             r#"
-            UPDATE tracks
-            SET album_id = $2, title = $3, artist = $4, album = $5,
-                album_artist = $6, disc = $7, track_no = $8, year = $9,
-                composer = $10, comment = $11, metadata_modified_at = $12
-            WHERE id = $1
-            RETURNING *
+            UPDATE
+                tracks
+            SET
+                album_id = $2,
+                title = $3,
+                artist = $4,
+                album = $5,
+                album_artist = $6,
+                disc = $7,
+                track_no = $8,
+                year = $9,
+                composer = $10,
+                comment = $11,
+                metadata_modified_at = $12
+            WHERE
+                id = $1
+            RETURNING
+                *
             "#,
             track.id,
             track.album_id,
@@ -165,13 +191,22 @@ impl TrackRepository {
         let updated = sqlx::query_as!(
             Track,
             r#"
-            UPDATE tracks
-            SET duration_ms = $2, format = $3, bitrate = $4,
-                sample_rate = $5, channels = $6, file_size_bytes = $7,
-                file_modified_at = $8, replaygain_track_gain = $9,
+            UPDATE
+                tracks
+            SET
+                duration_ms = $2,
+                format = $3,
+                bitrate = $4,
+                sample_rate = $5,
+                channels = $6,
+                file_size_bytes = $7,
+                file_modified_at = $8,
+                replaygain_track_gain = $9,
                 replaygain_album_gain = $10
-            WHERE id = $1
-            RETURNING *
+            WHERE
+                id = $1
+            RETURNING
+                *
             "#,
             track.id,
             track.duration_ms,
@@ -194,7 +229,8 @@ impl TrackRepository {
     pub async fn delete(&self, id: Uuid) -> AppResult<bool> {
         let result = sqlx::query!(
             r#"
-            DELETE FROM tracks WHERE id = $1
+            DELETE FROM tracks
+            WHERE id = $1
             "#,
             id
         )
@@ -210,12 +246,20 @@ impl TrackRepository {
         let tracks = sqlx::query_as!(
             Track,
             r#"
-            SELECT * FROM tracks
-            WHERE title ILIKE $1 
-               OR artist ILIKE $1 
-               OR album ILIKE $1
-               OR album_artist ILIKE $1
-            ORDER BY album, disc, track_no, title
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                title ILIKE $1
+                OR artist ILIKE $1
+                OR album ILIKE $1
+                OR album_artist ILIKE $1
+            ORDER BY
+                album,
+                disc,
+                track_no,
+                title
             LIMIT 100
             "#,
             pattern
@@ -230,7 +274,10 @@ impl TrackRepository {
     pub async fn count(&self) -> AppResult<i64> {
         let record = sqlx::query!(
             r#"
-            SELECT COUNT(*) as count FROM tracks
+            SELECT
+                COUNT(*) AS count
+            FROM
+                tracks
             "#
         )
         .fetch_one(&self.db)
@@ -244,9 +291,14 @@ impl TrackRepository {
         let tracks = sqlx::query_as!(
             Track,
             r#"
-            SELECT * FROM tracks
-            WHERE metadata_modified_at IS NOT NULL
-            ORDER BY metadata_modified_at DESC
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                metadata_modified_at IS NOT NULL
+            ORDER BY
+                metadata_modified_at DESC
             "#
         )
         .fetch_all(&self.db)

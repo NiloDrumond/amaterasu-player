@@ -19,8 +19,9 @@ impl ArtistRepository {
             Artist,
             r#"
             INSERT INTO artists (id, name, mbid, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING *
+                VALUES ($1, $2, $3, $4, $5)
+            RETURNING
+                *
             "#,
             artist.id,
             artist.name,
@@ -39,7 +40,12 @@ impl ArtistRepository {
         let artist = sqlx::query_as!(
             Artist,
             r#"
-            SELECT * FROM artists WHERE id = $1
+            SELECT
+                *
+            FROM
+                artists
+            WHERE
+                id = $1
             "#,
             id
         )
@@ -54,7 +60,12 @@ impl ArtistRepository {
         let artist = sqlx::query_as!(
             Artist,
             r#"
-            SELECT * FROM artists WHERE LOWER(name) = LOWER($1)
+            SELECT
+                *
+            FROM
+                artists
+            WHERE
+                LOWER(name) = LOWER($1)
             "#,
             name
         )
@@ -81,10 +92,15 @@ impl ArtistRepository {
         let updated = sqlx::query_as!(
             Artist,
             r#"
-            UPDATE artists
-            SET name = $2, mbid = $3
-            WHERE id = $1
-            RETURNING *
+            UPDATE
+                artists
+            SET
+                name = $2,
+                mbid = $3
+            WHERE
+                id = $1
+            RETURNING
+                *
             "#,
             artist.id,
             artist.name,
@@ -100,7 +116,8 @@ impl ArtistRepository {
     pub async fn delete(&self, id: Uuid) -> Result<bool, AppError> {
         let result = sqlx::query!(
             r#"
-            DELETE FROM artists WHERE id = $1
+            DELETE FROM artists
+            WHERE id = $1
             "#,
             id
         )
@@ -115,9 +132,13 @@ impl ArtistRepository {
         let artists = sqlx::query_as!(
             Artist,
             r#"
-            SELECT * FROM artists
-            ORDER BY name
-            OFFSET $1 LIMIT $2
+            SELECT
+                *
+            FROM
+                artists
+            ORDER BY
+                name OFFSET $1
+            LIMIT $2
             "#,
             offset,
             limit
@@ -134,9 +155,14 @@ impl ArtistRepository {
         let artists = sqlx::query_as!(
             Artist,
             r#"
-            SELECT * FROM artists
-            WHERE name ILIKE $1
-            ORDER BY name
+            SELECT
+                *
+            FROM
+                artists
+            WHERE
+                name ILIKE $1
+            ORDER BY
+                name
             LIMIT 50
             "#,
             pattern
@@ -151,7 +177,10 @@ impl ArtistRepository {
     pub async fn count(&self) -> Result<i64, AppError> {
         let record = sqlx::query!(
             r#"
-            SELECT COUNT(*) as count FROM artists
+            SELECT
+                COUNT(*) AS count
+            FROM
+                artists
             "#
         )
         .fetch_one(&self.pool)

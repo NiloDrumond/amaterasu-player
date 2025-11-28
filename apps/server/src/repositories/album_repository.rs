@@ -19,8 +19,9 @@ impl AlbumRepository {
             Album,
             r#"
             INSERT INTO albums (id, artist_id, title, year, mbid, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING
+                *
             "#,
             album.id,
             album.artist_id,
@@ -41,7 +42,12 @@ impl AlbumRepository {
         let album = sqlx::query_as!(
             Album,
             r#"
-            SELECT * FROM albums WHERE id = $1
+            SELECT
+                *
+            FROM
+                albums
+            WHERE
+                id = $1
             "#,
             id
         )
@@ -56,9 +62,15 @@ impl AlbumRepository {
         let albums = sqlx::query_as!(
             Album,
             r#"
-            SELECT * FROM albums 
-            WHERE artist_id = $1
-            ORDER BY year DESC NULLS LAST, title
+            SELECT
+                *
+            FROM
+                albums
+            WHERE
+                artist_id = $1
+            ORDER BY
+                year DESC NULLS LAST,
+                title
             "#,
             artist_id
         )
@@ -77,9 +89,15 @@ impl AlbumRepository {
         let album = sqlx::query_as!(
             Album,
             r#"
-            SELECT * FROM albums 
-            WHERE LOWER(title) = LOWER($1) 
-            AND (artist_id = $2 OR (artist_id IS NULL AND $2 IS NULL))
+            SELECT
+                *
+            FROM
+                albums
+            WHERE
+                LOWER(title) = LOWER($1)
+                AND (artist_id = $2
+                    OR (artist_id IS NULL
+                        AND $2 IS NULL))
             "#,
             title,
             artist_id
@@ -108,7 +126,7 @@ impl AlbumRepository {
         } else {
             Album::new(title, artist_id)
         };
-        
+
         self.create(&new_album).await
     }
 
@@ -117,10 +135,17 @@ impl AlbumRepository {
         let updated = sqlx::query_as!(
             Album,
             r#"
-            UPDATE albums
-            SET artist_id = $2, title = $3, year = $4, mbid = $5
-            WHERE id = $1
-            RETURNING *
+            UPDATE
+                albums
+            SET
+                artist_id = $2,
+                title = $3,
+                year = $4,
+                mbid = $5
+            WHERE
+                id = $1
+            RETURNING
+                *
             "#,
             album.id,
             album.artist_id,
@@ -138,7 +163,8 @@ impl AlbumRepository {
     pub async fn delete(&self, id: Uuid) -> Result<bool, AppError> {
         let result = sqlx::query!(
             r#"
-            DELETE FROM albums WHERE id = $1
+            DELETE FROM albums
+            WHERE id = $1
             "#,
             id
         )
@@ -153,9 +179,13 @@ impl AlbumRepository {
         let albums = sqlx::query_as!(
             Album,
             r#"
-            SELECT * FROM albums
-            ORDER BY title
-            OFFSET $1 LIMIT $2
+            SELECT
+                *
+            FROM
+                albums
+            ORDER BY
+                title OFFSET $1
+            LIMIT $2
             "#,
             offset,
             limit
@@ -171,9 +201,14 @@ impl AlbumRepository {
         let albums = sqlx::query_as!(
             Album,
             r#"
-            SELECT * FROM albums
-            WHERE artist_id IS NULL
-            ORDER BY title
+            SELECT
+                *
+            FROM
+                albums
+            WHERE
+                artist_id IS NULL
+            ORDER BY
+                title
             "#
         )
         .fetch_all(&self.pool)
@@ -188,9 +223,14 @@ impl AlbumRepository {
         let albums = sqlx::query_as!(
             Album,
             r#"
-            SELECT * FROM albums
-            WHERE title ILIKE $1
-            ORDER BY title
+            SELECT
+                *
+            FROM
+                albums
+            WHERE
+                title ILIKE $1
+            ORDER BY
+                title
             LIMIT 50
             "#,
             pattern
@@ -205,7 +245,10 @@ impl AlbumRepository {
     pub async fn count(&self) -> Result<i64, AppError> {
         let record = sqlx::query!(
             r#"
-            SELECT COUNT(*) as count FROM albums
+            SELECT
+                COUNT(*) AS count
+            FROM
+                albums
             "#
         )
         .fetch_one(&self.pool)
@@ -219,9 +262,14 @@ impl AlbumRepository {
         let albums = sqlx::query_as!(
             Album,
             r#"
-            SELECT * FROM albums
-            WHERE year = $1
-            ORDER BY title
+            SELECT
+                *
+            FROM
+                albums
+            WHERE
+                year = $1
+            ORDER BY
+                title
             "#,
             year
         )
