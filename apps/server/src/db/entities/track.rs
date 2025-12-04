@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -14,16 +14,17 @@ pub struct Track {
     pub artist: Option<String>,
     pub album: Option<String>,
     pub album_artist: Option<String>,
-    pub disc: Option<i32>,     // CHECK: >= 0
-    pub track_no: Option<i32>, // CHECK: >= 0
-    pub year: Option<i32>,     // CHECK: >= 0
+    pub disc: Option<i32>,       // CHECK: >= 0
+    pub track_no: Option<i32>,   // CHECK: >= 0
+    pub date: Option<NaiveDate>, // CHECK: >= 0
     pub composer: Option<String>,
     pub comment: Option<String>,
 
-    pub codec: i32,                   // CHECK: >= 0
+    // TODO: symphonia 6.0 CodecDescriptor
+    // pub codec: i64,                   // CHECK: >= 0
     pub duration_ms: i32,             // CHECK: >= 0
     pub bitrate: Option<i32>,         // CHECK: >= 0
-    pub sample_rate: Option<i32>,     // CHECK: >= 0
+    pub sample_rate: Option<i64>,     // CHECK: >= 0
     pub channels: Option<i32>,        // CHECK: >= 0
     pub file_size_bytes: Option<i64>, // CHECK: >= 0
     pub file_modified_at: Option<DateTime<Utc>>,

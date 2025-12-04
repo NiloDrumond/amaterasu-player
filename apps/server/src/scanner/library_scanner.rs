@@ -1,6 +1,6 @@
 use walkdir::WalkDir;
 
-use crate::scanner::scan_file::scan_file;
+use crate::{db::entities::Track, flog_ron, scanner::scan_file::ScannedFile};
 
 #[derive(Clone)]
 pub struct LibraryScanner {
@@ -19,7 +19,9 @@ impl LibraryScanner {
             let entry = entry?;
             if entry.file_type().is_file() {
                 let path = entry.path();
-                scan_file(path)?;
+                let scanned_file = ScannedFile::scan(&path)?;
+                let track: Track = scanned_file.into();
+                flog_ron!(track);
             }
         }
         Ok(())

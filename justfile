@@ -35,6 +35,9 @@ infra:
 stop:
     docker compose -f infra/docker-compose.yml down
 
+drop-db:
+    docker compose -f infra/docker-compose.yml down -v
+
 clean:
     docker compose -f infra/docker-compose.yml down -v
     cd apps/server && cargo clean

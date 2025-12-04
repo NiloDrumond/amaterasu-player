@@ -28,7 +28,7 @@ impl From<Track> for TrackResponse {
             disc: track.disc,
             duration_ms: track.duration_ms,
             // TODO: Convert codec to string
-            codec: track.codec.to_string(),
+            codec: "TODO".to_string(),
             bitrate: track.bitrate,
             file_path: track.file_path,
         }

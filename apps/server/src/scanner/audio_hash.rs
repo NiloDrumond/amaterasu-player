@@ -1,10 +1,9 @@
 use sha2::{Digest, Sha256};
-use symphonia::core::probe::ProbeResult;
+use symphonia::core::formats::FormatReader;
 
 use crate::scanner::error::{ScannerError, ScannerResult};
 
-pub fn compute_audio_hash(probed: ProbeResult) -> ScannerResult<[u8; 32]> {
-    let mut format = probed.format;
+pub fn compute_audio_hash(mut format: Box<dyn FormatReader>) -> ScannerResult<[u8; 32]> {
     let mut hasher = Sha256::new();
 
     let track_id = format

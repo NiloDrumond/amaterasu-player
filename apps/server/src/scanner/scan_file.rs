@@ -1,41 +1,22 @@
 use std::collections::HashMap;
 
-use crate::flog;
+use crate::db::entities::Track;
 use crate::scanner::audio_hash::compute_audio_hash;
 
 use super::error::ScannerError;
 use super::error::ScannerResult;
 use chrono::NaiveDate;
+use chrono::Utc;
 use symphonia::core::codecs::CodecType;
 use symphonia::core::codecs::CODEC_TYPE_NULL;
+use symphonia::core::formats::FormatReader;
 use symphonia::core::meta::StandardTagKey;
 use symphonia::core::meta::Value;
-use symphonia::core::probe::ProbeResult;
+use symphonia::core::probe::ProbedMetadata;
 use symphonia::core::{
     formats::FormatOptions, io::MediaSourceStream, meta::MetadataOptions, probe::Hint,
 };
-
-pub struct ScannedFile {
-    audio_hash: [u8; 32],
-    title: String,
-    artist: Option<String>,
-    album: Option<String>,
-    album_artist: Option<String>,
-    disc: Option<i32>,
-    track_no: Option<i32>,
-    date: Option<NaiveDate>,
-    composer: Option<String>,
-    comment: Option<String>,
-    codec: i32,
-    duration_ms: i32,
-    bitrate: Option<i32>,
-    sample_rate: Option<i32>,
-    channels: Option<i32>,
-    file_size_bytes: Option<i64>,
-    replaygain_track_gain: Option<f32>,
-    replaygain_album_gain: Option<f32>,
-    raw_metadata: HashMap<StandardTagKey, Value>,
-}
+use uuid::Uuid;
 
 struct ScannedFileMetadata {
     title: String,
@@ -59,8 +40,72 @@ struct ScannedFileAudio {
     file_size_bytes: Option<i64>,
 }
 
+pub struct ScannedFile {
+    file_path: String,
+    metadata: ScannedFileMetadata,
+    audio: ScannedFileAudio,
+}
+
+impl From<ScannedFile> for Track {
+    fn from(scanned: ScannedFile) -> Self {
+        Track {
+            id: Uuid::new_v4(),
+            audio_hash: scanned.audio.audio_hash.to_vec(),
+            album_id: None,
+            file_path: scanned.file_path,
+            title: scanned.metadata.title,
+            artist: scanned.metadata.artist,
+            album: scanned.metadata.album,
+            album_artist: scanned.metadata.album_artist,
+            disc: scanned.metadata.disc,
+            track_no: scanned.metadata.track_no,
+            date: scanned.metadata.date,
+            composer: scanned.metadata.composer,
+            comment: scanned.metadata.comment,
+            duration_ms: scanned.audio.duration_ms,
+            bitrate: scanned.audio.bitrate,
+            sample_rate: scanned.audio.sample_rate,
+            channels: None,
+            file_size_bytes: scanned.audio.file_size_bytes,
+            file_modified_at: None,
+            replaygain_track_gain: None,
+            replaygain_album_gain: None,
+            metadata_modified_at: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+}
+
+impl ScannedFile {
+    pub fn scan(path: &std::path::Path) -> ScannerResult<Self> {
+        let probe = symphonia::default::get_probe();
+        let src = std::fs::File::open(path)?;
+        let mss = MediaSourceStream::new(Box::new(src), Default::default());
+
+        let mut hint = Hint::new();
+        if let Some(extension) = path.extension() {
+            if let Some(extension) = extension.to_str() {
+                hint.with_extension(extension);
+            }
+        }
+        let meta_opts: MetadataOptions = Default::default();
+        let fmt_opts: FormatOptions = Default::default();
+
+        let probed = probe.format(&hint, mss, &fmt_opts, &meta_opts)?;
+        let metadata = ScannedFileMetadata::from_metadata(path, probed.metadata)?;
+        let audio = ScannedFileAudio::from_format(path, probed.format)?;
+
+        Ok(Self {
+            file_path: path.to_string_lossy().into_owned(),
+            metadata,
+            audio,
+        })
+    }
+}
+
 impl ScannedFileMetadata {
-    fn from_probed(path: &std::path::Path, probed: ProbeResult) -> ScannerResult<Self> {
+    fn from_metadata(path: &std::path::Path, mut metadata: ProbedMetadata) -> ScannerResult<Self> {
         let file_name = path
             .file_stem()
             .and_then(|s| s.to_str())
@@ -69,7 +114,6 @@ impl ScannedFileMetadata {
             ))?
             .to_string();
 
-        let mut metadata = probed.metadata;
         let metadata = metadata.get();
         let Some(mut metadata) = metadata else {
             return Err(ScannerError::FailedToExtractMetadata);
@@ -133,21 +177,23 @@ impl ScannedFileMetadata {
 }
 
 impl ScannedFileAudio {
-    pub fn from_probed(path: &std::path::Path, probed: ProbeResult) -> ScannerResult<Self> {
+    pub fn from_format(
+        path: &std::path::Path,
+        format: Box<dyn FormatReader>,
+    ) -> ScannerResult<Self> {
         // Get file size from filesystem metadata
         let file_size_bytes = std::fs::metadata(path).map(|m| m.len() as i64).ok();
 
-        let format = probed.format;
         let track = format
             .tracks()
             .iter()
             .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
             .ok_or(ScannerError::FailedToDetectFormat)?;
 
-        let codec_params = track.codec_params;
-        let sample_rate = codec_params.sample_rate.map(|r| r as i64);
+        let codec = track.codec_params.codec;
+        let sample_rate = track.codec_params.sample_rate.map(|r| r as i64);
 
-        let duration_ms = match (codec_params.time_base, codec_params.n_frames) {
+        let duration_ms = match (track.codec_params.time_base, track.codec_params.n_frames) {
             (Some(time_base), Some(n_frames)) => {
                 let time = time_base.calc_time(n_frames);
                 // time.seconds is u64, time.frac is f64 (fractional seconds)
@@ -165,50 +211,15 @@ impl ScannedFileAudio {
             _ => None,
         };
 
+        let audio_hash = compute_audio_hash(format)?;
+
         Ok(Self {
-            codec: codec_params.codec,
-            audio_hash: compute_audio_hash(probed)?,
+            codec,
+            audio_hash,
             file_size_bytes,
             sample_rate,
             duration_ms,
-            bitrate
+            bitrate,
         })
     }
-}
-
-pub fn scan_file(path: &std::path::Path) -> ScannerResult<()> {
-    let probe = symphonia::default::get_probe();
-    let src = std::fs::File::open(path)?;
-    let mss = MediaSourceStream::new(Box::new(src), Default::default());
-
-    let mut hint = Hint::new();
-    if let Some(extension) = path.extension() {
-        if let Some(extension) = extension.to_str() {
-            hint.with_extension(extension);
-        }
-    }
-    let meta_opts: MetadataOptions = Default::default();
-    let fmt_opts: FormatOptions = Default::default();
-
-    let probed = probe.format(&hint, mss, &fmt_opts, &meta_opts)?;
-    let format = probed.format;
-    let mut metadata = probed.metadata;
-    let metadata = metadata.get();
-    let Some(mut metadata) = metadata else {
-        return Err(ScannerError::FailedToExtractMetadata);
-    };
-    let Some(metadata) = metadata.skip_to_latest() else {
-        return Err(ScannerError::FailedToExtractMetadata);
-    };
-
-    let track = format
-        .tracks()
-        .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
-        .ok_or(ScannerError::FailedToDetectFormat)?;
-
-    let codec = track.codec_params.codec;
-    flog!("{:?}", metadata.tags());
-
-    Ok(())
 }

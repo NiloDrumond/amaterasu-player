@@ -17,8 +17,8 @@ impl TrackRepository {
         let created = sqlx::query_as!(
             Track,
             r#"
-            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, artist, album, album_artist, disc, track_no, year, composer, comment, codec, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_album_gain, metadata_modified_at, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, artist, album, album_artist, disc, track_no, date, composer, comment, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_album_gain, metadata_modified_at, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
             RETURNING
                 *
             "#,
@@ -32,10 +32,9 @@ impl TrackRepository {
             track.album_artist,
             track.disc,
             track.track_no,
-            track.year,
+            track.date,
             track.composer,
             track.comment,
-            track.codec,
             track.duration_ms,
             track.bitrate,
             track.sample_rate,
@@ -158,7 +157,7 @@ impl TrackRepository {
                 album_artist = $6,
                 disc = $7,
                 track_no = $8,
-                year = $9,
+                date = $9,
                 composer = $10,
                 comment = $11,
                 metadata_modified_at = $12
@@ -175,7 +174,7 @@ impl TrackRepository {
             track.album_artist,
             track.disc,
             track.track_no,
-            track.year,
+            track.date,
             track.composer,
             track.comment,
             track.metadata_modified_at
@@ -195,14 +194,13 @@ impl TrackRepository {
                 tracks
             SET
                 duration_ms = $2,
-                codec = $3,
-                bitrate = $4,
-                sample_rate = $5,
-                channels = $6,
-                file_size_bytes = $7,
-                file_modified_at = $8,
-                replaygain_track_gain = $9,
-                replaygain_album_gain = $10
+                bitrate = $3,
+                sample_rate = $4,
+                channels = $5,
+                file_size_bytes = $6,
+                file_modified_at = $7,
+                replaygain_track_gain = $8,
+                replaygain_album_gain = $9
             WHERE
                 id = $1
             RETURNING
@@ -210,7 +208,6 @@ impl TrackRepository {
             "#,
             track.id,
             track.duration_ms,
-            track.codec,
             track.bitrate,
             track.sample_rate,
             track.channels,

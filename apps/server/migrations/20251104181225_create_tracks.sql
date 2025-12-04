@@ -9,13 +9,12 @@ CREATE TABLE IF NOT EXISTS tracks (
     album_artist text,
     disc int CHECK (disc >= 0),
     track_no int CHECK (track_no >= 0),
-    year int CHECK (year >= 0),
+    date DATE,
     composer text,
     comment text,
-    codec int NOT NULL CHECK (codec >= 0),
     duration_ms int NOT NULL CHECK (duration_ms >= 0),
     bitrate int CHECK (bitrate >= 0),
-    sample_rate int CHECK (sample_rate >= 0),
+    sample_rate bigint CHECK (sample_rate >= 0),
     channels int CHECK (channels >= 0),
     file_size_bytes bigint CHECK (file_size_bytes >= 0),
     file_modified_at timestamptz,
@@ -42,9 +41,9 @@ WHERE
 
 CREATE INDEX idx_tracks_album_disc_track ON tracks (album_id, disc, track_no);
 
-CREATE INDEX idx_tracks_year ON tracks (year)
+CREATE INDEX idx_tracks_date ON tracks (date)
 WHERE
-    year IS NOT NULL;
+    date IS NOT NULL;
 
 CREATE TRIGGER update_tracks_updated_at
     BEFORE UPDATE ON tracks
