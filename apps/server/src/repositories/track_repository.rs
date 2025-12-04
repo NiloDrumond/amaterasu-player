@@ -17,12 +17,13 @@ impl TrackRepository {
         let created = sqlx::query_as!(
             Track,
             r#"
-            INSERT INTO tracks (id, album_id, file_path, title, artist, album, album_artist, disc, track_no, year, composer, comment, codec, duration_ms, format, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_album_gain, metadata_modified_at, created_at, updated_at)
+            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, artist, album, album_artist, disc, track_no, year, composer, comment, codec, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_album_gain, metadata_modified_at, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
             RETURNING
                 *
             "#,
             track.id,
+            track.audio_hash,
             track.album_id,
             track.file_path,
             track.title,
@@ -36,7 +37,6 @@ impl TrackRepository {
             track.comment,
             track.codec,
             track.duration_ms,
-            track.format,
             track.bitrate,
             track.sample_rate,
             track.channels,
@@ -195,7 +195,7 @@ impl TrackRepository {
                 tracks
             SET
                 duration_ms = $2,
-                format = $3,
+                codec = $3,
                 bitrate = $4,
                 sample_rate = $5,
                 channels = $6,
@@ -210,7 +210,7 @@ impl TrackRepository {
             "#,
             track.id,
             track.duration_ms,
-            track.format,
+            track.codec,
             track.bitrate,
             track.sample_rate,
             track.channels,

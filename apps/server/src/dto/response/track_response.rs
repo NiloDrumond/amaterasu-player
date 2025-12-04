@@ -12,7 +12,7 @@ pub struct TrackResponse {
     pub track_no: Option<i32>,
     pub disc: Option<i32>,
     pub duration_ms: i32,
-    pub format: String,
+    pub codec: String,
     pub bitrate: Option<i32>,
     pub file_path: String,
 }
@@ -27,7 +27,8 @@ impl From<Track> for TrackResponse {
             track_no: track.track_no,
             disc: track.disc,
             duration_ms: track.duration_ms,
-            format: track.format,
+            // TODO: Convert codec to string
+            codec: track.codec.to_string(),
             bitrate: track.bitrate,
             file_path: track.file_path,
         }

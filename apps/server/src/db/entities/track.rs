@@ -6,6 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default)]
 pub struct Track {
     pub id: Uuid,
+    pub audio_hash: Vec<u8>,
     pub album_id: Option<Uuid>,
     pub file_path: String,
 
@@ -19,9 +20,8 @@ pub struct Track {
     pub composer: Option<String>,
     pub comment: Option<String>,
 
-    pub codec: i32,       // CHECK: >= 0
-    pub duration_ms: i32, // CHECK: >= 0
-    pub format: String,
+    pub codec: i32,                   // CHECK: >= 0
+    pub duration_ms: i32,             // CHECK: >= 0
     pub bitrate: Option<i32>,         // CHECK: >= 0
     pub sample_rate: Option<i32>,     // CHECK: >= 0
     pub channels: Option<i32>,        // CHECK: >= 0

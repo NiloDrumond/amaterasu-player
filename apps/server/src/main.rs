@@ -11,6 +11,7 @@ mod routes;
 mod scanner;
 mod services;
 mod state;
+mod utils;
 
 use config::Config;
 use state::AppState;

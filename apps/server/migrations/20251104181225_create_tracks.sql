@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS tracks (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
+    audio_hash bytea NOT NULL UNIQUE,
     album_id uuid REFERENCES albums (id) ON DELETE SET NULL,
     file_path text NOT NULL UNIQUE,
     title text NOT NULL,
@@ -13,7 +14,6 @@ CREATE TABLE IF NOT EXISTS tracks (
     comment text,
     codec int NOT NULL CHECK (codec >= 0),
     duration_ms int NOT NULL CHECK (duration_ms >= 0),
-    format text NOT NULL,
     bitrate int CHECK (bitrate >= 0),
     sample_rate int CHECK (sample_rate >= 0),
     channels int CHECK (channels >= 0),
