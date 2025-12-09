@@ -3,6 +3,18 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MetadataValue {
+    Binary(Box<[u8]>),
+    Boolean(bool),
+    Flag,
+    Float(f64),
+    SignedInt(i64),
+    String(String),
+    UnsignedInt(u64),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default)]
 pub struct Track {
     pub id: Uuid,
@@ -12,13 +24,14 @@ pub struct Track {
 
     pub title: String,
     pub artist: Option<String>,
-    pub album: Option<String>,
-    pub album_artist: Option<String>,
     pub disc: Option<i32>,       // CHECK: >= 0
     pub track_no: Option<i32>,   // CHECK: >= 0
     pub date: Option<NaiveDate>, // CHECK: >= 0
     pub composer: Option<String>,
     pub comment: Option<String>,
+
+    pub sort_title: Option<String>,
+    pub sort_artist: Option<String>,
 
     // TODO: symphonia 6.0 CodecDescriptor
     // pub codec: i64,                   // CHECK: >= 0
@@ -72,10 +85,5 @@ impl Track {
         } else {
             format!("{}:{:02}", minutes, seconds)
         }
-    }
-
-    /// Get display artist (falls back to album artist if track artist is missing)
-    pub fn display_artist(&self) -> Option<&str> {
-        self.artist.as_deref().or(self.album_artist.as_deref())
     }
 }

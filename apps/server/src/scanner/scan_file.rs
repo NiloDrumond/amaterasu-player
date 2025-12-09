@@ -28,7 +28,8 @@ struct ScannedFileMetadata {
     date: Option<NaiveDate>,
     composer: Option<String>,
     comment: Option<String>,
-    raw_metadata: HashMap<StandardTagKey, Value>,
+    sort_title: Option<String>,
+    sort_artist: Option<String>,
 }
 
 struct ScannedFileAudio {
@@ -54,9 +55,9 @@ impl From<ScannedFile> for Track {
             album_id: None,
             file_path: scanned.file_path,
             title: scanned.metadata.title,
+            sort_title: scanned.metadata.sort_title,
             artist: scanned.metadata.artist,
-            album: scanned.metadata.album,
-            album_artist: scanned.metadata.album_artist,
+            sort_artist: scanned.metadata.sort_artist,
             disc: scanned.metadata.disc,
             track_no: scanned.metadata.track_no,
             date: scanned.metadata.date,
@@ -171,7 +172,16 @@ impl ScannedFileMetadata {
                 Value::String(s) => Some(s.clone()),
                 _ => None,
             }),
-            raw_metadata: tags.iter().map(|(k, v)| (*k, (*v).clone())).collect(),
+            sort_title: tags
+                .get(&StandardTagKey::SortTrackTitle)
+                .and_then(|v| match v {
+                    Value::String(s) => Some(s.clone()),
+                    _ => None,
+                }),
+            sort_artist: tags.get(&StandardTagKey::SortArtist).and_then(|v| match v {
+                Value::String(s) => Some(s.clone()),
+                _ => None,
+            }),
         })
     }
 }
