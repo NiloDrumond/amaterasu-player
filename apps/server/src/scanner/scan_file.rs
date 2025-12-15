@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::db::entities::Track;
 use crate::scanner::audio_hash::compute_audio_hash;
 
@@ -7,22 +5,14 @@ use super::error::ScannerError;
 use super::error::ScannerResult;
 use chrono::NaiveDate;
 use chrono::Utc;
-use symphonia::core::codecs::CodecType;
-use symphonia::core::codecs::CODEC_TYPE_NULL;
-use symphonia::core::formats::FormatReader;
-use symphonia::core::meta::StandardTagKey;
-use symphonia::core::meta::Value;
-use symphonia::core::probe::ProbedMetadata;
-use symphonia::core::{
-    formats::FormatOptions, io::MediaSourceStream, meta::MetadataOptions, probe::Hint,
-};
+use ffmpeg_next as ffmpeg;
+use ffmpeg::format::context::Input;
+use ffmpeg::media::Type as MediaType;
 use uuid::Uuid;
 
 struct ScannedFileMetadata {
     title: String,
     artist: Option<String>,
-    album: Option<String>,
-    album_artist: Option<String>,
     disc: Option<i32>,
     track_no: Option<i32>,
     date: Option<NaiveDate>,
@@ -30,11 +20,22 @@ struct ScannedFileMetadata {
     comment: Option<String>,
     sort_title: Option<String>,
     sort_artist: Option<String>,
+    replaygain_track_gain: Option<f32>,
+    replaygain_track_peak: Option<f32>,
+}
+
+pub struct ScannedAlbumMetadata {
+    pub name: Option<String>,
+    pub artist: Option<String>,
+    pub sort_name: Option<String>,
+    pub sort_artist: Option<String>,
+    pub replaygain_album_gain: Option<f32>,
+    pub replaygain_album_peak: Option<f32>,
 }
 
 struct ScannedFileAudio {
     audio_hash: [u8; 32],
-    codec: CodecType,
+    codec_id: ffmpeg::codec::Id,
     duration_ms: i32,
     bitrate: Option<i32>,
     sample_rate: Option<i64>,
@@ -45,6 +46,7 @@ pub struct ScannedFile {
     file_path: String,
     metadata: ScannedFileMetadata,
     audio: ScannedFileAudio,
+    pub album_metadata: ScannedAlbumMetadata,
 }
 
 impl From<ScannedFile> for Track {
@@ -69,8 +71,8 @@ impl From<ScannedFile> for Track {
             channels: None,
             file_size_bytes: scanned.audio.file_size_bytes,
             file_modified_at: None,
-            replaygain_track_gain: None,
-            replaygain_album_gain: None,
+            replaygain_track_gain: scanned.metadata.replaygain_track_gain,
+            replaygain_track_peak: scanned.metadata.replaygain_track_peak,
             metadata_modified_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -80,33 +82,28 @@ impl From<ScannedFile> for Track {
 
 impl ScannedFile {
     pub fn scan(path: &std::path::Path) -> ScannerResult<Self> {
-        let probe = symphonia::default::get_probe();
-        let src = std::fs::File::open(path)?;
-        let mss = MediaSourceStream::new(Box::new(src), Default::default());
+        ffmpeg::init()?;
 
-        let mut hint = Hint::new();
-        if let Some(extension) = path.extension() {
-            if let Some(extension) = extension.to_str() {
-                hint.with_extension(extension);
-            }
-        }
-        let meta_opts: MetadataOptions = Default::default();
-        let fmt_opts: FormatOptions = Default::default();
+        let path_str = path
+            .to_str()
+            .ok_or(ScannerError::InvalidFileName(path.to_str().map(|s| s.to_string())))?;
+        let ictx = ffmpeg::format::input(&path_str)?;
 
-        let probed = probe.format(&hint, mss, &fmt_opts, &meta_opts)?;
-        let metadata = ScannedFileMetadata::from_metadata(path, probed.metadata)?;
-        let audio = ScannedFileAudio::from_format(path, probed.format)?;
+        let metadata = ScannedFileMetadata::from_context(path, &ictx)?;
+        let album_metadata = ScannedAlbumMetadata::from_context(&ictx);
+        let audio = ScannedFileAudio::from_context(path, ictx)?;
 
         Ok(Self {
             file_path: path.to_string_lossy().into_owned(),
             metadata,
             audio,
+            album_metadata,
         })
     }
 }
 
 impl ScannedFileMetadata {
-    fn from_metadata(path: &std::path::Path, mut metadata: ProbedMetadata) -> ScannerResult<Self> {
+    fn from_context(path: &std::path::Path, ictx: &Input) -> ScannerResult<Self> {
         let file_name = path
             .file_stem()
             .and_then(|s| s.to_str())
@@ -115,116 +112,137 @@ impl ScannedFileMetadata {
             ))?
             .to_string();
 
-        let metadata = metadata.get();
-        let Some(mut metadata) = metadata else {
-            return Err(ScannerError::FailedToExtractMetadata);
-        };
-        let Some(metadata) = metadata.skip_to_latest() else {
-            return Err(ScannerError::FailedToExtractMetadata);
+        let metadata = ictx.metadata();
+
+        let get_string = |key: &str| -> Option<String> {
+            metadata.get(key).map(|v| v.to_string())
         };
 
-        let tags = metadata.tags();
-        let tags: HashMap<StandardTagKey, &Value> = tags
-            .iter()
-            .filter_map(|tag| tag.std_key.map(|key| (key, &tag.value)))
-            .collect();
+        let get_int = |key: &str| -> Option<i32> {
+            metadata.get(key).and_then(|v| v.parse::<i32>().ok())
+        };
+
+        // Helper to parse ReplayGain gain values (e.g., "-6.50 dB")
+        let parse_gain = |key: &str| -> Option<f32> {
+            metadata.get(key).and_then(|v| {
+                v.trim_end_matches(" dB")
+                    .trim_end_matches("dB")
+                    .trim()
+                    .parse::<f32>()
+                    .ok()
+            })
+        };
+
+        // Helper to parse ReplayGain peak values (e.g., "0.988831")
+        let parse_peak = |key: &str| -> Option<f32> {
+            metadata.get(key).and_then(|v| v.parse::<f32>().ok())
+        };
 
         Ok(Self {
-            title: tags
-                .get(&StandardTagKey::TrackTitle)
-                .map(|v| v.to_string())
-                .unwrap_or(file_name),
-            artist: tags.get(&StandardTagKey::Artist).and_then(|v| match v {
-                Value::String(s) => Some(s.clone()),
-                _ => None,
+            title: get_string("title").unwrap_or(file_name),
+            artist: get_string("artist"),
+            disc: get_int("disc").or_else(|| get_int("discnumber")),
+            track_no: get_int("track").or_else(|| get_int("tracknumber")),
+            date: get_string("date").and_then(|s| {
+                // Try parsing as full date first, then year-only
+                s.parse::<NaiveDate>()
+                    .ok()
+                    .or_else(|| s.parse::<i32>().ok().and_then(|y| NaiveDate::from_ymd_opt(y, 1, 1)))
             }),
-            album: tags.get(&StandardTagKey::Album).and_then(|v| match v {
-                Value::String(s) => Some(s.clone()),
-                _ => None,
-            }),
-            album_artist: tags
-                .get(&StandardTagKey::AlbumArtist)
-                .and_then(|v| match v {
-                    Value::String(s) => Some(s.clone()),
-                    _ => None,
-                }),
-            disc: tags.get(&StandardTagKey::DiscNumber).and_then(|v| match v {
-                Value::SignedInt(i) => Some(*i as i32),
-                Value::UnsignedInt(u) => Some(*u as i32),
-                _ => None,
-            }),
-            track_no: tags
-                .get(&StandardTagKey::TrackNumber)
-                .and_then(|v| match v {
-                    Value::SignedInt(i) => Some(*i as i32),
-                    Value::UnsignedInt(u) => Some(*u as i32),
-                    _ => None,
-                }),
-            date: tags.get(&StandardTagKey::Date).and_then(|v| match v {
-                Value::String(s) => Some(s.clone().parse::<NaiveDate>().ok()?),
-                _ => None,
-            }),
-            composer: tags.get(&StandardTagKey::Composer).and_then(|v| match v {
-                Value::String(s) => Some(s.clone()),
-                _ => None,
-            }),
-            comment: tags.get(&StandardTagKey::Comment).and_then(|v| match v {
-                Value::String(s) => Some(s.clone()),
-                _ => None,
-            }),
-            sort_title: tags
-                .get(&StandardTagKey::SortTrackTitle)
-                .and_then(|v| match v {
-                    Value::String(s) => Some(s.clone()),
-                    _ => None,
-                }),
-            sort_artist: tags.get(&StandardTagKey::SortArtist).and_then(|v| match v {
-                Value::String(s) => Some(s.clone()),
-                _ => None,
-            }),
+            composer: get_string("composer"),
+            comment: get_string("comment"),
+            sort_title: get_string("titlesort").or_else(|| get_string("sort_title")),
+            sort_artist: get_string("artistsort").or_else(|| get_string("sort_artist")),
+            replaygain_track_gain: parse_gain("replaygain_track_gain"),
+            replaygain_track_peak: parse_peak("replaygain_track_peak"),
         })
     }
 }
 
+impl ScannedAlbumMetadata {
+    fn from_context(ictx: &Input) -> Self {
+        let metadata = ictx.metadata();
+
+        let get_string = |key: &str| -> Option<String> {
+            metadata.get(key).map(|v| v.to_string())
+        };
+
+        let parse_gain = |key: &str| -> Option<f32> {
+            metadata.get(key).and_then(|v| {
+                v.trim_end_matches(" dB")
+                    .trim_end_matches("dB")
+                    .trim()
+                    .parse::<f32>()
+                    .ok()
+            })
+        };
+
+        let parse_peak = |key: &str| -> Option<f32> {
+            metadata.get(key).and_then(|v| v.parse::<f32>().ok())
+        };
+
+        Self {
+            name: get_string("album"),
+            artist: get_string("album_artist").or_else(|| get_string("albumartist")),
+            sort_name: get_string("albumsort").or_else(|| get_string("sort_album")),
+            sort_artist: get_string("albumartistsort").or_else(|| get_string("sort_album_artist")),
+            replaygain_album_gain: parse_gain("replaygain_album_gain"),
+            replaygain_album_peak: parse_peak("replaygain_album_peak"),
+        }
+    }
+}
+
 impl ScannedFileAudio {
-    pub fn from_format(
-        path: &std::path::Path,
-        format: Box<dyn FormatReader>,
-    ) -> ScannerResult<Self> {
-        // Get file size from filesystem metadata
+    pub fn from_context(path: &std::path::Path, ictx: Input) -> ScannerResult<Self> {
         let file_size_bytes = std::fs::metadata(path).map(|m| m.len() as i64).ok();
 
-        let track = format
-            .tracks()
-            .iter()
-            .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+        let audio_stream = ictx
+            .streams()
+            .best(MediaType::Audio)
             .ok_or(ScannerError::FailedToDetectFormat)?;
 
-        let codec = track.codec_params.codec;
-        let sample_rate = track.codec_params.sample_rate.map(|r| r as i64);
+        let audio_stream_index = audio_stream.index();
 
-        let duration_ms = match (track.codec_params.time_base, track.codec_params.n_frames) {
-            (Some(time_base), Some(n_frames)) => {
-                let time = time_base.calc_time(n_frames);
-                // time.seconds is u64, time.frac is f64 (fractional seconds)
-                ((time.seconds as f64 + time.frac) * 1000.0) as i32
+        let codec_ctx =
+            ffmpeg::codec::context::Context::from_parameters(audio_stream.parameters())?;
+        let codec_id = codec_ctx.id();
+
+        let sample_rate = if let Ok(audio_decoder) = codec_ctx.decoder().audio() {
+            Some(audio_decoder.rate() as i64)
+        } else {
+            None
+        };
+
+        let duration_ms = {
+            let stream_duration = audio_stream.duration();
+            let time_base = audio_stream.time_base();
+            if stream_duration > 0 {
+                // Convert stream duration to milliseconds
+                let duration_sec =
+                    stream_duration as f64 * (time_base.numerator() as f64 / time_base.denominator() as f64);
+                (duration_sec * 1000.0) as i32
+            } else {
+                let ctx_duration = ictx.duration();
+                if ctx_duration > 0 {
+                    (ctx_duration as f64 / 1000.0) as i32 // microseconds to milliseconds
+                } else {
+                    0
+                }
             }
-            _ => 0, // or handle this case differently
         };
 
         let bitrate = match (file_size_bytes, duration_ms) {
             (Some(size), dur) if dur > 0 => {
-                // bits per second: (bytes * 8) / seconds
                 let duration_sec = dur as f64 / 1000.0;
                 Some(((size as f64 * 8.0) / duration_sec) as i32)
             }
             _ => None,
         };
 
-        let audio_hash = compute_audio_hash(format)?;
+        let audio_hash = compute_audio_hash(ictx, audio_stream_index)?;
 
         Ok(Self {
-            codec,
+            codec_id,
             audio_hash,
             file_size_bytes,
             sample_rate,

@@ -3,8 +3,8 @@ pub enum ScannerError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("Symphonia error: {0}")]
-    Symphonia(#[from] symphonia::core::errors::Error),
+    #[error("FFmpeg error: {0}")]
+    FFmpeg(#[from] ffmpeg_next::Error),
 
     #[error("Failed to extract metadata")]
     FailedToExtractMetadata,

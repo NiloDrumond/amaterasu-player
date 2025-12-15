@@ -1,29 +1,16 @@
+use ffmpeg_next::format::context::Input;
 use sha2::{Digest, Sha256};
-use symphonia::core::formats::FormatReader;
 
-use crate::scanner::error::{ScannerError, ScannerResult};
+use crate::scanner::error::ScannerResult;
 
-pub fn compute_audio_hash(mut format: Box<dyn FormatReader>) -> ScannerResult<[u8; 32]> {
+pub fn compute_audio_hash(mut ictx: Input, audio_stream_index: usize) -> ScannerResult<[u8; 32]> {
     let mut hasher = Sha256::new();
 
-    let track_id = format
-        .default_track()
-        .ok_or_else(|| ScannerError::FailedToDetectDefaultTrack)?
-        .id;
-
-    loop {
-        match format.next_packet() {
-            Ok(packet) => {
-                if packet.track_id() == track_id {
-                    hasher.update(&packet.data);
-                }
+    for (stream, packet) in ictx.packets() {
+        if stream.index() == audio_stream_index {
+            if let Some(data) = packet.data() {
+                hasher.update(data);
             }
-            Err(symphonia::core::errors::Error::IoError(e))
-                if e.kind() == std::io::ErrorKind::UnexpectedEof =>
-            {
-                break
-            }
-            Err(e) => return Err(e.into()),
         }
     }
 
