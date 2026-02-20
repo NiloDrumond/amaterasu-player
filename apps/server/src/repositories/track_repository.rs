@@ -1,24 +1,17 @@
 use crate::db::entities::Track;
 use crate::error::AppResult;
-use sqlx::PgPool;
+use sqlx::PgExecutor;
 use uuid::Uuid;
 
-pub struct TrackRepository {
-    db: PgPool,
-}
+pub struct TrackRepository;
 
 impl TrackRepository {
-    pub fn new(db: PgPool) -> Self {
-        Self { db }
-    }
-
-    /// Create a new track
-    pub async fn create(&self, track: &Track) -> AppResult<Track> {
+    pub async fn create(executor: impl PgExecutor<'_>, track: &Track) -> AppResult<Track> {
         let created = sqlx::query_as!(
             Track,
             r#"
-            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, artist_id, disc, track_no, date, composer, comment, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_track_peak, metadata_modified_at, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, sort_title, artist_id, disc, track_no, date, composer, comment, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_track_peak, metadata_modified_at, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
             RETURNING
                 *
             "#,
@@ -27,6 +20,7 @@ impl TrackRepository {
             track.album_id,
             track.file_path,
             track.title,
+            track.sort_title,
             track.artist_id,
             track.disc,
             track.track_no,
@@ -45,14 +39,16 @@ impl TrackRepository {
             track.created_at,
             track.updated_at
         )
-        .fetch_one(&self.db)
+        .fetch_one(executor)
         .await?;
 
         Ok(created)
     }
 
-    /// Find track by ID
-    pub async fn find_by_id(&self, id: Uuid) -> AppResult<Option<Track>> {
+    pub async fn find_by_id(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+    ) -> AppResult<Option<Track>> {
         let track = sqlx::query_as!(
             Track,
             r#"
@@ -65,14 +61,16 @@ impl TrackRepository {
             "#,
             id
         )
-        .fetch_optional(&self.db)
+        .fetch_optional(executor)
         .await?;
 
         Ok(track)
     }
 
-    /// Find track by file path
-    pub async fn find_by_file_path(&self, file_path: &str) -> AppResult<Option<Track>> {
+    pub async fn find_by_file_path(
+        executor: impl PgExecutor<'_>,
+        file_path: &str,
+    ) -> AppResult<Option<Track>> {
         let track = sqlx::query_as!(
             Track,
             r#"
@@ -85,14 +83,38 @@ impl TrackRepository {
             "#,
             file_path
         )
-        .fetch_optional(&self.db)
+        .fetch_optional(executor)
         .await?;
 
         Ok(track)
     }
 
-    /// Find tracks by album
-    pub async fn find_by_album(&self, album_id: Uuid) -> AppResult<Vec<Track>> {
+    pub async fn find_by_audio_hash(
+        executor: impl PgExecutor<'_>,
+        audio_hash: &[u8],
+    ) -> AppResult<Option<Track>> {
+        let track = sqlx::query_as!(
+            Track,
+            r#"
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                audio_hash = $1
+            "#,
+            audio_hash
+        )
+        .fetch_optional(executor)
+        .await?;
+
+        Ok(track)
+    }
+
+    pub async fn find_by_album(
+        executor: impl PgExecutor<'_>,
+        album_id: Uuid,
+    ) -> AppResult<Vec<Track>> {
         let tracks = sqlx::query_as!(
             Track,
             r#"
@@ -109,34 +131,54 @@ impl TrackRepository {
             "#,
             album_id
         )
-        .fetch_all(&self.db)
+        .fetch_all(executor)
         .await?;
 
         Ok(tracks)
     }
 
-    /// Update technical metadata (from file rescan)
-    pub async fn update_technical_metadata(&self, track: &Track) -> AppResult<Track> {
+    pub async fn update(executor: impl PgExecutor<'_>, track: &Track) -> AppResult<Track> {
         let updated = sqlx::query_as!(
             Track,
             r#"
             UPDATE
                 tracks
             SET
-                duration_ms = $2,
-                bitrate = $3,
-                sample_rate = $4,
-                channels = $5,
-                file_size_bytes = $6,
-                file_modified_at = $7,
-                replaygain_track_gain = $8,
-                replaygain_track_peak = $9
+                audio_hash = $2,
+                album_id = $3,
+                title = $4,
+                sort_title = $5,
+                artist_id = $6,
+                disc = $7,
+                track_no = $8,
+                date = $9,
+                composer = $10,
+                comment = $11,
+                duration_ms = $12,
+                bitrate = $13,
+                sample_rate = $14,
+                channels = $15,
+                file_size_bytes = $16,
+                file_modified_at = $17,
+                replaygain_track_gain = $18,
+                replaygain_track_peak = $19,
+                updated_at = NOW()
             WHERE
                 id = $1
             RETURNING
                 *
             "#,
             track.id,
+            track.audio_hash,
+            track.album_id,
+            track.title,
+            track.sort_title,
+            track.artist_id,
+            track.disc,
+            track.track_no,
+            track.date,
+            track.composer,
+            track.comment,
             track.duration_ms,
             track.bitrate,
             track.sample_rate,
@@ -146,14 +188,13 @@ impl TrackRepository {
             track.replaygain_track_gain,
             track.replaygain_track_peak
         )
-        .fetch_one(&self.db)
+        .fetch_one(executor)
         .await?;
 
         Ok(updated)
     }
 
-    /// Delete a track
-    pub async fn delete(&self, id: Uuid) -> AppResult<bool> {
+    pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid) -> AppResult<bool> {
         let result = sqlx::query!(
             r#"
             DELETE FROM tracks
@@ -161,13 +202,17 @@ impl TrackRepository {
             "#,
             id
         )
-        .execute(&self.db)
+        .execute(executor)
         .await?;
 
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn find_all(&self, limit: i64, offset: i64) -> AppResult<Vec<Track>> {
+    pub async fn find_all(
+        executor: impl PgExecutor<'_>,
+        limit: i64,
+        offset: i64,
+    ) -> AppResult<Vec<Track>> {
         let tracks = sqlx::query_as!(
             Track,
             r#"
@@ -184,14 +229,13 @@ impl TrackRepository {
             limit,
             offset
         )
-        .fetch_all(&self.db)
+        .fetch_all(executor)
         .await?;
 
         Ok(tracks)
     }
 
-    /// Count total tracks
-    pub async fn count(&self) -> AppResult<i64> {
+    pub async fn count(executor: impl PgExecutor<'_>) -> AppResult<i64> {
         let record = sqlx::query!(
             r#"
             SELECT
@@ -200,14 +244,13 @@ impl TrackRepository {
                 tracks
             "#
         )
-        .fetch_one(&self.db)
+        .fetch_one(executor)
         .await?;
 
         Ok(record.count.unwrap_or(0))
     }
 
-    /// Get tracks that have been edited by user
-    pub async fn find_user_edited(&self) -> AppResult<Vec<Track>> {
+    pub async fn find_user_edited(executor: impl PgExecutor<'_>) -> AppResult<Vec<Track>> {
         let tracks = sqlx::query_as!(
             Track,
             r#"
@@ -221,7 +264,7 @@ impl TrackRepository {
                 metadata_modified_at DESC
             "#
         )
-        .fetch_all(&self.db)
+        .fetch_all(executor)
         .await?;
 
         Ok(tracks)

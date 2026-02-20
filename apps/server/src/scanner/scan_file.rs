@@ -12,18 +12,18 @@ use ffmpeg::media::Type as MediaType;
 use ffmpeg_next as ffmpeg;
 use uuid::Uuid;
 
-struct ScannedFileAudio {
-    audio_hash: [u8; 32],
+pub(super) struct ScannedFileAudio {
+    pub audio_hash: [u8; 32],
     codec_id: ffmpeg::codec::Id,
-    duration_ms: i32,
-    bitrate: Option<i32>,
-    sample_rate: Option<i64>,
-    file_size_bytes: Option<i64>,
+    pub duration_ms: i32,
+    pub bitrate: Option<i32>,
+    pub sample_rate: Option<i64>,
+    pub file_size_bytes: Option<i64>,
 }
 
 pub struct ScannedFile {
-    file_path: String,
-    audio: ScannedFileAudio,
+    pub(super) file_path: String,
+    pub(super) audio: ScannedFileAudio,
     pub track_metadata: ScannedTrackMetadata,
     pub album_metadata: ScannedAlbumMetadata,
     pub artist_metadata: ScannedArtistMetadata,

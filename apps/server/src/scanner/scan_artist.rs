@@ -36,7 +36,7 @@ impl ScannedArtistMetadata {
         let get_string = |key: &str| -> Option<String> { metadata.get(key).map(|v| v.to_string()) };
 
         Self {
-            name: get_string("albumsort").or_else(|| get_string("sort_album")),
+            name: get_string("album_artist").or_else(|| get_string("albumartist")),
             sort_name: get_string("albumartistsort").or_else(|| get_string("sort_album_artist")),
         }
     }

@@ -1,0 +1,157 @@
+use chrono::Utc;
+use sqlx::PgPool;
+use uuid::Uuid;
+
+use crate::db::entities::{Album, Artist, Track};
+use crate::error::AppError;
+use crate::repositories::{AlbumRepository, ArtistRepository, TrackRepository};
+
+use super::scan_artist::ScannedArtistMetadata;
+use super::scan_file::ScannedFile;
+
+pub async fn persist_scanned_file(pool: &PgPool, scanned: ScannedFile) -> Result<Track, AppError> {
+    let mut tx = pool.begin().await?;
+
+    let album_artist_id =
+        find_or_create_artist(&mut tx, &scanned.album_metadata.album_artist_metadata)
+            .await?
+            .map(|a| a.id);
+
+    let album = find_or_create_album(&mut tx, &scanned, album_artist_id).await?;
+
+    let track_artist_id = find_or_create_artist(&mut tx, &scanned.artist_metadata)
+        .await?
+        .map(|a| a.id);
+
+    let track = upsert_track(&mut tx, scanned, album.id, track_artist_id).await?;
+
+    tx.commit().await?;
+
+    Ok(track)
+}
+
+async fn find_or_create_artist(
+    tx: &mut sqlx::PgConnection,
+    metadata: &ScannedArtistMetadata,
+) -> Result<Option<Artist>, AppError> {
+    let name = match &metadata.name {
+        Some(name) => name,
+        None => return Ok(None),
+    };
+
+    if let Some(artist) = ArtistRepository::get_by_name(&mut *tx, name).await? {
+        return Ok(Some(artist));
+    }
+
+    let sort_name = metadata.sort_name.as_deref().unwrap_or(name.as_str());
+    let artist = Artist {
+        id: Uuid::new_v4(),
+        name: name.to_string(),
+        sort_name: sort_name.to_string(),
+        mbid: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+    ArtistRepository::create(&mut *tx, &artist).await.map(Some)
+}
+
+async fn find_or_create_album(
+    tx: &mut sqlx::PgConnection,
+    scanned: &ScannedFile,
+    album_artist_id: Option<Uuid>,
+) -> Result<Album, AppError> {
+    let title = &scanned.album_metadata.name;
+    if let Some(album) =
+        AlbumRepository::find_by_title_and_artist(&mut *tx, title, album_artist_id).await?
+    {
+        return Ok(album);
+    }
+
+    let sort_title = scanned
+        .album_metadata
+        .sort_name
+        .as_deref()
+        .unwrap_or(title.as_str());
+
+    let album = Album {
+        id: Uuid::new_v4(),
+        artist_id: album_artist_id,
+        title: title.clone(),
+        sort_title: sort_title.to_string(),
+        date: scanned.album_metadata.date,
+        mbid: None,
+        replaygain_album_gain: scanned.album_metadata.replaygain_album_gain,
+        replaygain_album_peak: scanned.album_metadata.replaygain_album_peak,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+    AlbumRepository::create(&mut *tx, &album).await
+}
+
+async fn upsert_track(
+    tx: &mut sqlx::PgConnection,
+    scanned: ScannedFile,
+    album_id: Uuid,
+    artist_id: Option<Uuid>,
+) -> Result<Track, AppError> {
+    let audio_hash = scanned.audio.audio_hash.to_vec();
+    let existing = TrackRepository::find_by_audio_hash(&mut *tx, &audio_hash).await?;
+
+    let sort_title = scanned
+        .track_metadata
+        .sort_title
+        .clone()
+        .unwrap_or_else(|| scanned.track_metadata.title.clone());
+
+    match existing {
+        Some(mut track) => {
+            // Update existing track with fresh metadata (including file_path for moved files)
+            track.file_path = scanned.file_path;
+            track.album_id = Some(album_id);
+            track.artist_id = artist_id;
+            track.audio_hash = audio_hash;
+            track.title = scanned.track_metadata.title;
+            track.sort_title = sort_title;
+            track.disc = scanned.track_metadata.disc;
+            track.track_no = scanned.track_metadata.track_no;
+            track.date = scanned.track_metadata.date;
+            track.composer = scanned.track_metadata.composer;
+            track.comment = scanned.track_metadata.comment;
+            track.duration_ms = scanned.audio.duration_ms;
+            track.bitrate = scanned.audio.bitrate;
+            track.sample_rate = scanned.audio.sample_rate;
+            track.file_size_bytes = scanned.audio.file_size_bytes;
+            track.replaygain_track_gain = scanned.track_metadata.replaygain_track_gain;
+            track.replaygain_track_peak = scanned.track_metadata.replaygain_track_peak;
+            TrackRepository::update(&mut *tx, &track).await
+        }
+        None => {
+            let track = Track {
+                id: Uuid::new_v4(),
+                audio_hash,
+                album_id: Some(album_id),
+                file_path: scanned.file_path,
+                title: scanned.track_metadata.title,
+                sort_title,
+                artist_id,
+                disc: scanned.track_metadata.disc,
+                track_no: scanned.track_metadata.track_no,
+                date: scanned.track_metadata.date,
+                composer: scanned.track_metadata.composer,
+                comment: scanned.track_metadata.comment,
+                duration_ms: scanned.audio.duration_ms,
+                bitrate: scanned.audio.bitrate,
+                sample_rate: scanned.audio.sample_rate,
+                channels: None,
+                file_size_bytes: scanned.audio.file_size_bytes,
+                file_modified_at: None,
+                replaygain_track_gain: scanned.track_metadata.replaygain_track_gain,
+                replaygain_track_peak: scanned.track_metadata.replaygain_track_peak,
+                metadata_modified_at: None,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            TrackRepository::create(&mut *tx, &track).await
+        }
+    }
+}

@@ -5,24 +5,22 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 pub struct LibraryService {
-    track_repo: TrackRepository,
+    pool: PgPool,
 }
 
 impl LibraryService {
-    pub fn new(db: PgPool) -> Self {
-        Self {
-            track_repo: TrackRepository::new(db),
-        }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 
     pub async fn get_tracks(&self, limit: i64, offset: i64) -> AppResult<(Vec<Track>, i64)> {
-        let tracks = self.track_repo.find_all(limit, offset).await?;
-        let total = self.track_repo.count().await?;
-        
+        let tracks = TrackRepository::find_all(&self.pool, limit, offset).await?;
+        let total = TrackRepository::count(&self.pool).await?;
+
         Ok((tracks, total))
     }
 
     pub async fn get_track_by_id(&self, id: Uuid) -> AppResult<Option<Track>> {
-        self.track_repo.find_by_id(id).await
+        TrackRepository::find_by_id(&self.pool, id).await
     }
 }

@@ -1,45 +1,46 @@
 use chrono::NaiveDate;
-use sqlx::PgPool;
+use sqlx::PgExecutor;
 use uuid::Uuid;
 
 use crate::db::entities::Album;
 use crate::error::AppError;
 
-pub struct AlbumRepository {
-    pool: PgPool,
-}
+pub struct AlbumRepository;
 
 impl AlbumRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-
-    /// Create a new album
-    pub async fn create(&self, album: &Album) -> Result<Album, AppError> {
+    pub async fn create(
+        executor: impl PgExecutor<'_>,
+        album: &Album,
+    ) -> Result<Album, AppError> {
         let created = sqlx::query_as!(
             Album,
             r#"
-            INSERT INTO albums (id, artist_id, title, date, mbid, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO albums (id, artist_id, title, sort_title, date, mbid, replaygain_album_gain, replaygain_album_peak, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING
                 *
             "#,
             album.id,
             album.artist_id,
             album.title,
+            album.sort_title,
             album.date,
             album.mbid,
+            album.replaygain_album_gain,
+            album.replaygain_album_peak,
             album.created_at,
             album.updated_at
         )
-        .fetch_one(&self.pool)
+        .fetch_one(executor)
         .await?;
 
         Ok(created)
     }
 
-    /// Get an album by ID
-    pub async fn get_by_id(&self, id: Uuid) -> Result<Option<Album>, AppError> {
+    pub async fn get_by_id(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+    ) -> Result<Option<Album>, AppError> {
         let album = sqlx::query_as!(
             Album,
             r#"
@@ -52,13 +53,16 @@ impl AlbumRepository {
             "#,
             id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(executor)
         .await?;
 
         Ok(album)
     }
 
-    pub async fn get_by_artist(&self, artist_id: Uuid) -> Result<Vec<Album>, AppError> {
+    pub async fn get_by_artist(
+        executor: impl PgExecutor<'_>,
+        artist_id: Uuid,
+    ) -> Result<Vec<Album>, AppError> {
         let albums = sqlx::query_as!(
             Album,
             r#"
@@ -74,14 +78,14 @@ impl AlbumRepository {
             "#,
             artist_id
         )
-        .fetch_all(&self.pool)
+        .fetch_all(executor)
         .await?;
 
         Ok(albums)
     }
 
     pub async fn find_by_title_and_artist(
-        &self,
+        executor: impl PgExecutor<'_>,
         title: &str,
         artist_id: Option<Uuid>,
     ) -> Result<Option<Album>, AppError> {
@@ -101,25 +105,16 @@ impl AlbumRepository {
             title,
             artist_id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(executor)
         .await?;
 
         Ok(album)
     }
 
-    /// Find or create an album
-    pub async fn find_or_create(&self, album: Album) -> Result<Album, AppError> {
-        if let Some(album) = self
-            .find_by_title_and_artist(&album.title, album.artist_id)
-            .await?
-        {
-            return Ok(album);
-        }
-
-        self.create(&album).await
-    }
-
-    pub async fn update(&self, album: &Album) -> Result<Album, AppError> {
+    pub async fn update(
+        executor: impl PgExecutor<'_>,
+        album: &Album,
+    ) -> Result<Album, AppError> {
         let updated = sqlx::query_as!(
             Album,
             r#"
@@ -128,8 +123,11 @@ impl AlbumRepository {
             SET
                 artist_id = $2,
                 title = $3,
-                date = $4,
-                mbid = $5
+                sort_title = $4,
+                date = $5,
+                mbid = $6,
+                replaygain_album_gain = $7,
+                replaygain_album_peak = $8
             WHERE
                 id = $1
             RETURNING
@@ -138,16 +136,19 @@ impl AlbumRepository {
             album.id,
             album.artist_id,
             album.title,
+            album.sort_title,
             album.date,
-            album.mbid
+            album.mbid,
+            album.replaygain_album_gain,
+            album.replaygain_album_peak
         )
-        .fetch_one(&self.pool)
+        .fetch_one(executor)
         .await?;
 
         Ok(updated)
     }
 
-    pub async fn delete(&self, id: Uuid) -> Result<bool, AppError> {
+    pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid) -> Result<bool, AppError> {
         let result = sqlx::query!(
             r#"
             DELETE FROM albums
@@ -155,14 +156,17 @@ impl AlbumRepository {
             "#,
             id
         )
-        .execute(&self.pool)
+        .execute(executor)
         .await?;
 
         Ok(result.rows_affected() > 0)
     }
 
-    /// List all albums with pagination
-    pub async fn list(&self, offset: i64, limit: i64) -> Result<Vec<Album>, AppError> {
+    pub async fn list(
+        executor: impl PgExecutor<'_>,
+        offset: i64,
+        limit: i64,
+    ) -> Result<Vec<Album>, AppError> {
         let albums = sqlx::query_as!(
             Album,
             r#"
@@ -177,14 +181,15 @@ impl AlbumRepository {
             offset,
             limit
         )
-        .fetch_all(&self.pool)
+        .fetch_all(executor)
         .await?;
 
         Ok(albums)
     }
 
-    /// Get compilation albums (no artist)
-    pub async fn get_compilations(&self) -> Result<Vec<Album>, AppError> {
+    pub async fn get_compilations(
+        executor: impl PgExecutor<'_>,
+    ) -> Result<Vec<Album>, AppError> {
         let albums = sqlx::query_as!(
             Album,
             r#"
@@ -198,14 +203,16 @@ impl AlbumRepository {
                 title
             "#
         )
-        .fetch_all(&self.pool)
+        .fetch_all(executor)
         .await?;
 
         Ok(albums)
     }
 
-    /// Search albums by title
-    pub async fn search(&self, query: &str) -> Result<Vec<Album>, AppError> {
+    pub async fn search(
+        executor: impl PgExecutor<'_>,
+        query: &str,
+    ) -> Result<Vec<Album>, AppError> {
         let pattern = format!("%{}%", query);
         let albums = sqlx::query_as!(
             Album,
@@ -222,14 +229,13 @@ impl AlbumRepository {
             "#,
             pattern
         )
-        .fetch_all(&self.pool)
+        .fetch_all(executor)
         .await?;
 
         Ok(albums)
     }
 
-    /// Count total albums
-    pub async fn count(&self) -> Result<i64, AppError> {
+    pub async fn count(executor: impl PgExecutor<'_>) -> Result<i64, AppError> {
         let record = sqlx::query!(
             r#"
             SELECT
@@ -238,13 +244,16 @@ impl AlbumRepository {
                 albums
             "#
         )
-        .fetch_one(&self.pool)
+        .fetch_one(executor)
         .await?;
 
         Ok(record.count.unwrap_or(0))
     }
 
-    pub async fn get_by_date(&self, date: NaiveDate) -> Result<Vec<Album>, AppError> {
+    pub async fn get_by_date(
+        executor: impl PgExecutor<'_>,
+        date: NaiveDate,
+    ) -> Result<Vec<Album>, AppError> {
         let albums = sqlx::query_as!(
             Album,
             r#"
@@ -259,7 +268,7 @@ impl AlbumRepository {
             "#,
             date
         )
-        .fetch_all(&self.pool)
+        .fetch_all(executor)
         .await?;
 
         Ok(albums)

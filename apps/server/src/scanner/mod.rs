@@ -5,5 +5,6 @@ mod scan_track;
 mod scan_artist;
 mod library_scanner;
 mod audio_hash;
+mod persist;
 
 pub use library_scanner::LibraryScanner;
