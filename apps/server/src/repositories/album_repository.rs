@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -18,7 +19,7 @@ impl AlbumRepository {
         let created = sqlx::query_as!(
             Album,
             r#"
-            INSERT INTO albums (id, artist_id, title, year, mbid, created_at, updated_at)
+            INSERT INTO albums (id, artist_id, title, date, mbid, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING
                 *
@@ -26,7 +27,7 @@ impl AlbumRepository {
             album.id,
             album.artist_id,
             album.title,
-            album.year,
+            album.date,
             album.mbid,
             album.created_at,
             album.updated_at
@@ -57,7 +58,6 @@ impl AlbumRepository {
         Ok(album)
     }
 
-    /// Get albums by artist
     pub async fn get_by_artist(&self, artist_id: Uuid) -> Result<Vec<Album>, AppError> {
         let albums = sqlx::query_as!(
             Album,
@@ -69,7 +69,7 @@ impl AlbumRepository {
             WHERE
                 artist_id = $1
             ORDER BY
-                year DESC NULLS LAST,
+                date DESC NULLS LAST,
                 title
             "#,
             artist_id
@@ -80,7 +80,6 @@ impl AlbumRepository {
         Ok(albums)
     }
 
-    /// Find album by title and artist (case-insensitive)
     pub async fn find_by_title_and_artist(
         &self,
         title: &str,
@@ -109,28 +108,17 @@ impl AlbumRepository {
     }
 
     /// Find or create an album
-    pub async fn find_or_create(
-        &self,
-        title: String,
-        artist_id: Option<Uuid>,
-        year: Option<i32>,
-    ) -> Result<Album, AppError> {
-        // First try to find existing
-        if let Some(album) = self.find_by_title_and_artist(&title, artist_id).await? {
+    pub async fn find_or_create(&self, album: Album) -> Result<Album, AppError> {
+        if let Some(album) = self
+            .find_by_title_and_artist(&album.title, album.artist_id)
+            .await?
+        {
             return Ok(album);
         }
 
-        // Create new if not found
-        let new_album = if let Some(year) = year {
-            Album::with_year(title, artist_id, year)
-        } else {
-            Album::new(title, artist_id)
-        };
-
-        self.create(&new_album).await
+        self.create(&album).await
     }
 
-    /// Update an album
     pub async fn update(&self, album: &Album) -> Result<Album, AppError> {
         let updated = sqlx::query_as!(
             Album,
@@ -140,7 +128,7 @@ impl AlbumRepository {
             SET
                 artist_id = $2,
                 title = $3,
-                year = $4,
+                date = $4,
                 mbid = $5
             WHERE
                 id = $1
@@ -150,7 +138,7 @@ impl AlbumRepository {
             album.id,
             album.artist_id,
             album.title,
-            album.year,
+            album.date,
             album.mbid
         )
         .fetch_one(&self.pool)
@@ -159,7 +147,6 @@ impl AlbumRepository {
         Ok(updated)
     }
 
-    /// Delete an album
     pub async fn delete(&self, id: Uuid) -> Result<bool, AppError> {
         let result = sqlx::query!(
             r#"
@@ -257,8 +244,7 @@ impl AlbumRepository {
         Ok(record.count.unwrap_or(0))
     }
 
-    /// Get albums by year
-    pub async fn get_by_year(&self, year: i32) -> Result<Vec<Album>, AppError> {
+    pub async fn get_by_date(&self, date: NaiveDate) -> Result<Vec<Album>, AppError> {
         let albums = sqlx::query_as!(
             Album,
             r#"
@@ -267,11 +253,11 @@ impl AlbumRepository {
             FROM
                 albums
             WHERE
-                year = $1
+                date = $1
             ORDER BY
                 title
             "#,
-            year
+            date
         )
         .fetch_all(&self.pool)
         .await?;

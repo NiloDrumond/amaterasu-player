@@ -1,0 +1,13 @@
+{
+  "connections": [
+    {
+      "name": "amaterasu",
+      "adapter": "postgres",
+      "host": "localhost",
+      "port": 5434,
+      "user": "amaterasu",
+      "password": "amaterasu",
+      "database": "amaterasu",
+    },
+  ]
+}

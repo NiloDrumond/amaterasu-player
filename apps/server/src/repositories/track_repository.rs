@@ -17,8 +17,8 @@ impl TrackRepository {
         let created = sqlx::query_as!(
             Track,
             r#"
-            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, artist, album, album_artist, disc, track_no, date, composer, comment, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_album_gain, metadata_modified_at, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, artist_id, disc, track_no, date, composer, comment, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_track_peak, metadata_modified_at, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
             RETURNING
                 *
             "#,
@@ -27,9 +27,7 @@ impl TrackRepository {
             track.album_id,
             track.file_path,
             track.title,
-            track.artist,
-            track.album,
-            track.album_artist,
+            track.artist_id,
             track.disc,
             track.track_no,
             track.date,
@@ -42,7 +40,7 @@ impl TrackRepository {
             track.file_size_bytes,
             track.file_modified_at,
             track.replaygain_track_gain,
-            track.replaygain_album_gain,
+            track.replaygain_track_peak,
             track.metadata_modified_at,
             track.created_at,
             track.updated_at
@@ -51,31 +49,6 @@ impl TrackRepository {
         .await?;
 
         Ok(created)
-    }
-
-    /// Find all tracks with pagination
-    pub async fn find_all(&self, limit: i64, offset: i64) -> AppResult<Vec<Track>> {
-        let tracks = sqlx::query_as!(
-            Track,
-            r#"
-            SELECT
-                *
-            FROM
-                tracks
-            ORDER BY
-                album,
-                disc,
-                track_no,
-                title
-            LIMIT $1 OFFSET $2
-            "#,
-            limit,
-            offset
-        )
-        .fetch_all(&self.db)
-        .await?;
-
-        Ok(tracks)
     }
 
     /// Find track by ID
@@ -142,49 +115,6 @@ impl TrackRepository {
         Ok(tracks)
     }
 
-    /// Update a track
-    pub async fn update(&self, track: &Track) -> AppResult<Track> {
-        let updated = sqlx::query_as!(
-            Track,
-            r#"
-            UPDATE
-                tracks
-            SET
-                album_id = $2,
-                title = $3,
-                artist = $4,
-                album = $5,
-                album_artist = $6,
-                disc = $7,
-                track_no = $8,
-                date = $9,
-                composer = $10,
-                comment = $11,
-                metadata_modified_at = $12
-            WHERE
-                id = $1
-            RETURNING
-                *
-            "#,
-            track.id,
-            track.album_id,
-            track.title,
-            track.artist,
-            track.album,
-            track.album_artist,
-            track.disc,
-            track.track_no,
-            track.date,
-            track.composer,
-            track.comment,
-            track.metadata_modified_at
-        )
-        .fetch_one(&self.db)
-        .await?;
-
-        Ok(updated)
-    }
-
     /// Update technical metadata (from file rescan)
     pub async fn update_technical_metadata(&self, track: &Track) -> AppResult<Track> {
         let updated = sqlx::query_as!(
@@ -200,7 +130,7 @@ impl TrackRepository {
                 file_size_bytes = $6,
                 file_modified_at = $7,
                 replaygain_track_gain = $8,
-                replaygain_album_gain = $9
+                replaygain_track_peak = $9
             WHERE
                 id = $1
             RETURNING
@@ -214,7 +144,7 @@ impl TrackRepository {
             track.file_size_bytes,
             track.file_modified_at,
             track.replaygain_track_gain,
-            track.replaygain_album_gain
+            track.replaygain_track_peak
         )
         .fetch_one(&self.db)
         .await?;
@@ -237,9 +167,7 @@ impl TrackRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    /// Search tracks by query
-    pub async fn search(&self, query: &str) -> AppResult<Vec<Track>> {
-        let pattern = format!("%{}%", query);
+    pub async fn find_all(&self, limit: i64, offset: i64) -> AppResult<Vec<Track>> {
         let tracks = sqlx::query_as!(
             Track,
             r#"
@@ -247,19 +175,14 @@ impl TrackRepository {
                 *
             FROM
                 tracks
-            WHERE
-                title ILIKE $1
-                OR artist ILIKE $1
-                OR album ILIKE $1
-                OR album_artist ILIKE $1
             ORDER BY
-                album,
                 disc,
                 track_no,
                 title
-            LIMIT 100
+            LIMIT $1 OFFSET $2
             "#,
-            pattern
+            limit,
+            offset
         )
         .fetch_all(&self.db)
         .await?;

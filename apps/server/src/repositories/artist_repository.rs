@@ -75,15 +75,15 @@ impl ArtistRepository {
         Ok(artist)
     }
 
-    /// Find or create an artist by name
     pub async fn find_or_create(&self, name: String) -> Result<Artist, AppError> {
-        // First try to find existing
         if let Some(artist) = self.get_by_name(&name).await? {
             return Ok(artist);
         }
 
-        // Create new if not found
-        let new_artist = Artist::new(name);
+        let new_artist = Artist {
+            name,
+            ..Default::default()
+        };
         self.create(&new_artist).await
     }
 

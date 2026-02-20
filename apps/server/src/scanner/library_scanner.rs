@@ -19,7 +19,8 @@ impl LibraryScanner {
             let entry = entry?;
             if entry.file_type().is_file() {
                 let path = entry.path();
-                let scanned_file = ScannedFile::scan(&path)?;
+                let scanned_file = ScannedFile::scan(path)?;
+
                 let track: Track = scanned_file.into();
                 flog_ron!(track);
             }

@@ -1,0 +1,83 @@
+# Development commands for Amaterasu Player
+
+[tasks.default]
+description = "List all available tasks"
+run = "mise tasks"
+
+[tasks."dev:server"]
+description = "Start server development environment"
+run = """
+cd apps/server && cargo run
+"""
+
+[tasks."dev:full"]
+description = "Start full development environment"
+run = """
+docker compose -f infra/docker-compose.yml up -d
+cd apps/server && watchexec -r -e rs,toml -- cargo run
+"""
+
+[tasks.backend]
+description = "Start backend with postgres only"
+run = """
+docker compose -f infra/docker-compose.yml up -d postgres
+cd apps/server && watchexec -r -e rs,toml -- cargo run
+"""
+
+[tasks.mobile]
+description = "Start environment for mobile development"
+run = """
+docker compose -f infra/docker-compose.yml up -d
+cd apps/server && cargo run --release
+"""
+
+[tasks."test:backend"]
+description = "Run backend tests"
+run = "cd apps/server && cargo test"
+
+[tasks.fmt]
+description = "Format backend code"
+run = "cd apps/server && cargo fmt"
+
+[tasks.check]
+description = "Run cargo check and clippy"
+run = """
+cd apps/server && cargo check
+cd apps/server && cargo clippy
+"""
+
+[tasks.docker]
+description = "Start all docker services (attached)"
+run = "docker compose -f infra/docker-compose.yml up"
+
+[tasks."db:up"]
+description = "Start infrastructure services (detached)"
+run = "docker compose -f infra/docker-compose.yml up"
+
+[tasks."db-down"]
+description = "Stop all docker services"
+run = "docker compose -f infra/docker-compose.yml down"
+
+[tasks."db:drop"]
+description = "Stop services and remove volumes"
+run = "docker compose -f infra/docker-compose.yml down -v"
+
+[tasks."db:migrate"]
+description = "Run database migrations"
+run = "sqlx migrate run"
+dir = "apps/server"
+
+[tasks.clean]
+description = "Clean everything (docker volumes + cargo)"
+run = """
+docker compose -f infra/docker-compose.yml down -v
+cd apps/server && cargo clean
+"""
+
+[tasks.migrate]
+description = "Run database migrations"
+run = "cd apps/server && cargo run --bin migrate"
+
+[tasks.build]
+description = "Build for production"
+run = "cd apps/server && cargo build --release"

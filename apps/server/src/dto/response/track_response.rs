@@ -22,8 +22,8 @@ impl From<Track> for TrackResponse {
         Self {
             id: track.id,
             title: track.title,
-            artist: track.artist,
-            album: track.album,
+            artist: Some("TODO".to_string()),
+            album: Some("TODO".to_string()),
             track_no: track.track_no,
             disc: track.disc,
             duration_ms: track.duration_ms,

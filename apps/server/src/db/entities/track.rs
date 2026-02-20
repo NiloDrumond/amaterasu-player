@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MetadataValue {
     Binary(Box<[u8]>),
@@ -23,15 +22,13 @@ pub struct Track {
     pub file_path: String,
 
     pub title: String,
-    pub artist: Option<String>,
-    pub disc: Option<i32>,       // CHECK: >= 0
-    pub track_no: Option<i32>,   // CHECK: >= 0
-    pub date: Option<NaiveDate>, // CHECK: >= 0
+    pub sort_title: String,
+    pub artist_id: Option<Uuid>,
+    pub disc: Option<i32>,     // CHECK: >= 0
+    pub track_no: Option<i32>, // CHECK: >= 0
+    pub date: Option<NaiveDate>,
     pub composer: Option<String>,
     pub comment: Option<String>,
-
-    pub sort_title: Option<String>,
-    pub sort_artist: Option<String>,
 
     // TODO: symphonia 6.0 CodecDescriptor
     // pub codec: i64,                   // CHECK: >= 0
@@ -49,31 +46,18 @@ pub struct Track {
 }
 
 impl Track {
-    pub fn new(file_path: String, title: String) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            file_path,
-            title,
-            ..Default::default()
-        }
-    }
-
-    /// Mark that user has edited the metadata
     pub fn mark_as_user_edited(&mut self) {
         self.metadata_modified_at = Some(Utc::now());
     }
 
-    /// Check if the track has been edited by user
     pub fn is_user_edited(&self) -> bool {
         self.metadata_modified_at.is_some()
     }
 
-    /// Reset the user edit flag (e.g., when resetting to file metadata)
     pub fn reset_user_edit(&mut self) {
         self.metadata_modified_at = None;
     }
 
-    /// Format duration as MM:SS or HH:MM:SS
     pub fn format_duration(&self) -> String {
         let total_seconds = self.duration_ms / 1000;
         let hours = total_seconds / 3600;

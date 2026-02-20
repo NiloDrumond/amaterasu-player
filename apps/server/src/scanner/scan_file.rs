@@ -1,37 +1,16 @@
 use crate::db::entities::Track;
 use crate::scanner::audio_hash::compute_audio_hash;
+use crate::scanner::scan_album::ScannedAlbumMetadata;
+use crate::scanner::scan_artist::ScannedArtistMetadata;
+use crate::scanner::scan_track::ScannedTrackMetadata;
 
 use super::error::ScannerError;
 use super::error::ScannerResult;
-use chrono::NaiveDate;
 use chrono::Utc;
-use ffmpeg_next as ffmpeg;
 use ffmpeg::format::context::Input;
 use ffmpeg::media::Type as MediaType;
+use ffmpeg_next as ffmpeg;
 use uuid::Uuid;
-
-struct ScannedFileMetadata {
-    title: String,
-    artist: Option<String>,
-    disc: Option<i32>,
-    track_no: Option<i32>,
-    date: Option<NaiveDate>,
-    composer: Option<String>,
-    comment: Option<String>,
-    sort_title: Option<String>,
-    sort_artist: Option<String>,
-    replaygain_track_gain: Option<f32>,
-    replaygain_track_peak: Option<f32>,
-}
-
-pub struct ScannedAlbumMetadata {
-    pub name: Option<String>,
-    pub artist: Option<String>,
-    pub sort_name: Option<String>,
-    pub sort_artist: Option<String>,
-    pub replaygain_album_gain: Option<f32>,
-    pub replaygain_album_peak: Option<f32>,
-}
 
 struct ScannedFileAudio {
     audio_hash: [u8; 32],
@@ -44,9 +23,10 @@ struct ScannedFileAudio {
 
 pub struct ScannedFile {
     file_path: String,
-    metadata: ScannedFileMetadata,
     audio: ScannedFileAudio,
+    pub track_metadata: ScannedTrackMetadata,
     pub album_metadata: ScannedAlbumMetadata,
+    pub artist_metadata: ScannedArtistMetadata,
 }
 
 impl From<ScannedFile> for Track {
@@ -54,25 +34,27 @@ impl From<ScannedFile> for Track {
         Track {
             id: Uuid::new_v4(),
             audio_hash: scanned.audio.audio_hash.to_vec(),
+            artist_id: None,
             album_id: None,
             file_path: scanned.file_path,
-            title: scanned.metadata.title,
-            sort_title: scanned.metadata.sort_title,
-            artist: scanned.metadata.artist,
-            sort_artist: scanned.metadata.sort_artist,
-            disc: scanned.metadata.disc,
-            track_no: scanned.metadata.track_no,
-            date: scanned.metadata.date,
-            composer: scanned.metadata.composer,
-            comment: scanned.metadata.comment,
+            title: scanned.track_metadata.title.to_string(),
+            sort_title: scanned
+                .track_metadata
+                .sort_title
+                .unwrap_or(scanned.track_metadata.title),
+            disc: scanned.track_metadata.disc,
+            track_no: scanned.track_metadata.track_no,
+            date: scanned.track_metadata.date,
+            composer: scanned.track_metadata.composer,
+            comment: scanned.track_metadata.comment,
             duration_ms: scanned.audio.duration_ms,
             bitrate: scanned.audio.bitrate,
             sample_rate: scanned.audio.sample_rate,
             channels: None,
             file_size_bytes: scanned.audio.file_size_bytes,
             file_modified_at: None,
-            replaygain_track_gain: scanned.metadata.replaygain_track_gain,
-            replaygain_track_peak: scanned.metadata.replaygain_track_peak,
+            replaygain_track_gain: scanned.track_metadata.replaygain_track_gain,
+            replaygain_track_peak: scanned.track_metadata.replaygain_track_peak,
             metadata_modified_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -84,111 +66,29 @@ impl ScannedFile {
     pub fn scan(path: &std::path::Path) -> ScannerResult<Self> {
         ffmpeg::init()?;
 
-        let path_str = path
-            .to_str()
-            .ok_or(ScannerError::InvalidFileName(path.to_str().map(|s| s.to_string())))?;
+        let path_str = path.to_str().ok_or(ScannerError::InvalidFileName(
+            path.to_str().map(|s| s.to_string()),
+        ))?;
         let ictx = ffmpeg::format::input(&path_str)?;
 
-        let metadata = ScannedFileMetadata::from_context(path, &ictx)?;
-        let album_metadata = ScannedAlbumMetadata::from_context(&ictx);
+        let folder_name = path
+            .parent()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+            .map(|s| s.to_string());
+
+        let metadata = ScannedTrackMetadata::from_context(path, &ictx)?;
+        let album_metadata = ScannedAlbumMetadata::from_context(&ictx, folder_name)?;
+        let artist_metadata = ScannedArtistMetadata::from_track_context(&ictx);
         let audio = ScannedFileAudio::from_context(path, ictx)?;
 
         Ok(Self {
             file_path: path.to_string_lossy().into_owned(),
-            metadata,
+            track_metadata: metadata,
             audio,
             album_metadata,
+            artist_metadata,
         })
-    }
-}
-
-impl ScannedFileMetadata {
-    fn from_context(path: &std::path::Path, ictx: &Input) -> ScannerResult<Self> {
-        let file_name = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .ok_or(ScannerError::InvalidFileName(
-                path.to_str().map(|s| s.to_string()),
-            ))?
-            .to_string();
-
-        let metadata = ictx.metadata();
-
-        let get_string = |key: &str| -> Option<String> {
-            metadata.get(key).map(|v| v.to_string())
-        };
-
-        let get_int = |key: &str| -> Option<i32> {
-            metadata.get(key).and_then(|v| v.parse::<i32>().ok())
-        };
-
-        // Helper to parse ReplayGain gain values (e.g., "-6.50 dB")
-        let parse_gain = |key: &str| -> Option<f32> {
-            metadata.get(key).and_then(|v| {
-                v.trim_end_matches(" dB")
-                    .trim_end_matches("dB")
-                    .trim()
-                    .parse::<f32>()
-                    .ok()
-            })
-        };
-
-        // Helper to parse ReplayGain peak values (e.g., "0.988831")
-        let parse_peak = |key: &str| -> Option<f32> {
-            metadata.get(key).and_then(|v| v.parse::<f32>().ok())
-        };
-
-        Ok(Self {
-            title: get_string("title").unwrap_or(file_name),
-            artist: get_string("artist"),
-            disc: get_int("disc").or_else(|| get_int("discnumber")),
-            track_no: get_int("track").or_else(|| get_int("tracknumber")),
-            date: get_string("date").and_then(|s| {
-                // Try parsing as full date first, then year-only
-                s.parse::<NaiveDate>()
-                    .ok()
-                    .or_else(|| s.parse::<i32>().ok().and_then(|y| NaiveDate::from_ymd_opt(y, 1, 1)))
-            }),
-            composer: get_string("composer"),
-            comment: get_string("comment"),
-            sort_title: get_string("titlesort").or_else(|| get_string("sort_title")),
-            sort_artist: get_string("artistsort").or_else(|| get_string("sort_artist")),
-            replaygain_track_gain: parse_gain("replaygain_track_gain"),
-            replaygain_track_peak: parse_peak("replaygain_track_peak"),
-        })
-    }
-}
-
-impl ScannedAlbumMetadata {
-    fn from_context(ictx: &Input) -> Self {
-        let metadata = ictx.metadata();
-
-        let get_string = |key: &str| -> Option<String> {
-            metadata.get(key).map(|v| v.to_string())
-        };
-
-        let parse_gain = |key: &str| -> Option<f32> {
-            metadata.get(key).and_then(|v| {
-                v.trim_end_matches(" dB")
-                    .trim_end_matches("dB")
-                    .trim()
-                    .parse::<f32>()
-                    .ok()
-            })
-        };
-
-        let parse_peak = |key: &str| -> Option<f32> {
-            metadata.get(key).and_then(|v| v.parse::<f32>().ok())
-        };
-
-        Self {
-            name: get_string("album"),
-            artist: get_string("album_artist").or_else(|| get_string("albumartist")),
-            sort_name: get_string("albumsort").or_else(|| get_string("sort_album")),
-            sort_artist: get_string("albumartistsort").or_else(|| get_string("sort_album_artist")),
-            replaygain_album_gain: parse_gain("replaygain_album_gain"),
-            replaygain_album_peak: parse_peak("replaygain_album_peak"),
-        }
     }
 }
 
@@ -218,8 +118,8 @@ impl ScannedFileAudio {
             let time_base = audio_stream.time_base();
             if stream_duration > 0 {
                 // Convert stream duration to milliseconds
-                let duration_sec =
-                    stream_duration as f64 * (time_base.numerator() as f64 / time_base.denominator() as f64);
+                let duration_sec = stream_duration as f64
+                    * (time_base.numerator() as f64 / time_base.denominator() as f64);
                 (duration_sec * 1000.0) as i32
             } else {
                 let ctx_duration = ictx.duration();
