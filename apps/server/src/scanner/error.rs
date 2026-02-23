@@ -18,9 +18,6 @@ pub enum ScannerError {
 
     #[error("Internal server error")]
     Internal(#[from] anyhow::Error),
-
-    #[error("Failed to detect default track")]
-    FailedToDetectDefaultTrack,
 }
 
 pub type ScannerResult<T> = Result<T, ScannerError>;

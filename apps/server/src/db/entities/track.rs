@@ -47,30 +47,3 @@ pub struct Track {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
-impl Track {
-    pub fn mark_as_user_edited(&mut self) {
-        self.metadata_modified_at = Some(Utc::now());
-    }
-
-    pub fn is_user_edited(&self) -> bool {
-        self.metadata_modified_at.is_some()
-    }
-
-    pub fn reset_user_edit(&mut self) {
-        self.metadata_modified_at = None;
-    }
-
-    pub fn format_duration(&self) -> String {
-        let total_seconds = self.duration_ms / 1000;
-        let hours = total_seconds / 3600;
-        let minutes = (total_seconds % 3600) / 60;
-        let seconds = total_seconds % 60;
-
-        if hours > 0 {
-            format!("{}:{:02}:{:02}", hours, minutes, seconds)
-        } else {
-            format!("{}:{:02}", minutes, seconds)
-        }
-    }
-}

@@ -67,28 +67,6 @@ impl TrackRepository {
         Ok(track)
     }
 
-    pub async fn find_by_file_path(
-        executor: impl PgExecutor<'_>,
-        file_path: &str,
-    ) -> AppResult<Option<Track>> {
-        let track = sqlx::query_as!(
-            Track,
-            r#"
-            SELECT
-                *
-            FROM
-                tracks
-            WHERE
-                file_path = $1
-            "#,
-            file_path
-        )
-        .fetch_optional(executor)
-        .await?;
-
-        Ok(track)
-    }
-
     pub async fn find_by_audio_hash(
         executor: impl PgExecutor<'_>,
         audio_hash: &[u8],
@@ -109,32 +87,6 @@ impl TrackRepository {
         .await?;
 
         Ok(track)
-    }
-
-    pub async fn find_by_album(
-        executor: impl PgExecutor<'_>,
-        album_id: Uuid,
-    ) -> AppResult<Vec<Track>> {
-        let tracks = sqlx::query_as!(
-            Track,
-            r#"
-            SELECT
-                *
-            FROM
-                tracks
-            WHERE
-                album_id = $1
-            ORDER BY
-                disc,
-                track_no,
-                title
-            "#,
-            album_id
-        )
-        .fetch_all(executor)
-        .await?;
-
-        Ok(tracks)
     }
 
     pub async fn update(executor: impl PgExecutor<'_>, track: &Track) -> AppResult<Track> {
@@ -200,20 +152,6 @@ impl TrackRepository {
         Ok(updated)
     }
 
-    pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid) -> AppResult<bool> {
-        let result = sqlx::query!(
-            r#"
-            DELETE FROM tracks
-            WHERE id = $1
-            "#,
-            id
-        )
-        .execute(executor)
-        .await?;
-
-        Ok(result.rows_affected() > 0)
-    }
-
     pub async fn find_all(
         executor: impl PgExecutor<'_>,
         limit: i64,
@@ -254,25 +192,5 @@ impl TrackRepository {
         .await?;
 
         Ok(record.count.unwrap_or(0))
-    }
-
-    pub async fn find_user_edited(executor: impl PgExecutor<'_>) -> AppResult<Vec<Track>> {
-        let tracks = sqlx::query_as!(
-            Track,
-            r#"
-            SELECT
-                *
-            FROM
-                tracks
-            WHERE
-                metadata_modified_at IS NOT NULL
-            ORDER BY
-                metadata_modified_at DESC
-            "#
-        )
-        .fetch_all(executor)
-        .await?;
-
-        Ok(tracks)
     }
 }
