@@ -29,7 +29,7 @@ impl LibraryScanner {
             }
 
             let path = entry.path();
-            let scanned_file = match ScannedFile::scan(path) {
+            let scanned_file = match ScannedFile::scan(path, &self.library_path) {
                 Ok(f) => f,
                 Err(e) => {
                     tracing::warn!("Failed to scan {}: {}", path.display(), e);

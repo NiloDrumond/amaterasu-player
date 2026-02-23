@@ -10,8 +10,8 @@ impl TrackRepository {
         let created = sqlx::query_as!(
             Track,
             r#"
-            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, sort_title, artist_id, disc, track_no, date, composer, comment, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_track_peak, metadata_modified_at, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, sort_title, artist_id, disc, track_no, date, composer, comment, original_title, original_artist, original_album, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_track_peak, metadata_modified_at, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
             RETURNING
                 *
             "#,
@@ -27,6 +27,9 @@ impl TrackRepository {
             track.date,
             track.composer,
             track.comment,
+            track.original_title,
+            track.original_artist,
+            track.original_album,
             track.duration_ms,
             track.bitrate,
             track.sample_rate,
@@ -45,10 +48,7 @@ impl TrackRepository {
         Ok(created)
     }
 
-    pub async fn find_by_id(
-        executor: impl PgExecutor<'_>,
-        id: Uuid,
-    ) -> AppResult<Option<Track>> {
+    pub async fn find_by_id(executor: impl PgExecutor<'_>, id: Uuid) -> AppResult<Option<Track>> {
         let track = sqlx::query_as!(
             Track,
             r#"
@@ -154,14 +154,17 @@ impl TrackRepository {
                 date = $9,
                 composer = $10,
                 comment = $11,
-                duration_ms = $12,
-                bitrate = $13,
-                sample_rate = $14,
-                channels = $15,
-                file_size_bytes = $16,
-                file_modified_at = $17,
-                replaygain_track_gain = $18,
-                replaygain_track_peak = $19,
+                original_title = $12,
+                original_artist = $13,
+                original_album = $14,
+                duration_ms = $15,
+                bitrate = $16,
+                sample_rate = $17,
+                channels = $18,
+                file_size_bytes = $19,
+                file_modified_at = $20,
+                replaygain_track_gain = $21,
+                replaygain_track_peak = $22,
                 updated_at = NOW()
             WHERE
                 id = $1
@@ -179,6 +182,9 @@ impl TrackRepository {
             track.date,
             track.composer,
             track.comment,
+            track.original_title,
+            track.original_artist,
+            track.original_album,
             track.duration_ms,
             track.bitrate,
             track.sample_rate,

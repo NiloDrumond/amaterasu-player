@@ -15,6 +15,9 @@ pub struct TrackResponse {
     pub codec: String,
     pub bitrate: Option<i32>,
     pub file_path: String,
+    pub original_title: Option<String>,
+    pub original_artist: Option<String>,
+    pub original_album: Option<String>,
 }
 
 impl From<Track> for TrackResponse {
@@ -31,6 +34,9 @@ impl From<Track> for TrackResponse {
             codec: "TODO".to_string(),
             bitrate: track.bitrate,
             file_path: track.file_path,
+            original_title: track.original_title,
+            original_artist: track.original_artist,
+            original_album: track.original_album,
         }
     }
 }

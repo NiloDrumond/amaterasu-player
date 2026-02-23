@@ -5,12 +5,14 @@ use crate::scanner::error::{ScannerError, ScannerResult};
 
 pub struct ScannedTrackMetadata {
     pub title: String,
-    pub artist: Option<String>,
     pub disc: Option<i32>,
     pub track_no: Option<i32>,
     pub date: Option<NaiveDate>,
     pub composer: Option<String>,
     pub comment: Option<String>,
+    pub original_title: Option<String>,
+    pub original_artist: Option<String>,
+    pub original_album: Option<String>,
     pub sort_title: Option<String>,
     pub replaygain_track_gain: Option<f32>,
     pub replaygain_track_peak: Option<f32>,
@@ -50,7 +52,6 @@ impl ScannedTrackMetadata {
 
         Ok(Self {
             title: get_string("title").unwrap_or(file_name),
-            artist: get_string("artist"),
             disc: get_int("disc").or_else(|| get_int("discnumber")),
             track_no: get_int("track").or_else(|| get_int("tracknumber")),
             date: get_string("date").and_then(|s| {
@@ -63,6 +64,15 @@ impl ScannedTrackMetadata {
             }),
             composer: get_string("composer"),
             comment: get_string("comment"),
+            original_title: get_string("original_title")
+                .or_else(|| get_string("ORIGINAL_TITLE"))
+                .or_else(|| get_string("ORIGINALTITLE")),
+            original_artist: get_string("original_artist")
+                .or_else(|| get_string("ORIGINAL_ARTIST"))
+                .or_else(|| get_string("ORIGINALARTIST")),
+            original_album: get_string("original_album")
+                .or_else(|| get_string("ORIGINAL_ALBUM"))
+                .or_else(|| get_string("ORIGINALALBUM")),
             sort_title: get_string("titlesort").or_else(|| get_string("sort_title")),
             replaygain_track_gain: parse_gain("replaygain_track_gain"),
             replaygain_track_peak: parse_peak("replaygain_track_peak"),

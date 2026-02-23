@@ -29,6 +29,9 @@ pub struct Track {
     pub date: Option<NaiveDate>,
     pub composer: Option<String>,
     pub comment: Option<String>,
+    pub original_title: Option<String>,
+    pub original_artist: Option<String>,
+    pub original_album: Option<String>,
 
     // TODO: symphonia 6.0 CodecDescriptor
     // pub codec: i64,                   // CHECK: >= 0

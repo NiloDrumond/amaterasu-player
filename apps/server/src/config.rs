@@ -6,6 +6,7 @@ pub struct Config {
     pub server_host: String,
     pub server_port: u16,
     pub library_path: String,
+    pub log_dir: String,
 }
 
 impl Config {
@@ -17,6 +18,7 @@ impl Config {
             server_host: env::var("SERVER_HOST")?,
             server_port: env::var("SERVER_PORT")?.parse()?,
             library_path: env::var("LIBRARY_PATH")?,
+            log_dir: env::var("LOG_DIR").unwrap_or_else(|_| "./logs".to_string()),
         })
     }
 }

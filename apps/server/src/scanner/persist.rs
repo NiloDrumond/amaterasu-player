@@ -105,6 +105,32 @@ async fn upsert_track(
 
     match existing {
         Some(mut track) => {
+            if track.file_path != scanned.file_path {
+                let old_name = std::path::Path::new(&track.file_path).file_name();
+                let new_name = std::path::Path::new(&scanned.file_path).file_name();
+
+                if old_name != new_name {
+                    tracing::error!(
+                        track_id = %track.id,
+                        old_path = %track.file_path,
+                        new_path = %scanned.file_path,
+                        "Possible hash collision: same audio_hash but different file name, skipping"
+                    );
+                    return Err(AppError::Internal(anyhow::anyhow!(
+                        "Possible hash collision: '{}' and '{}' share the same audio hash",
+                        track.file_path,
+                        scanned.file_path
+                    )));
+                }
+
+                tracing::info!(
+                    track_id = %track.id,
+                    old_path = %track.file_path,
+                    new_path = %scanned.file_path,
+                    "Track file moved"
+                );
+            }
+
             // Update existing track with fresh metadata (including file_path for moved files)
             track.file_path = scanned.file_path;
             track.album_id = Some(album_id);
@@ -117,6 +143,9 @@ async fn upsert_track(
             track.date = scanned.track_metadata.date;
             track.composer = scanned.track_metadata.composer;
             track.comment = scanned.track_metadata.comment;
+            track.original_title = scanned.track_metadata.original_title;
+            track.original_artist = scanned.track_metadata.original_artist;
+            track.original_album = scanned.track_metadata.original_album;
             track.duration_ms = scanned.audio.duration_ms;
             track.bitrate = scanned.audio.bitrate;
             track.sample_rate = scanned.audio.sample_rate;
@@ -139,6 +168,9 @@ async fn upsert_track(
                 date: scanned.track_metadata.date,
                 composer: scanned.track_metadata.composer,
                 comment: scanned.track_metadata.comment,
+                original_title: scanned.track_metadata.original_title,
+                original_artist: scanned.track_metadata.original_artist,
+                original_album: scanned.track_metadata.original_album,
                 duration_ms: scanned.audio.duration_ms,
                 bitrate: scanned.audio.bitrate,
                 sample_rate: scanned.audio.sample_rate,

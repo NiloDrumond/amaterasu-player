@@ -19,19 +19,6 @@ pub struct ScannedAlbumMetadata {
     pub album_artist_metadata: ScannedArtistMetadata,
 }
 
-pub fn create_album(value: ScannedAlbumMetadata, artist_id: Option<Uuid>) -> Album {
-    Album {
-        artist_id,
-        mbid: None,
-        title: value.name.to_string(),
-        sort_title: value.sort_name.unwrap_or(value.name),
-        date: value.date,
-        replaygain_album_gain: value.replaygain_album_gain,
-        replaygain_album_peak: value.replaygain_album_peak,
-        ..Default::default()
-    }
-}
-
 impl From<ScannedAlbumMetadata> for Album {
     fn from(value: ScannedAlbumMetadata) -> Self {
         Album {
@@ -50,7 +37,11 @@ impl From<ScannedAlbumMetadata> for Album {
 }
 
 impl ScannedAlbumMetadata {
-    pub fn from_context(ictx: &Input, folder_name: Option<String>) -> ScannerResult<Self> {
+    pub fn from_context(
+        ictx: &Input,
+        folder_name: Option<String>,
+        artist_folder_name: Option<String>,
+    ) -> ScannerResult<Self> {
         let metadata = ictx.metadata();
 
         let get_string = |key: &str| -> Option<String> { metadata.get(key).map(|v| v.to_string()) };
@@ -68,7 +59,7 @@ impl ScannedAlbumMetadata {
         let parse_peak =
             |key: &str| -> Option<f32> { metadata.get(key).and_then(|v| v.parse::<f32>().ok()) };
 
-        let album_artist = ScannedArtistMetadata::from_album_context(ictx);
+        let album_artist = ScannedArtistMetadata::from_album_context(ictx, artist_folder_name);
 
         Ok(Self {
             name: get_string("album")

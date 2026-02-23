@@ -47,6 +47,9 @@ impl From<ScannedFile> for Track {
             date: scanned.track_metadata.date,
             composer: scanned.track_metadata.composer,
             comment: scanned.track_metadata.comment,
+            original_title: scanned.track_metadata.original_title,
+            original_artist: scanned.track_metadata.original_artist,
+            original_album: scanned.track_metadata.original_album,
             duration_ms: scanned.audio.duration_ms,
             bitrate: scanned.audio.bitrate,
             sample_rate: scanned.audio.sample_rate,
@@ -63,7 +66,7 @@ impl From<ScannedFile> for Track {
 }
 
 impl ScannedFile {
-    pub fn scan(path: &std::path::Path) -> ScannerResult<Self> {
+    pub fn scan(path: &std::path::Path, library_path: &str) -> ScannerResult<Self> {
         ffmpeg::init()?;
 
         let path_str = path.to_str().ok_or(ScannerError::InvalidFileName(
@@ -77,9 +80,19 @@ impl ScannedFile {
             .and_then(|n| n.to_str())
             .map(|s| s.to_string());
 
+        let artist_folder_name = path
+            .parent()
+            .and_then(|p| p.parent())
+            .filter(|gp| *gp != std::path::Path::new(library_path))
+            .and_then(|gp| gp.file_name())
+            .and_then(|n| n.to_str())
+            .map(|s| s.to_string());
+
         let metadata = ScannedTrackMetadata::from_context(path, &ictx)?;
-        let album_metadata = ScannedAlbumMetadata::from_context(&ictx, folder_name)?;
-        let artist_metadata = ScannedArtistMetadata::from_track_context(&ictx);
+        let album_metadata =
+            ScannedAlbumMetadata::from_context(&ictx, folder_name, artist_folder_name.clone())?;
+        let artist_metadata =
+            ScannedArtistMetadata::from_track_context(&ictx, artist_folder_name);
         let audio = ScannedFileAudio::from_context(path, ictx)?;
 
         Ok(Self {
