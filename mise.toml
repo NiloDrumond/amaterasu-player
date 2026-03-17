@@ -4,6 +4,12 @@
 description = "List all available tasks"
 run = "mise tasks"
 
+[tasks."dev:web"]
+description = "Start web development environment"
+run = """
+cd apps/web && bun run dev
+"""
+
 [tasks."dev:server"]
 description = "Start server development environment"
 run = """
@@ -54,7 +60,7 @@ run = "docker compose -f infra/docker-compose.yml up"
 description = "Start infrastructure services (detached)"
 run = "docker compose -f infra/docker-compose.yml up"
 
-[tasks."db-down"]
+[tasks."db:down"]
 description = "Stop all docker services"
 run = "docker compose -f infra/docker-compose.yml down"
 
