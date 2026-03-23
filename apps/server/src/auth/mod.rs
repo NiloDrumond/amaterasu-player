@@ -1,4 +1,4 @@
-mod error;
+pub mod error;
 
 use argon2::{
     password_hash::{rand_core::OsRng, Error as PasswordHashError, PasswordHasher, SaltString},

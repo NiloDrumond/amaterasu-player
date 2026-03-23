@@ -1,6 +1,7 @@
+use garde::Validate;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Validate)]
 pub struct RegisterEmailParams {
     #[garde(email)]
     pub email: String,

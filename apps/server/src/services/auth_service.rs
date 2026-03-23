@@ -2,8 +2,9 @@ use sqlx::PgPool;
 
 use crate::{
     auth::hash_password,
+    auth::error::AuthError,
     db::entities::User,
-    error::{AppError, AppResult},
+    error::AppResult,
     repositories::UserRepository,
 };
 
@@ -22,8 +23,13 @@ impl AuthService {
         name: String,
         password: String,
     ) -> AppResult<()> {
-        let password_hash =
-            hash_password(&password).map_err(|err| AppError::Internal(err.into()))?;
+        let previous_user = UserRepository::find_by_email(&self.pool, &email).await?;
+
+        if previous_user.is_some() {
+            return Err(AuthError::EmailAlreadyTaken.into());
+        }
+
+        let password_hash = hash_password(&password)?;
 
         let user = User {
             name,

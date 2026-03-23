@@ -1,6 +1,7 @@
 use tokio::signal;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod auth;
 mod config;
 mod db;
 mod dto;
@@ -12,7 +13,6 @@ mod scanner;
 mod services;
 mod state;
 mod utils;
-mod auth;
 
 use config::Config;
 use state::AppState;
@@ -21,8 +21,7 @@ use state::AppState;
 async fn main() -> anyhow::Result<()> {
     let config = Config::from_env()?;
 
-    let file_appender =
-        tracing_appender::rolling::daily(&config.log_dir, "amaterasu-server");
+    let file_appender = tracing_appender::rolling::daily(&config.log_dir, "amaterasu-server");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
     tracing_subscriber::registry()
