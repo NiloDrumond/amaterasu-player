@@ -13,6 +13,9 @@ pub enum AppError {
     #[error("Not found")]
     NotFound,
 
+    #[error("Conflict")]
+    Conflict,
+
     #[error("Internal server error")]
     Internal(#[from] anyhow::Error),
 }
@@ -25,6 +28,7 @@ impl IntoResponse for AppError {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Database error")
             }
             AppError::NotFound => (StatusCode::NOT_FOUND, "Resource not found"),
+            AppError::Conflict => (StatusCode::CONFLICT, "Conflict"),
             AppError::Internal(e) => {
                 tracing::error!("Internal server error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
@@ -40,3 +44,4 @@ impl IntoResponse for AppError {
 }
 
 pub type AppResult<T> = Result<T, AppError>;
+

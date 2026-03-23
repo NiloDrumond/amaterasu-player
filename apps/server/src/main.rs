@@ -12,6 +12,7 @@ mod scanner;
 mod services;
 mod state;
 mod utils;
+mod auth;
 
 use config::Config;
 use state::AppState;
