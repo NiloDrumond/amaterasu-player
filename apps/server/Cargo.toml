@@ -5,10 +5,13 @@ edition = "2021"
 
 [dependencies]
 # Web framework
-axum = "0.8"
+axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
+
+# Auth
+argon2 = "0.5"
 
 # Database
 sqlx = { version = "0.8", features = [
@@ -22,6 +25,13 @@ sqlx = { version = "0.8", features = [
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+
+# Validation
+garde = { version = "0.22", features = ["derive", "email", "url"] }
+axum-valid = { version = "0.24.0", default-features = false, features = [
+  "garde",
+  "basic",
+] }
 
 # Logging
 tracing = "0.1"

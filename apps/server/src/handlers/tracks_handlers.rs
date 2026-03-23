@@ -11,11 +11,10 @@ use axum::{
     extract::{Path, Query, State},
     Json,
 };
-use std::sync::Arc;
 use uuid::Uuid;
 
 pub async fn get_tracks(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Query(params): Query<PaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<TrackResponse>>> {
     let service = LibraryService::new(state.db.clone());
@@ -32,7 +31,7 @@ pub async fn get_tracks(
 }
 
 pub async fn get_track(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<TrackResponse>> {
     let service = LibraryService::new(state.db.clone());
