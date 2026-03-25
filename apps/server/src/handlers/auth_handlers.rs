@@ -2,7 +2,9 @@ use axum::{extract::State, http::StatusCode, Json};
 use axum_valid::Garde;
 
 use crate::{
-    dto::request::auth::RegisterEmailParams, error::AppResult, services::auth_service::AuthService,
+    dto::request::auth::{RegisterEmailParams, SignInEmailParams},
+    error::AppResult,
+    services::auth_service::AuthService,
     state::AppState,
 };
 
@@ -16,4 +18,11 @@ pub async fn register_email(
         .await?;
 
     Ok(StatusCode::CREATED)
+}
+
+pub async fn sign_in_email(
+    State(state): State<AppState>,
+    Garde(Json(body)): Garde<Json<SignInEmailParams>>,
+) -> AppResult<()> {
+    Ok(())
 }

@@ -10,3 +10,11 @@ pub struct RegisterEmailParams {
     #[garde(length(min = 6, max = 100))]
     pub password: String,
 }
+
+#[derive(Serialize, Deserialize, Validate)]
+pub struct SignInEmailParams {
+    #[garde(email)]
+    pub email: String,
+    #[garde(length(min = 6, max = 100))]
+    pub password: String,
+}
