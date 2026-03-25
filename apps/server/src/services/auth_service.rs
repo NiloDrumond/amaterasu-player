@@ -5,7 +5,7 @@ use sqlx::PgPool;
 use crate::auth::SESSION_DURATION_HOURS;
 use crate::repositories::SessionRepository;
 use crate::{
-    auth::{error::AuthError, hash_password, verify_password},
+    auth::{hash_password, verify_password, AuthError},
     db::entities::{Session, User},
     error::AppResult,
     repositories::UserRepository,
@@ -61,5 +61,24 @@ impl AuthService {
         SessionRepository::create(&self.pool, &session);
 
         Ok(session)
+    }
+
+    pub async fn validate_session(&self, session_id: &str) -> AppResult<(Session, User)> {
+        let session = SessionRepository::find_by_id(&self.pool, &session_id)
+            .await?
+            .ok_or(AuthError::SessionNotFound(session_id.to_string()))?;
+
+        let valid = session.is_valid();
+
+        if !valid {
+            SessionRepository::delete_by_id(&self.pool, &session.id).await?;
+            return Err(AuthError::ExpiredSession.into());
+        }
+
+        let user = UserRepository::find_by_id(&self.pool, session.user_id)
+            .await?
+            .ok_or(AuthError::UserNotFoundForSesssion(session.id.clone()))?;
+
+        Ok((session, user))
     }
 }

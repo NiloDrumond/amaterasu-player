@@ -38,6 +38,12 @@ impl IntoResponse for AppError {
                     tracing::error!("Auth error: {:?}", e);
                     (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
                 }
+                AuthError::MissingSessionCookie
+                | AuthError::SessionNotFound(_)
+                | AuthError::ExpiredSession
+                | AuthError::UserNotFoundForSesssion(_) => {
+                    (StatusCode::UNAUTHORIZED, "Invalid session")
+                }
             },
             AppError::Database(e) => {
                 tracing::error!("Database error: {:?}", e);

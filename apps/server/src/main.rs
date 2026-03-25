@@ -21,26 +21,26 @@ use state::AppState;
 async fn main() -> anyhow::Result<()> {
     let config = Config::from_env()?;
 
-    // let file_appender = tracing_appender::rolling::daily(&config.log_dir, "amaterasu-server");
-    // let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-    //
-    // tracing_subscriber::registry()
-    //     .with(
-    //         tracing_subscriber::EnvFilter::try_from_default_env()
-    //             .unwrap_or_else(|_| "amaterasu_server=debug,tower_http=debug".into()),
-    //     )
-    //     .with(tracing_subscriber::fmt::layer())
-    //     .with(
-    //         tracing_subscriber::fmt::layer()
-    //             .with_writer(non_blocking)
-    //             .with_ansi(false),
-    //     )
-    //     .init();
-    // tracing::info!(
-    //     "Starting server on {}:{}",
-    //     config.server_host,
-    //     config.server_port
-    // );
+    let file_appender = tracing_appender::rolling::daily(&config.log_dir, "amaterasu-server");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "amaterasu_server=debug,tower_http=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(non_blocking)
+                .with_ansi(false),
+        )
+        .init();
+    tracing::info!(
+        "Starting server on {}:{}",
+        config.server_host,
+        config.server_port
+    );
 
     let db_pool = db::create_pool(&config.database_url).await?;
     tracing::info!("Database connected");
@@ -57,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app_state = AppState::new(db_pool, library_scanner);
 
-    let app = routes::create_api_router().with_state(app_state);
+    let app = routes::create_api_router(app_state);
 
     let listener =
         tokio::net::TcpListener::bind(format!("{}:{}", config.server_host, config.server_port))
