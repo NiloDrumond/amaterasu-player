@@ -21,9 +21,9 @@ pub struct Session {
 impl Session {
     pub fn new(
         user_id: Uuid,
+        expires_at: DateTime<Utc>,
         ip_address: Option<IpNet>,
         metadata: Option<Value>,
-        expires_at: DateTime<Utc>,
     ) -> Self {
         let mut rng = rand::rng();
         let id = rng.sample(Alphanumeric).to_string();

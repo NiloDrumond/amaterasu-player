@@ -7,6 +7,12 @@ pub enum AuthError {
 
     #[error("Argon2 error: {0}")]
     Argon2Error(password_hash::Error),
+
+    #[error("User not found")]
+    UserNotFound,
+
+    #[error("Password doesn't match")]
+    PasswordDoesntMatch,
 }
 
 pub type AuthResult<T> = Result<T, AuthError>;

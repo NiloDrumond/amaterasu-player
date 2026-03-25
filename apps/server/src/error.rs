@@ -30,6 +30,9 @@ impl IntoResponse for AppError {
         let (status, message) = match &self {
             AppError::Validation(e) => (StatusCode::BAD_REQUEST, e.message()),
             AppError::Auth(e) => match e {
+                AuthError::UserNotFound | AuthError::PasswordDoesntMatch => {
+                    (StatusCode::UNAUTHORIZED, "Wrong email or password")
+                }
                 AuthError::EmailAlreadyTaken => (StatusCode::CONFLICT, "Email already in use"),
                 AuthError::Argon2Error(e) => {
                     tracing::error!("Auth error: {:?}", e);

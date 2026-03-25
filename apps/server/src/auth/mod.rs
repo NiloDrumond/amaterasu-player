@@ -7,6 +7,9 @@ use argon2::{
 
 use crate::auth::error::{AuthError, AuthResult};
 
+pub const SESSION_DURATION_HOURS: u32 = 24 * 30;
+pub const SESSION_COOKIE_NAME: &str = "SESSION";
+
 pub fn hash_password(password: &str) -> AuthResult<String> {
     let salt = SaltString::generate(&mut OsRng);
 
@@ -20,7 +23,7 @@ pub fn hash_password(password: &str) -> AuthResult<String> {
     Ok(password_hash)
 }
 
-fn verify_password(password: &str, password_hash: &str) -> AuthResult<bool> {
+pub fn verify_password(password: &str, password_hash: &str) -> AuthResult<bool> {
     let parsed_hash = PasswordHash::new(password_hash).map_err(AuthError::Argon2Error)?;
     let argon2 = Argon2::default();
 
