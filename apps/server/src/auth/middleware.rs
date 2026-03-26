@@ -63,14 +63,15 @@ pub async fn session_extractor(
 
 pub async fn auth_guard(
     Extension(session): Extension<ExtractedSession>,
-    request: Request,
+    mut request: Request,
     next: Next,
 ) -> AppResult<Response> {
-    if let ExtractedSession::Invalid(err) = session {
-        return Err(AppError::Auth(err));
+    match session {
+        ExtractedSession::Invalid(err) => Err(AppError::Auth(err)),
+        ExtractedSession::Valid(auth_user) => {
+            request.extensions_mut().insert(auth_user);
+            let response = next.run(request).await;
+            Ok(response)
+        }
     }
-
-    let response = next.run(request).await;
-
-    Ok(response)
 }

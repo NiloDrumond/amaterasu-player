@@ -25,8 +25,12 @@ impl Session {
         ip_address: Option<IpNet>,
         metadata: Option<Value>,
     ) -> Self {
-        let mut rng = rand::rng();
-        let id = rng.sample(Alphanumeric).to_string();
+        let rng = rand::rng();
+        let id = rng
+            .sample_iter(Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect();
         Self {
             user_id,
             ip_address,

@@ -15,7 +15,7 @@ pub fn create_api_router(state: AppState) -> Router {
 
     let public_routes = Router::new()
         .merge(auth_routes::public_routes())
-        .route("health", get(health_check));
+        .route("/health", get(health_check));
 
     let api_routes = Router::new()
         .merge(protected_routes)

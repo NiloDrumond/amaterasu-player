@@ -42,7 +42,7 @@ impl IntoResponse for AppError {
                 | AuthError::SessionNotFound(_)
                 | AuthError::ExpiredSession
                 | AuthError::UserNotFoundForSesssion(_) => {
-                    (StatusCode::UNAUTHORIZED, "Invalid session")
+                    (StatusCode::UNAUTHORIZED, "Unauthorized")
                 }
             },
             AppError::Database(e) => {
