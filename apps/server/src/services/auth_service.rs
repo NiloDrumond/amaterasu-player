@@ -58,13 +58,13 @@ impl AuthService {
         let expires_at = Utc::now() + Duration::hours(SESSION_DURATION_HOURS.into());
 
         let session = Session::new(user.id, expires_at, None, None);
-        SessionRepository::create(&self.pool, &session);
+        let session = SessionRepository::create(&self.pool, &session).await?;
 
         Ok(session)
     }
 
     pub async fn validate_session(&self, session_id: &str) -> AppResult<(Session, User)> {
-        let session = SessionRepository::find_by_id(&self.pool, &session_id)
+        let session = SessionRepository::find_by_id(&self.pool, session_id)
             .await?
             .ok_or(AuthError::SessionNotFound(session_id.to_string()))?;
 
@@ -80,5 +80,11 @@ impl AuthService {
             .ok_or(AuthError::UserNotFoundForSesssion(session.id.clone()))?;
 
         Ok((session, user))
+    }
+
+    pub async fn delete_session(&self, session_id: &str) -> Option<Session> {
+        SessionRepository::delete_by_id(&self.pool, session_id)
+            .await
+            .ok()
     }
 }

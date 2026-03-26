@@ -1,6 +1,6 @@
 use argon2::password_hash;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum AuthError {
     #[error("Email already in use")]
     EmailAlreadyTaken,
