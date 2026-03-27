@@ -63,4 +63,19 @@ impl SessionRepository {
 
         Ok(session)
     }
+
+    pub async fn delete_expired(executor: impl PgExecutor<'_>) -> AppResult<usize> {
+        let deleted = sqlx::query!(
+            r#"
+    DELETE FROM sessions
+    WHERE expires_at < now()
+    RETURNING
+        id
+"#
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(deleted.len())
+    }
 }

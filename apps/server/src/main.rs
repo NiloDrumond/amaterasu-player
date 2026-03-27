@@ -12,10 +12,13 @@ mod routes;
 mod scanner;
 mod services;
 mod state;
+mod tasks;
 mod utils;
 
 use config::Config;
 use state::AppState;
+
+use crate::tasks::initialize_background_tasks;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -56,6 +59,11 @@ async fn main() -> anyhow::Result<()> {
     });
 
     let app_state = AppState::new(db_pool, library_scanner);
+
+    let tasks_state = app_state.clone();
+    tokio::spawn(async {
+        initialize_background_tasks(tasks_state).await;
+    });
 
     let app = routes::create_api_router(app_state);
 

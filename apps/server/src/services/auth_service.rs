@@ -87,4 +87,8 @@ impl AuthService {
             .await
             .ok()
     }
+
+    pub async fn delete_expired(&self) -> AppResult<usize> {
+        SessionRepository::delete_expired(&self.pool).await
+    }
 }
