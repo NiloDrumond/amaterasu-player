@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 # Web framework
 axum = { version = "0.8", features = ["macros"] }
+axum-extra = { version = "0.10", features = ["cookie"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
@@ -50,6 +51,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 anyhow = "1"
 thiserror = "2"
 chrono = { version = "0.4", features = ["serde"] }
+time = "0.3"
 
 # Library Scanning
 ffmpeg-next = "8.0"

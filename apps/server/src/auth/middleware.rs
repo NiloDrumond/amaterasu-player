@@ -1,10 +1,10 @@
 use axum::{
     extract::{Request, State},
-    http::HeaderMap,
     middleware::Next,
     response::Response,
     Extension,
 };
+use axum_extra::extract::CookieJar;
 
 use crate::{
     auth::{error::AuthError, SESSION_COOKIE_NAME},
@@ -20,16 +20,19 @@ pub struct AuthUser {
     pub user: User,
 }
 
+// Short-lived per-request enum; stack size difference is negligible compared to
+// the heap allocation a Box would add on every authenticated request.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum ExtractedSession {
     Valid(AuthUser),
     Invalid(AuthError),
 }
 
-async fn extract_session(app_state: AppState, headers: HeaderMap) -> AppResult<ExtractedSession> {
-    let cookie = headers.get(SESSION_COOKIE_NAME);
+async fn extract_session(app_state: AppState, jar: CookieJar) -> AppResult<ExtractedSession> {
+    let cookie = jar.get(SESSION_COOKIE_NAME);
     if let Some(cookie) = cookie {
-        let session_id = cookie.to_str().map_err(|e| AppError::Internal(e.into()))?;
+        let session_id = cookie.value();
 
         let service = AuthService::new(app_state.db.clone());
         let result = service.validate_session(session_id).await;
@@ -48,11 +51,11 @@ async fn extract_session(app_state: AppState, headers: HeaderMap) -> AppResult<E
 
 pub async fn session_extractor(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    jar: CookieJar,
     mut request: Request,
     next: Next,
 ) -> AppResult<Response> {
-    let extracted_session = extract_session(state, headers).await?;
+    let extracted_session = extract_session(state, jar).await?;
 
     request.extensions_mut().insert(extracted_session);
 

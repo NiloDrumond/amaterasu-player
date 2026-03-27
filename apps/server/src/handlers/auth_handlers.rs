@@ -1,10 +1,5 @@
-use anyhow::Context;
-use axum::{
-    extract::State,
-    http::{header::SET_COOKIE, HeaderMap, StatusCode},
-    response::IntoResponse,
-    Extension, Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Extension, Json};
+use axum_extra::extract::cookie::{Cookie, CookieJar};
 use axum_valid::Garde;
 
 use crate::{
@@ -41,18 +36,15 @@ pub async fn sign_in_email(
     }
     let session = service.sign_in_email(&body.email, &body.password).await?;
 
-    let cookie = session.id;
     let max_age = SESSION_DURATION_HOURS * 60 * 60;
-    let cookie = format!(
-        "{SESSION_COOKIE_NAME}={cookie}; SameSite=Lax; HttpOnly; Secure; Path=/; Max-Age={max_age}"
-    );
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        SET_COOKIE,
-        cookie.parse().context("failed to parse cookie")?,
-    );
+    let cookie = Cookie::build((SESSION_COOKIE_NAME, session.id))
+        .path("/")
+        .http_only(true)
+        .secure(true)
+        .same_site(axum_extra::extract::cookie::SameSite::Lax)
+        .max_age(time::Duration::seconds(max_age as i64));
 
-    Ok(headers)
+    Ok(CookieJar::new().add(cookie))
 }
 
 pub async fn sign_out(
@@ -62,17 +54,18 @@ pub async fn sign_out(
     let service = AuthService::new(state.db.clone());
     service.delete_session(&auth_user.session.id).await;
 
-    let cookie =
-        format!("{SESSION_COOKIE_NAME}=; SameSite=Lax; HttpOnly; Secure; Path=/; Max-Age=0");
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        SET_COOKIE,
-        cookie.parse().context("failed to parse cookie")?,
-    );
+    let cookie = Cookie::build((SESSION_COOKIE_NAME, ""))
+        .path("/")
+        .http_only(true)
+        .secure(true)
+        .same_site(axum_extra::extract::cookie::SameSite::Lax)
+        .max_age(time::Duration::ZERO);
 
-    Ok(headers)
+    Ok(CookieJar::new().add(cookie))
 }
 
-pub async fn get_current_user(Extension(auth_user): Extension<AuthUser>) -> Json<CurrentUserResponse> {
+pub async fn get_current_user(
+    Extension(auth_user): Extension<AuthUser>,
+) -> Json<CurrentUserResponse> {
     Json(auth_user.user.into())
 }
