@@ -32,12 +32,7 @@ impl AuthService {
         let email = email.trim().to_lowercase();
         let password_hash = hash_password(&password)?;
 
-        let user = User {
-            name,
-            email,
-            password_hash,
-            ..Default::default()
-        };
+        let user = User::new(name, email, password_hash);
 
         match UserRepository::create(&self.pool, &user).await {
             Ok(_) => Ok(()),
@@ -66,7 +61,7 @@ impl AuthService {
 
         let expires_at = Utc::now() + Duration::hours(SESSION_DURATION_HOURS.into());
 
-        let ip_net = ip_address.map(|ip| IpNet::from(ip));
+        let ip_net = ip_address.map(IpNet::from);
         let session = Session::new(user.id, expires_at, ip_net, None);
 
         let pool = self.pool.clone();

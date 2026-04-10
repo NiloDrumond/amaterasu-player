@@ -10,11 +10,8 @@ pub struct ScannedArtistMetadata {
 impl From<ScannedArtistMetadata> for Artist {
     fn from(value: ScannedArtistMetadata) -> Self {
         let name = value.name.unwrap_or("unknown".to_string());
-        Artist {
-            name: name.clone(),
-            sort_name: value.sort_name.unwrap_or(name),
-            ..Default::default()
-        }
+
+        Artist::new(name.clone(), value.sort_name.unwrap_or(name))
     }
 }
 

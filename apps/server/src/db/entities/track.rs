@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Track {
     pub id: Uuid,
     pub audio_hash: Vec<u8>,
