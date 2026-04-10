@@ -37,9 +37,13 @@ docker compose -f infra/docker-compose.yml up -d
 cd apps/server && cargo run --release
 """
 
-[tasks."test:backend"]
-description = "Run backend tests"
-run = "cd apps/server && cargo test"
+[tasks."test"]
+description = "Run backend tests and generate type bindings"
+depends = ["lint"]
+run = '''
+cargo test -- --show-output
+cd apps/web && bun format
+'''
 
 [tasks.fmt]
 description = "Format backend code"
@@ -51,6 +55,25 @@ run = """
 cd apps/server && cargo check
 cd apps/server && cargo clippy
 """
+
+[tasks.lint]
+description = "Check that all Serialize/Deserialize structs have rename_all"
+run = '''
+cd apps/server
+files=$(rg -Ul '#\[derive\([^]]*(?:Serialize|Deserialize)' src/dto/)
+if [ -z "$files" ]; then exit 0; fi
+bad=""
+for f in $files; do
+  if ! rg -q 'rename_all|api_type' "$f"; then
+    bad="$bad\n  $f"
+  fi
+done
+if [ -n "$bad" ]; then
+  echo "ERROR: These files derive Serialize/Deserialize without #[serde(rename_all)]:"
+  echo -e "$bad"
+  exit 1
+fi
+'''
 
 [tasks.docker]
 description = "Start all docker services (attached)"
@@ -73,16 +96,17 @@ description = "Run database migrations"
 run = "sqlx migrate run"
 dir = "apps/server"
 
+[tasks."db:revert"]
+description = "Revert database migratin"
+run = "sqlx migrate revert"
+dir = "apps/server"
+
 [tasks.clean]
 description = "Clean everything (docker volumes + cargo)"
 run = """
 docker compose -f infra/docker-compose.yml down -v
 cd apps/server && cargo clean
 """
-
-[tasks.migrate]
-description = "Run database migrations"
-run = "cd apps/server && cargo run --bin migrate"
 
 [tasks.build]
 description = "Build for production"

@@ -1,8 +1,10 @@
+use amaterasu_macros::api_type;
 use serde::Serialize;
 use uuid::Uuid;
 
 use crate::db::entities::Track;
 
+#[api_type("response/track")]
 #[derive(Debug, Serialize)]
 pub struct TrackResponse {
     pub id: Uuid,

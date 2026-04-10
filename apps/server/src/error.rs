@@ -5,8 +5,16 @@ use axum::{
 };
 use serde_json::json;
 
+use crate::auth::error::AuthError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
+    #[error(transparent)]
+    Auth(#[from] AuthError),
+
+    #[error(transparent)]
+    Validation(#[from] garde::Error),
+
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
@@ -20,6 +28,23 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, message) = match &self {
+            AppError::Validation(e) => (StatusCode::BAD_REQUEST, e.message()),
+            AppError::Auth(e) => match e {
+                AuthError::UserNotFound | AuthError::PasswordDoesntMatch => {
+                    (StatusCode::UNAUTHORIZED, "Wrong email or password")
+                }
+                AuthError::EmailAlreadyTaken => (StatusCode::CONFLICT, "Email already in use"),
+                AuthError::Argon2Error(e) => {
+                    tracing::error!("Auth error: {:?}", e);
+                    (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+                }
+                AuthError::MissingSessionCookie
+                | AuthError::SessionNotFound(_)
+                | AuthError::ExpiredSession
+                | AuthError::UserNotFoundForSession(_) => {
+                    (StatusCode::UNAUTHORIZED, "Unauthorized")
+                }
+            },
             AppError::Database(e) => {
                 tracing::error!("Database error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Database error")

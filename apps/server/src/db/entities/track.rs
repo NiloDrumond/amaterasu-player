@@ -3,17 +3,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MetadataValue {
-    Binary(Box<[u8]>),
-    Boolean(bool),
-    Flag,
-    Float(f64),
-    SignedInt(i64),
-    String(String),
-    UnsignedInt(u64),
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default)]
 pub struct Track {
     pub id: Uuid,

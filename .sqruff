@@ -1,2 +1,7 @@
 [sqruff]
 dialect = postgres
+rules = all
+
+[sqruff:rules:capitalisation.types]
+capitalisation_policy = lower
+extended_capitalisation_policy = lower

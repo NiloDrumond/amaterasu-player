@@ -5,10 +5,18 @@ edition = "2021"
 
 [dependencies]
 # Web framework
-axum = "0.8"
+axum = { version = "0.8", features = ["macros"] }
+axum-extra = { version = "0.12", features = ["cookie"] }
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
+governor = "0.10"
+tower_governor = { version = "0.8", features = ["axum", "tracing"] }
+
+# Auth
+argon2 = "0.5"
+ipnet = { version = "2", features = ["serde"] }
+rand = "0.10"
 
 # Database
 sqlx = { version = "0.8", features = [
@@ -16,12 +24,26 @@ sqlx = { version = "0.8", features = [
   "postgres",
   "uuid",
   "chrono",
+  "json",
+  "ipnet",
 ] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-sha2 = "0.10"
+serde_json = { version = "1", features = ["raw_value"] }
+sha2 = "0.11"
+ts-rs = { version = "12", features = [
+  'serde-compat',
+  'chrono-impl',
+  'uuid-impl',
+] }
+
+# Validation
+garde = { version = "0.22", features = ["derive", "email", "url"] }
+axum-valid = { version = "0.24.0", default-features = false, features = [
+  "garde",
+  "basic",
+] }
 
 # Logging
 tracing = "0.1"
@@ -36,8 +58,12 @@ uuid = { version = "1", features = ["v4", "serde"] }
 anyhow = "1"
 thiserror = "2"
 chrono = { version = "0.4", features = ["serde"] }
+time = "0.3"
 
 # Library Scanning
 ffmpeg-next = "8.0"
 walkdir = "2"
+
+# Macros
+amaterasu-macros = { path = "../../libs/macros" }
 ron = "0.12.0"
