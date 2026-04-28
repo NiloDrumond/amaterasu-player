@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS tracks (
     composer text,
     comment text,
     duration_ms int NOT NULL CHECK (duration_ms >= 0),
+    format text NOT NULL,
+    codec text NOT NULL,
     bitrate int CHECK (bitrate >= 0),
     sample_rate bigint CHECK (sample_rate >= 0),
     channels int CHECK (channels >= 0),

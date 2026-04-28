@@ -101,3 +101,29 @@ pub async fn auth_guard(_auth: AuthUser, request: Request, next: Next) -> AppRes
     let response = next.run(request).await;
     Ok(response)
 }
+
+#[derive(Debug, Clone)]
+pub struct AdminUser(pub AuthUser);
+
+impl<S> FromRequestParts<S> for AdminUser
+where
+    S: Send + Sync,
+{
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        let auth_user = AuthUser::from_request_parts(parts, state).await?;
+        if auth_user.user.role != "admin" {
+            return Err(AppError::Auth(AuthError::Forbidden));
+        }
+        Ok(AdminUser(auth_user))
+    }
+}
+
+pub async fn admin_guard(_admin: AdminUser, request: Request, next: Next) -> AppResult<Response> {
+    let response = next.run(request).await;
+    Ok(response)
+}

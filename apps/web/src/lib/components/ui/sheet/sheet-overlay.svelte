@@ -14,7 +14,7 @@
 	data-slot="sheet-overlay"
 	class={cn(
 		'fixed inset-0 z-50 bg-black/10 text-xs/relaxed supports-backdrop-filter:backdrop-blur-xs',
-		className
+		className,
 	)}
 	{...restProps}
 />

@@ -8,6 +8,7 @@ use crate::db::entities::User;
 pub struct CurrentUserResponse {
     name: String,
     email: String,
+    role: String,
 }
 
 impl From<User> for CurrentUserResponse {
@@ -15,6 +16,7 @@ impl From<User> for CurrentUserResponse {
         Self {
             name: value.name,
             email: value.email,
+            role: value.role,
         }
     }
 }

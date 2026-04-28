@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -7,9 +9,14 @@ use crate::error::AppError;
 use crate::repositories::{AlbumRepository, ArtistRepository, TrackRepository};
 
 use super::scan_artist::ScannedArtistMetadata;
+use super::scan_cover::ScannedCover;
 use super::scan_file::ScannedFile;
 
-pub async fn persist_scanned_file(pool: &PgPool, scanned: ScannedFile) -> Result<Track, AppError> {
+pub async fn persist_scanned_file(
+    pool: &PgPool,
+    covers_dir: &Path,
+    scanned: ScannedFile,
+) -> Result<Track, AppError> {
     let mut tx = pool.begin().await?;
 
     let album_artist_id =
@@ -18,6 +25,12 @@ pub async fn persist_scanned_file(pool: &PgPool, scanned: ScannedFile) -> Result
             .map(|a| a.id);
 
     let album = find_or_create_album(&mut tx, &scanned, album_artist_id).await?;
+
+    if let Some(cover) = &scanned.cover {
+        if album.cover_path.is_none() {
+            persist_album_cover(&mut tx, covers_dir, album.id, cover).await?;
+        }
+    }
 
     let track_artist_id = find_or_create_artist(&mut tx, &scanned.artist_metadata)
         .await?
@@ -28,6 +41,23 @@ pub async fn persist_scanned_file(pool: &PgPool, scanned: ScannedFile) -> Result
     tx.commit().await?;
 
     Ok(track)
+}
+
+async fn persist_album_cover(
+    tx: &mut sqlx::PgConnection,
+    covers_dir: &Path,
+    album_id: Uuid,
+    cover: &ScannedCover,
+) -> Result<(), AppError> {
+    let filename = format!("{}.{}", hex::encode(cover.hash), cover.ext);
+    let path = covers_dir.join(&filename);
+    if !path.exists() {
+        tokio::fs::write(&path, &cover.bytes)
+            .await
+            .map_err(|e| AppError::Internal(anyhow::anyhow!("failed to write cover: {}", e)))?;
+    }
+    AlbumRepository::update_cover_path(&mut *tx, album_id, &filename).await?;
+    Ok(())
 }
 
 async fn find_or_create_artist(
@@ -73,18 +103,14 @@ async fn find_or_create_album(
         .as_deref()
         .unwrap_or(title.as_str());
 
-    let album = Album {
-        id: Uuid::new_v4(),
-        artist_id: album_artist_id,
-        title: title.clone(),
-        sort_title: sort_title.to_string(),
-        date: scanned.album_metadata.date,
-        mbid: None,
-        replaygain_album_gain: scanned.album_metadata.replaygain_album_gain,
-        replaygain_album_peak: scanned.album_metadata.replaygain_album_peak,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    };
+    let album = Album::new(
+        album_artist_id,
+        title.clone(),
+        sort_title.to_string(),
+        scanned.album_metadata.date,
+        scanned.album_metadata.replaygain_album_gain,
+        scanned.album_metadata.replaygain_album_peak,
+    );
     AlbumRepository::create(&mut *tx, &album).await
 }
 
@@ -146,6 +172,8 @@ async fn upsert_track(
             track.original_title = scanned.track_metadata.original_title;
             track.original_artist = scanned.track_metadata.original_artist;
             track.original_album = scanned.track_metadata.original_album;
+            track.format = scanned.audio.format;
+            track.codec = scanned.audio.codec;
             track.duration_ms = scanned.audio.duration_ms;
             track.bitrate = scanned.audio.bitrate;
             track.sample_rate = scanned.audio.sample_rate;
@@ -171,6 +199,8 @@ async fn upsert_track(
                 original_title: scanned.track_metadata.original_title,
                 original_artist: scanned.track_metadata.original_artist,
                 original_album: scanned.track_metadata.original_album,
+                format: scanned.audio.format,
+                codec: scanned.audio.codec,
                 duration_ms: scanned.audio.duration_ms,
                 bitrate: scanned.audio.bitrate,
                 sample_rate: scanned.audio.sample_rate,

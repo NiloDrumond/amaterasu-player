@@ -24,7 +24,10 @@ pub enum AuthError {
     ExpiredSession,
 
     #[error("User not found for session: {0}")]
-    UserNotFoundForSession(String)
+    UserNotFoundForSession(String),
+
+    #[error("Admin access required")]
+    Forbidden,
 }
 
 pub type AuthResult<T> = Result<T, AuthError>;

@@ -6,6 +6,6 @@ use serde::Serialize;
 pub struct PaginatedResponse<T> {
     pub data: Vec<T>,
     pub total: i64,
-    pub limit: i64,
-    pub offset: i64,
+    pub limit: i32,
+    pub offset: i32,
 }

@@ -114,4 +114,30 @@ impl AuthService {
         }
         Ok(count)
     }
+
+    pub async fn bootstrap_admin(&self, email: &str, password: &str, name: &str) -> AppResult<()> {
+        let email = email.trim().to_lowercase();
+
+        let admin_count = UserRepository::count_admins(&self.pool).await?;
+        if admin_count > 0 {
+            tracing::info!("Admin user already exists, skipping bootstrap");
+            return Ok(());
+        }
+
+        if UserRepository::find_by_email(&self.pool, &email)
+            .await?
+            .is_some()
+        {
+            return Err(AppError::Internal(anyhow::anyhow!(
+                "ADMIN_EMAIL {email} is already taken by a non-admin user; remove the user or change ADMIN_EMAIL"
+            )));
+        }
+
+        let password_hash = hash_password(password)?;
+        let user = User::new_admin(name.to_string(), email.clone(), password_hash);
+        UserRepository::create(&self.pool, &user).await?;
+
+        tracing::info!(email = %email, "Admin user bootstrapped");
+        Ok(())
+    }
 }

@@ -8,6 +8,7 @@ edition = "2021"
 axum = { version = "0.8", features = ["macros"] }
 axum-extra = { version = "0.12", features = ["cookie"] }
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
 governor = "0.10"
@@ -32,6 +33,7 @@ sqlx = { version = "0.8", features = [
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 sha2 = "0.11"
+hex = "0.4"
 ts-rs = { version = "12", features = [
   'serde-compat',
   'chrono-impl',
@@ -39,7 +41,7 @@ ts-rs = { version = "12", features = [
 ] }
 
 # Validation
-garde = { version = "0.22", features = ["derive", "email", "url"] }
+garde = { version = "0.22", features = ["derive", "email", "url", "regex"] }
 axum-valid = { version = "0.24.0", default-features = false, features = [
   "garde",
   "basic",
@@ -59,6 +61,7 @@ anyhow = "1"
 thiserror = "2"
 chrono = { version = "0.4", features = ["serde"] }
 time = "0.3"
+infer = "0.19.0"
 
 # Library Scanning
 ffmpeg-next = "8.0"

@@ -1,7 +1,8 @@
 use crate::db::entities::Track;
-use crate::scanner::audio_hash::compute_audio_hash;
+use crate::scanner::audio_hash::scan_packets;
 use crate::scanner::scan_album::ScannedAlbumMetadata;
 use crate::scanner::scan_artist::ScannedArtistMetadata;
+use crate::scanner::scan_cover::ScannedCover;
 use crate::scanner::scan_track::ScannedTrackMetadata;
 
 use super::error::ScannerError;
@@ -14,7 +15,8 @@ use uuid::Uuid;
 
 pub(super) struct ScannedFileAudio {
     pub audio_hash: [u8; 32],
-    codec_id: ffmpeg::codec::Id,
+    pub format: String,
+    pub codec: String,
     pub duration_ms: i32,
     pub bitrate: Option<i32>,
     pub sample_rate: Option<i64>,
@@ -27,6 +29,7 @@ pub struct ScannedFile {
     pub track_metadata: ScannedTrackMetadata,
     pub album_metadata: ScannedAlbumMetadata,
     pub artist_metadata: ScannedArtistMetadata,
+    pub(super) cover: Option<ScannedCover>,
 }
 
 impl From<ScannedFile> for Track {
@@ -50,6 +53,8 @@ impl From<ScannedFile> for Track {
             original_title: scanned.track_metadata.original_title,
             original_artist: scanned.track_metadata.original_artist,
             original_album: scanned.track_metadata.original_album,
+            format: scanned.audio.format,
+            codec: scanned.audio.codec,
             duration_ms: scanned.audio.duration_ms,
             bitrate: scanned.audio.bitrate,
             sample_rate: scanned.audio.sample_rate,
@@ -91,9 +96,8 @@ impl ScannedFile {
         let metadata = ScannedTrackMetadata::from_context(path, &ictx)?;
         let album_metadata =
             ScannedAlbumMetadata::from_context(&ictx, folder_name, artist_folder_name.clone())?;
-        let artist_metadata =
-            ScannedArtistMetadata::from_track_context(&ictx, artist_folder_name);
-        let audio = ScannedFileAudio::from_context(path, ictx)?;
+        let artist_metadata = ScannedArtistMetadata::from_track_context(&ictx, artist_folder_name);
+        let (audio, cover) = ScannedFileAudio::from_context(path, ictx)?;
 
         Ok(Self {
             file_path: path.to_string_lossy().into_owned(),
@@ -101,12 +105,22 @@ impl ScannedFile {
             audio,
             album_metadata,
             artist_metadata,
+            cover,
         })
     }
 }
 
 impl ScannedFileAudio {
-    pub fn from_context(path: &std::path::Path, ictx: Input) -> ScannerResult<Self> {
+    pub fn from_context(
+        path: &std::path::Path,
+        ictx: Input,
+    ) -> ScannerResult<(Self, Option<ScannedCover>)> {
+        let format = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_ascii_lowercase())
+            .ok_or_else(|| ScannerError::InvalidFileName(path.to_str().map(|s| s.to_string())))?;
+
         let file_size_bytes = std::fs::metadata(path).map(|m| m.len() as i64).ok();
 
         let audio_stream = ictx
@@ -115,10 +129,11 @@ impl ScannedFileAudio {
             .ok_or(ScannerError::FailedToDetectFormat)?;
 
         let audio_stream_index = audio_stream.index();
+        let cover_stream_index = ScannedCover::stream_index(&ictx);
 
         let codec_ctx =
             ffmpeg::codec::context::Context::from_parameters(audio_stream.parameters())?;
-        let codec_id = codec_ctx.id();
+        let codec = codec_ctx.id().name().to_string();
 
         let sample_rate = if let Ok(audio_decoder) = codec_ctx.decoder().audio() {
             Some(audio_decoder.rate() as i64)
@@ -152,15 +167,19 @@ impl ScannedFileAudio {
             _ => None,
         };
 
-        let audio_hash = compute_audio_hash(ictx, audio_stream_index)?;
+        let scan = scan_packets(ictx, audio_stream_index, cover_stream_index)?;
 
-        Ok(Self {
-            codec_id,
-            audio_hash,
-            file_size_bytes,
-            sample_rate,
-            duration_ms,
-            bitrate,
-        })
+        Ok((
+            Self {
+                format,
+                codec,
+                audio_hash: scan.audio_hash,
+                file_size_bytes,
+                sample_rate,
+                duration_ms,
+                bitrate,
+            },
+            scan.cover,
+        ))
     }
 }

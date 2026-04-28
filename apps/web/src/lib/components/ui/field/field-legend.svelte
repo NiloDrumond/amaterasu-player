@@ -19,7 +19,7 @@
 	data-variant={variant}
 	class={cn(
 		'mb-2.5 font-medium data-[variant=label]:text-xs data-[variant=legend]:text-sm',
-		className
+		className,
 	)}
 	{...restProps}
 >

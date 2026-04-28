@@ -22,8 +22,8 @@ pub struct Track {
     pub original_artist: Option<String>,
     pub original_album: Option<String>,
 
-    // TODO: symphonia 6.0 CodecDescriptor
-    // pub codec: i64,                   // CHECK: >= 0
+    pub format: String,
+    pub codec: String,
     pub duration_ms: i32,             // CHECK: >= 0
     pub bitrate: Option<i32>,         // CHECK: >= 0
     pub sample_rate: Option<i64>,     // CHECK: >= 0

@@ -1,11 +1,17 @@
 <script lang="ts">
 	import AppSidebar from '$lib/components/app-sidebar.svelte';
+	import PlayerBar from '$lib/components/player/player-bar.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar';
+	import { setPlayer } from '$lib/player/player.svelte';
 
 	let { data, children } = $props();
+	const player = setPlayer();
 </script>
 
 <Sidebar.Provider>
-	<AppSidebar user={data.user} />
-	<Sidebar.Inset>{@render children()}</Sidebar.Inset>
+	<AppSidebar class={player.currentTrack ? 'pb-20' : undefined} user={data.user} />
+	<Sidebar.Inset class={player.currentTrack ? 'pb-20' : undefined}>
+		{@render children()}
+	</Sidebar.Inset>
 </Sidebar.Provider>
+<PlayerBar />

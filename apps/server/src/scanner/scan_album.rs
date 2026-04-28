@@ -25,6 +25,7 @@ impl From<ScannedAlbumMetadata> for Album {
             id: Uuid::new_v4(),
             artist_id: None,
             mbid: None,
+            cover_path: None,
             title: value.name.to_string(),
             sort_title: value.sort_name.unwrap_or(value.name),
             date: value.date,

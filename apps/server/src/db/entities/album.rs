@@ -11,6 +11,7 @@ pub struct Album {
     pub sort_title: String,
     pub date: Option<NaiveDate>,
     pub mbid: Option<String>, // MusicBrainz ID
+    pub cover_path: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 
@@ -35,6 +36,7 @@ impl Album {
             date,
             // TODO: mbid
             mbid: None,
+            cover_path: None,
             replaygain_album_gain,
             replaygain_album_peak,
             created_at: Utc::now(),

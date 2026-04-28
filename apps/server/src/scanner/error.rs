@@ -9,7 +9,6 @@ pub enum ScannerError {
     #[error("Failed to extract metadata")]
     FailedToExtractMetadata,
 
-
     #[error("Invalid file name")]
     InvalidFileName(Option<String>),
 

@@ -21,6 +21,12 @@ pub enum AppError {
     #[error("Not found")]
     NotFound,
 
+    #[error("Range not satisfiable")]
+    RangeNotSatisfiable,
+
+    #[error("Invalid Range header")]
+    InvalidRangeHeader,
+
     #[error("Internal server error")]
     Internal(#[from] anyhow::Error),
 }
@@ -44,12 +50,17 @@ impl IntoResponse for AppError {
                 | AuthError::UserNotFoundForSession(_) => {
                     (StatusCode::UNAUTHORIZED, "Unauthorized")
                 }
+                AuthError::Forbidden => (StatusCode::FORBIDDEN, "Admin access required"),
             },
             AppError::Database(e) => {
                 tracing::error!("Database error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Database error")
             }
             AppError::NotFound => (StatusCode::NOT_FOUND, "Resource not found"),
+            AppError::RangeNotSatisfiable => {
+                (StatusCode::RANGE_NOT_SATISFIABLE, "Range not satisfiable")
+            }
+            AppError::InvalidRangeHeader => (StatusCode::BAD_REQUEST, "Invalid Range header"),
             AppError::Internal(e) => {
                 tracing::error!("Internal server error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")

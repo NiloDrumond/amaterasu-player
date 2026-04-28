@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use axum::extract::FromRef;
 use sqlx::PgPool;
 
@@ -7,6 +9,7 @@ use crate::scanner::LibraryScanner;
 pub struct AppState {
     pub db: PgPool,
     pub library_scanner: LibraryScanner,
+    pub covers_dir: PathBuf,
 }
 
 impl FromRef<AppState> for () {
@@ -14,10 +17,11 @@ impl FromRef<AppState> for () {
 }
 
 impl AppState {
-    pub fn new(db: PgPool, library_scanner: LibraryScanner) -> Self {
+    pub fn new(db: PgPool, library_scanner: LibraryScanner, covers_dir: PathBuf) -> Self {
         Self {
             db,
             library_scanner,
+            covers_dir,
         }
     }
 }

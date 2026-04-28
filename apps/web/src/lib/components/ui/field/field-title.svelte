@@ -15,7 +15,7 @@
 	data-slot="field-label"
 	class={cn(
 		'flex w-fit items-center gap-2 text-xs/relaxed leading-snug group-data-[disabled=true]/field:opacity-50',
-		className
+		className,
 	)}
 	{...restProps}
 >

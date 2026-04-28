@@ -2,18 +2,57 @@ use amaterasu_macros::api_type;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::db::entities::Track;
+use crate::{
+    db::entities::{Album, Artist},
+    dto::response::common_response::PaginatedResponse,
+    services::library_service::TrackWithRefs,
+};
+
+#[api_type("response/track")]
+#[derive(Debug, Serialize)]
+pub struct TrackAlbumResponse {
+    pub id: Uuid,
+    pub title: String,
+    pub cover_url: Option<String>,
+}
+
+impl From<Album> for TrackAlbumResponse {
+    fn from(value: Album) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            cover_url: value.cover_path.map(|p| format!("/api/covers/{p}")),
+        }
+    }
+}
+
+#[api_type("response/track")]
+#[derive(Debug, Serialize)]
+pub struct TrackArtistResponse {
+    pub id: Uuid,
+    pub name: String,
+}
+
+impl From<Artist> for TrackArtistResponse {
+    fn from(value: Artist) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+        }
+    }
+}
 
 #[api_type("response/track")]
 #[derive(Debug, Serialize)]
 pub struct TrackResponse {
     pub id: Uuid,
     pub title: String,
-    pub artist: Option<String>,
-    pub album: Option<String>,
+    pub artist: Option<TrackArtistResponse>,
+    pub album: Option<TrackAlbumResponse>,
     pub track_no: Option<i32>,
     pub disc: Option<i32>,
     pub duration_ms: i32,
+    pub format: String,
     pub codec: String,
     pub bitrate: Option<i32>,
     pub file_path: String,
@@ -22,18 +61,24 @@ pub struct TrackResponse {
     pub original_album: Option<String>,
 }
 
-impl From<Track> for TrackResponse {
-    fn from(track: Track) -> Self {
+impl From<TrackWithRefs> for TrackResponse {
+    fn from(value: TrackWithRefs) -> Self {
+        let TrackWithRefs {
+            track,
+            album,
+            artist,
+        } = value;
+
         Self {
             id: track.id,
             title: track.title,
-            artist: Some("TODO".to_string()),
-            album: Some("TODO".to_string()),
+            artist: artist.map(|a| a.into()),
+            album: album.map(|a| a.into()),
             track_no: track.track_no,
             disc: track.disc,
             duration_ms: track.duration_ms,
-            // TODO: Convert codec to string
-            codec: "TODO".to_string(),
+            format: track.format,
+            codec: track.codec,
             bitrate: track.bitrate,
             file_path: track.file_path,
             original_title: track.original_title,
@@ -42,3 +87,7 @@ impl From<Track> for TrackResponse {
         }
     }
 }
+
+#[api_type("response/track")]
+#[derive(Debug, Serialize)]
+struct GetTracksResponse(PaginatedResponse<TrackResponse>);

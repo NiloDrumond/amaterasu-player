@@ -133,4 +133,7 @@
 	html {
 		@apply font-sans;
 	}
+	a {
+		@apply hover:underline;
+	}
 }

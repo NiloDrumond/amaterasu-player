@@ -1,10 +1,11 @@
-mod error;
-mod scan_file;
-mod scan_album;
-mod scan_track;
-mod scan_artist;
-mod library_scanner;
 mod audio_hash;
+mod error;
+mod library_scanner;
 mod persist;
+mod scan_album;
+mod scan_artist;
+mod scan_cover;
+mod scan_file;
+mod scan_track;
 
 pub use library_scanner::LibraryScanner;

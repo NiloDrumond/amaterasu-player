@@ -16,12 +16,14 @@ mod routes;
 mod scanner;
 mod services;
 mod state;
+mod streaming;
 mod tasks;
 mod utils;
 
 use config::Config;
 use state::AppState;
 
+use crate::services::auth_service::AuthService;
 use crate::tasks::initialize_background_tasks;
 
 #[tokio::main]
@@ -52,7 +54,13 @@ async fn main() -> anyhow::Result<()> {
     let db_pool = db::create_pool(&config.database_url).await?;
     tracing::info!("Database connected");
 
-    let library_scanner = scanner::LibraryScanner::new(config.library_path, db_pool.clone());
+    bootstrap_admin(&db_pool, &config).await?;
+
+    let covers_dir = std::path::PathBuf::from(&config.data_dir).join("covers");
+    std::fs::create_dir_all(&covers_dir)?;
+
+    let library_scanner =
+        scanner::LibraryScanner::new(config.library_path, covers_dir.clone(), db_pool.clone());
 
     let library_scanner_clone = library_scanner.clone();
     tokio::spawn(async move {
@@ -62,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    let app_state = AppState::new(db_pool, library_scanner);
+    let app_state = AppState::new(db_pool, library_scanner, covers_dir);
 
     let tasks_state = app_state.clone();
     tokio::spawn(async {
@@ -105,6 +113,28 @@ async fn main() -> anyhow::Result<()> {
     .map_err(|e| anyhow::anyhow!("Server error: {}", e))?;
 
     Ok(())
+}
+
+async fn bootstrap_admin(pool: &sqlx::PgPool, config: &Config) -> anyhow::Result<()> {
+    match (
+        config.admin_email.as_deref(),
+        config.admin_password.as_deref(),
+    ) {
+        (Some(email), Some(password)) => {
+            let name = config.admin_name.as_deref().unwrap_or("Admin");
+            AuthService::new(pool.clone())
+                .bootstrap_admin(email, password, name)
+                .await?;
+            Ok(())
+        }
+        (None, None) => {
+            tracing::info!("ADMIN_EMAIL and ADMIN_PASSWORD not set, skipping admin bootstrap");
+            Ok(())
+        }
+        _ => Err(anyhow::anyhow!(
+            "ADMIN_EMAIL and ADMIN_PASSWORD must both be set or both unset"
+        )),
+    }
 }
 
 async fn shutdown_signal() {

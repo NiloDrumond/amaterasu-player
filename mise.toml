@@ -43,17 +43,21 @@ depends = ["lint"]
 run = '''
 cargo test -- --show-output
 cd apps/web && bun format
+bun run test
 '''
 
 [tasks.fmt]
-description = "Format backend code"
-run = "cd apps/server && cargo fmt"
+description = "Format code"
+run = '''
+cargo fmt
+cd apps/web && bun format
+'''
 
 [tasks.check]
 description = "Run cargo check and clippy"
 run = """
-cd apps/server && cargo check
-cd apps/server && cargo clippy
+cargo check
+cargo clippy
 """
 
 [tasks.lint]

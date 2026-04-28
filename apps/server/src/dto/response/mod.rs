@@ -1,5 +1,11 @@
-pub mod auth;
-pub mod common;
+pub mod album_response;
+pub mod artist_response;
+pub mod auth_response;
+pub mod common_response;
 pub mod track_response;
 
-pub use auth::*;
+pub use album_response::*;
+pub use artist_response::*;
+pub use auth_response::*;
+pub use common_response::*;
+pub use track_response::*;

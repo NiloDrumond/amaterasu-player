@@ -12,7 +12,7 @@ use axum_valid::Garde;
 use crate::{
     auth::{AuthUser, ExtractedSession, SESSION_COOKIE_NAME, SESSION_DURATION_HOURS},
     dto::{
-        request::auth::{RegisterEmailParams, SignInEmailParams},
+        request::{RegisterEmailParams, SignInEmailParams},
         response::CurrentUserResponse,
     },
     error::AppResult,

@@ -10,7 +10,7 @@ export const actions: Actions = {
 		const res = await fetch('/api/auth/sign-in', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ email, password })
+			body: JSON.stringify({ email, password }),
 		});
 
 		if (!res.ok) {
@@ -23,5 +23,5 @@ export const actions: Actions = {
 			redirectTo = '/';
 		}
 		redirect(303, redirectTo);
-	}
+	},
 };

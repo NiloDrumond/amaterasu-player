@@ -10,8 +10,8 @@ impl TrackRepository {
         let created = sqlx::query_as!(
             Track,
             r#"
-            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, sort_title, artist_id, disc, track_no, date, composer, comment, original_title, original_artist, original_album, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_track_peak, metadata_modified_at, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+            INSERT INTO tracks (id, audio_hash, album_id, file_path, title, sort_title, artist_id, disc, track_no, date, composer, comment, original_title, original_artist, original_album, format, codec, duration_ms, bitrate, sample_rate, channels, file_size_bytes, file_modified_at, replaygain_track_gain, replaygain_track_peak, metadata_modified_at, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
             RETURNING
                 *
             "#,
@@ -30,6 +30,8 @@ impl TrackRepository {
             track.original_title,
             track.original_artist,
             track.original_album,
+            track.format,
+            track.codec,
             track.duration_ms,
             track.bitrate,
             track.sample_rate,
@@ -109,14 +111,16 @@ impl TrackRepository {
                 original_title = $12,
                 original_artist = $13,
                 original_album = $14,
-                duration_ms = $15,
-                bitrate = $16,
-                sample_rate = $17,
-                channels = $18,
-                file_size_bytes = $19,
-                file_modified_at = $20,
-                replaygain_track_gain = $21,
-                replaygain_track_peak = $22,
+                format = $15,
+                codec = $16,
+                duration_ms = $17,
+                bitrate = $18,
+                sample_rate = $19,
+                channels = $20,
+                file_size_bytes = $21,
+                file_modified_at = $22,
+                replaygain_track_gain = $23,
+                replaygain_track_peak = $24,
                 updated_at = NOW()
             WHERE
                 id = $1
@@ -137,6 +141,8 @@ impl TrackRepository {
             track.original_title,
             track.original_artist,
             track.original_album,
+            track.format,
+            track.codec,
             track.duration_ms,
             track.bitrate,
             track.sample_rate,
@@ -154,8 +160,8 @@ impl TrackRepository {
 
     pub async fn find_all(
         executor: impl PgExecutor<'_>,
-        limit: i64,
-        offset: i64,
+        limit: i32,
+        offset: i32,
     ) -> AppResult<Vec<Track>> {
         let tracks = sqlx::query_as!(
             Track,
@@ -170,8 +176,33 @@ impl TrackRepository {
                 title
             LIMIT $1 OFFSET $2
             "#,
-            limit,
-            offset
+            limit as i64,
+            offset as i64,
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(tracks)
+    }
+
+    pub async fn find_by_album_id(
+        executor: impl PgExecutor<'_>,
+        album_id: Uuid,
+    ) -> AppResult<Vec<Track>> {
+        let tracks = sqlx::query_as!(
+            Track,
+            r#"
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                album_id = $1
+            ORDER BY
+                disc NULLS LAST,
+                track_no NULLS LAST
+            "#,
+            album_id
         )
         .fetch_all(executor)
         .await?;

@@ -5,11 +5,11 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct PaginationParams {
     #[serde(default = "default_limit")]
-    pub limit: i64,
+    pub limit: i32,
     #[serde(default)]
-    pub offset: i64,
+    pub offset: i32,
 }
 
-fn default_limit() -> i64 {
+fn default_limit() -> i32 {
     32
 }

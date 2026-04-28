@@ -1,4 +1,8 @@
-use crate::auth::{auth_guard, session_extractor};
+use crate::auth::{admin_guard, auth_guard, session_extractor};
+use crate::routes::admin_routes::admin_routes;
+use crate::routes::album_routes::albums_routes;
+use crate::routes::artist_routes::artists_routes;
+use crate::routes::cover_routes::covers_routes;
 use crate::routes::track_routes::tracks_routes;
 use crate::state::AppState;
 use axum::middleware;
@@ -9,16 +13,28 @@ use tower_governor::governor::GovernorConfig;
 use tower_governor::key_extractor::PeerIpKeyExtractor;
 use tower_governor::GovernorLayer;
 
+mod admin_routes;
+mod album_routes;
+mod artist_routes;
 mod auth_routes;
+mod cover_routes;
 mod track_routes;
 
 pub fn create_api_router(
     state: AppState,
     governor_conf: GovernorConfig<PeerIpKeyExtractor, NoOpMiddleware<QuantaInstant>>,
 ) -> Router {
+    let admin_subtree = Router::new()
+        .merge(admin_routes())
+        .layer(middleware::from_fn(admin_guard));
+
     let protected_routes = Router::new()
+        .merge(albums_routes())
+        .merge(artists_routes())
         .merge(tracks_routes())
+        .merge(covers_routes())
         .merge(auth_routes::protected_routes())
+        .merge(admin_subtree)
         .layer(middleware::from_fn(auth_guard));
 
     let rate_limited_routes = Router::new()
