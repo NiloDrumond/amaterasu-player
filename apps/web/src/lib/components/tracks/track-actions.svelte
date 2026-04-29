@@ -1,10 +1,22 @@
 <script lang="ts">
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
-	import { Button } from '$lib/components/ui/button/index';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import AddToPlaylistDialog from '$lib/components/playlists/add-to-playlist-dialog.svelte';
+	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
+	import { getPlayer } from '$lib/player/player.svelte';
 
-	let { id }: { id: string } = $props();
+	let { id, track }: { id: string; track: TrackResponse } = $props();
+
+	const player = getPlayer();
+	let addToPlaylistOpen = $state(false);
 </script>
+
+<AddToPlaylistDialog
+	tracks={[track]}
+	bind:open={addToPlaylistOpen}
+	onClose={() => (addToPlaylistOpen = false)}
+/>
 
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger>
@@ -18,12 +30,15 @@
 	<DropdownMenu.Content>
 		<DropdownMenu.Group>
 			<DropdownMenu.Label>Actions</DropdownMenu.Label>
-			<DropdownMenu.Item onclick={() => navigator.clipboard.writeText(id)}>
-				Copy payment ID
+			<DropdownMenu.Item onclick={() => player.playNext([track])}>
+				Play Next
+			</DropdownMenu.Item>
+			<DropdownMenu.Item onclick={() => player.playLater([track])}>
+				Play Later
+			</DropdownMenu.Item>
+			<DropdownMenu.Item onclick={() => (addToPlaylistOpen = true)}>
+				Add to Playlist
 			</DropdownMenu.Item>
 		</DropdownMenu.Group>
-		<DropdownMenu.Separator />
-		<DropdownMenu.Item>View customer</DropdownMenu.Item>
-		<DropdownMenu.Item>View payment details</DropdownMenu.Item>
 	</DropdownMenu.Content>
 </DropdownMenu.Root>

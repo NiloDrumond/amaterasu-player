@@ -1,12 +1,11 @@
-import type { CurrentUserResponse } from '$lib/bindings/response/auth/current-user-response';
 import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
+import { getCurrentUser } from '$lib/services/auth-service';
 
 export const load: LayoutServerLoad = async ({ fetch, url }) => {
-	const res = await fetch('/api/auth/me');
-	if (!res.ok) {
+	const { data: user, error } = await getCurrentUser(fetch);
+	if (error) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
-	const user = (await res.json()) as CurrentUserResponse;
-	return { user };
+	return { user: user! };
 };

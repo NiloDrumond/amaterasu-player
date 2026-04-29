@@ -1,24 +1,23 @@
 import { error } from '@sveltejs/kit';
-import type { AlbumResponse } from '$lib/bindings/response/album/album-response';
-import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 import type { PageServerLoad } from './$types';
+import { getAlbum, getAlbumTracks } from '$lib/services/album-service';
 
 export const load: PageServerLoad = async ({ fetch, params }) => {
-	const [albumRes, tracksRes] = await Promise.all([
-		fetch(`/api/albums/${params.id}`),
-		fetch(`/api/albums/${params.id}/tracks`),
+	const [albumResult, tracksResult] = await Promise.all([
+		getAlbum(fetch, params.id),
+		getAlbumTracks(fetch, params.id),
 	]);
 
-	if (albumRes.status === 404) {
+	if (albumResult.status === 404) {
 		error(404, 'Album not found');
 	}
 
-	if (!albumRes.ok || !tracksRes.ok) {
+	if (albumResult.error || tracksResult.error) {
 		error(500, 'Failed to load album');
 	}
 
 	return {
-		album: (await albumRes.json()) as AlbumResponse,
-		tracks: (await tracksRes.json()) as TrackResponse[],
+		album: albumResult.data!,
+		tracks: tracksResult.data!,
 	};
 };

@@ -11,9 +11,12 @@
 	import ListEndIcon from '@lucide/svelte/icons/list-end';
 	import ListPlusIcon from '@lucide/svelte/icons/list-plus';
 	import MusicIcon from '@lucide/svelte/icons/music';
+	import AddToPlaylistDialog from '$lib/components/playlists/add-to-playlist-dialog.svelte';
 
 	let { data } = $props();
 	const player = getPlayer();
+
+	let addToPlaylistOpen = $state(false);
 
 	const albumColumns = tracksColumns.filter((col) => col.id !== 'album');
 
@@ -86,11 +89,17 @@
 			<ListEndIcon class="size-4" />
 			Play Later
 		</Button>
-		<Button variant="ghost" disabled class="gap-2">
+		<Button variant="ghost" onclick={() => (addToPlaylistOpen = true)} class="gap-2">
 			<ListPlusIcon class="size-4" />
 			Add to Playlist
 		</Button>
 	</div>
+
+	<AddToPlaylistDialog
+		tracks={data.tracks}
+		bind:open={addToPlaylistOpen}
+		onClose={() => (addToPlaylistOpen = false)}
+	/>
 
 	<DataTable
 		data={data.tracks}

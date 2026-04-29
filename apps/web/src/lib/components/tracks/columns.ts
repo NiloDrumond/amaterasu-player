@@ -92,7 +92,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 			class: cn('flex justify-end pr-2'),
 		},
 		cell: ({ row }) => {
-			return renderComponent(TrackActions, { id: row.original.id });
+			return renderComponent(TrackActions, { id: row.original.id, track: row.original });
 		},
 	},
 ];

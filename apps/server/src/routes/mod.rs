@@ -3,6 +3,7 @@ use crate::routes::admin_routes::admin_routes;
 use crate::routes::album_routes::albums_routes;
 use crate::routes::artist_routes::artists_routes;
 use crate::routes::cover_routes::covers_routes;
+use crate::routes::playlist_routes::playlist_routes;
 use crate::routes::track_routes::tracks_routes;
 use crate::state::AppState;
 use axum::middleware;
@@ -18,6 +19,7 @@ mod album_routes;
 mod artist_routes;
 mod auth_routes;
 mod cover_routes;
+mod playlist_routes;
 mod track_routes;
 
 pub fn create_api_router(
@@ -33,6 +35,7 @@ pub fn create_api_router(
         .merge(artists_routes())
         .merge(tracks_routes())
         .merge(covers_routes())
+        .merge(playlist_routes())
         .merge(auth_routes::protected_routes())
         .merge(admin_subtree)
         .layer(middleware::from_fn(auth_guard));

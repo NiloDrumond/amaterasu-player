@@ -1,21 +1,17 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
+import { signIn } from '$lib/services/auth-service';
 
 export const actions: Actions = {
 	default: async ({ request, fetch, url }) => {
 		const data = await request.formData();
-		const email = data.get('email');
-		const password = data.get('password');
+		const email = data.get('email') as string;
+		const password = data.get('password') as string;
 
-		const res = await fetch('/api/auth/sign-in', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ email, password }),
-		});
+		const { error } = await signIn(fetch, { email, password });
 
-		if (!res.ok) {
-			const body = (await res.json()) as { error: string };
-			return fail(400, { error: body.error });
+		if (error) {
+			return fail(400, { error });
 		}
 
 		let redirectTo = url.searchParams.get('redirectTo') ?? '/';

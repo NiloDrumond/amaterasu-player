@@ -1,18 +1,14 @@
-import type { GetArtistsResponse } from '$lib/bindings/response/artist/get-artists-response';
 import { extractPaginationFromUrl } from '$lib/utils/pagination';
 import type { PageServerLoad } from './$types';
+import { getArtists } from '$lib/services/artist-service';
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
-	const res = await fetch(`/api/artists?limit=${limit}&offset=${offset}`);
+	const { data: artists, error } = await getArtists(fetch, { limit, offset });
 
-	if (!res.ok) {
-		return { artists: null, error: { status: res.status, message: 'Server error' }, page };
+	if (error) {
+		return { artists: null as any, error: { status: 500, message: error }, page };
 	}
 
-	return {
-		artists: (await res.json()) as GetArtistsResponse,
-		error: null,
-		page,
-	};
+	return { artists: artists!, error: null, page };
 };

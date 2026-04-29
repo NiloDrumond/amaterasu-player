@@ -3,5 +3,6 @@ pub mod albums_handlers;
 pub mod artists_handlers;
 pub mod auth_handlers;
 pub mod covers_handlers;
+pub mod playlist_handlers;
 pub mod stream_handlers;
 pub mod tracks_handlers;

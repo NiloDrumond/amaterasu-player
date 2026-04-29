@@ -6,6 +6,8 @@
 	import { resetMode, setMode } from 'mode-watcher';
 	import type { ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import { signOut } from '$lib/services/auth-service';
+	import { scanLibrary } from '$lib/services/admin-service';
 
 	let {
 		user,
@@ -15,24 +17,24 @@
 
 	const isAdmin = $derived(user.role === 'admin');
 
-	async function signOut() {
-		await fetch('/api/auth/sign-out', { method: 'POST' });
+	async function handleSignOut() {
+		await signOut(fetch);
 		goto('/login');
 	}
 
-	async function scanLibrary() {
-		const res = await fetch('/api/admin/scan-library', { method: 'POST' });
-		if (res.ok) {
+	async function handleScanLibrary() {
+		const { error, status } = await scanLibrary(fetch);
+		if (!error) {
 			toast.success('Library scan started', {
 				description: 'Indexing runs in the background.',
 			});
-		} else if (res.status === 409) {
+		} else if (status === 409) {
 			toast.info('Library scan already in progress', {
 				description: 'Wait for the current scan to finish before starting another.',
 			});
 		} else {
 			toast.error('Failed to start library scan', {
-				description: `Server responded with ${res.status}.`,
+				description: error,
 			});
 		}
 	}
@@ -70,6 +72,13 @@
 						{/snippet}
 					</Sidebar.MenuButton>
 				</Sidebar.MenuItem>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
+							<a href="/playlists" {...props}>Playlists</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
 			</Sidebar.Menu>
 		</Sidebar.Group>
 	</Sidebar.Content>
@@ -99,7 +108,7 @@
 									<DropdownMenu.Separator />
 									<DropdownMenu.Group>
 										<DropdownMenu.Label>Admin</DropdownMenu.Label>
-										<DropdownMenu.Item onclick={scanLibrary}>Scan library</DropdownMenu.Item>
+										<DropdownMenu.Item onclick={handleScanLibrary}>Scan library</DropdownMenu.Item>
 										<DropdownMenu.Sub>
 											<DropdownMenu.SubTrigger>Invite users</DropdownMenu.SubTrigger>
 											<DropdownMenu.SubContent>
@@ -112,7 +121,7 @@
 									</DropdownMenu.Group>
 								{/if}
 								<DropdownMenu.Separator />
-								<DropdownMenu.Item onclick={signOut}>Sign out</DropdownMenu.Item>
+								<DropdownMenu.Item onclick={handleSignOut}>Sign out</DropdownMenu.Item>
 							</DropdownMenu.Content>
 						</DropdownMenu.Root>
 					{/snippet}
