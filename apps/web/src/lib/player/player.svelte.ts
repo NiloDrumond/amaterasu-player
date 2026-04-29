@@ -10,6 +10,7 @@ export class PlayerState {
 	currentTime = $state(0);
 	duration = $state(0);
 	volume = $state(1);
+	previousVolume = $state(1);
 	queueOpen = $state(false);
 
 	currentTrack = $derived<TrackResponse | null>(this.queue[this.index] ?? null);
@@ -52,6 +53,15 @@ export class PlayerState {
 
 	onEnded() {
 		this.next();
+	}
+
+	toggleMute() {
+		if (this.volume > 0) {
+			this.previousVolume = this.volume;
+			this.volume = 0;
+		} else {
+			this.volume = this.previousVolume || 1;
+		}
 	}
 
 	toggleQueue() {
