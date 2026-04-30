@@ -1,11 +1,14 @@
 import type { LayoutServerLoad } from './$types';
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { getCurrentUser } from '$lib/services/auth-service';
 
 export const load: LayoutServerLoad = async ({ fetch, url }) => {
-	const { data: user, error } = await getCurrentUser(fetch);
-	if (error) {
+	const { data: user, error: errorMessage } = await getCurrentUser(fetch);
+	if (errorMessage) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
-	return { user: user! };
+	if (user) {
+		error(500, 'Failed to load user');
+	}
+	return { user: user };
 };

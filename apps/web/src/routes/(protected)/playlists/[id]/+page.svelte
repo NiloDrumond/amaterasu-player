@@ -26,7 +26,14 @@
 	const tracks = $derived(localTracks ?? data.tracks);
 
 	function asTrackResponse(t: PlaylistTrackResponse): TrackResponse {
-		const { playlistTrackId: _, position: __, addedAt: ___, artist, album, ...rest } = t;
+		const {
+			playlistTrackId: _playlistTrackId,
+			position: _position,
+			addedAt: _addedAt,
+			artist,
+			album,
+			...rest
+		} = t;
 		return {
 			...rest,
 			artist: artist ? { id: artist.id, name: artist.name } : null,

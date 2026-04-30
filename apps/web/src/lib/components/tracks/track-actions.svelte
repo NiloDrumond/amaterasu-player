@@ -7,7 +7,7 @@
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 	import { getPlayer } from '$lib/player/player.svelte';
 
-	let { id, track }: { id: string; track: TrackResponse } = $props();
+	let { track }: { track: TrackResponse } = $props();
 
 	const player = getPlayer();
 	let addToPlaylistOpen = $state(false);

@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
 	}
 
 	return {
-		artist: artistResult.data!,
-		albums: albumsResult.data!,
+		artist: artistResult.data,
+		albums: albumsResult.data,
 	};
 };

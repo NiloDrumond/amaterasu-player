@@ -64,7 +64,7 @@ time = "0.3"
 infer = "0.19.0"
 
 # Library Scanning
-ffmpeg-next = "8.0"
+ffmpeg-next = "8.1"
 walkdir = "2"
 
 # Macros

@@ -1,14 +1,31 @@
 import { extractPaginationFromUrl } from '$lib/utils/pagination';
 import type { PageServerLoad } from './$types';
 import { getArtists } from '$lib/services/artist-service';
+import type { GetArtistsResponse } from '$lib/bindings/response/artist/get-artists-response';
+import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
+type LoadData =
+	| {
+			artists: GetArtistsResponse;
+			error: null;
+			page: number;
+	  }
+	| {
+			artists: null;
+			error: { status: number; message: string };
+			page: number;
+	  };
+export const load: PageServerLoad = async ({ fetch, url }): Promise<LoadData> => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
-	const { data: artists, error } = await getArtists(fetch, { limit, offset });
+	const { data: artists, error: errorMessage } = await getArtists(fetch, { limit, offset });
 
-	if (error) {
-		return { artists: null as any, error: { status: 500, message: error }, page };
+	if (errorMessage) {
+		return { artists: null, error: { status: 500, message: errorMessage }, page };
 	}
 
-	return { artists: artists!, error: null, page };
+	if (!artists) {
+		error(500, 'Failed to load artists');
+	}
+
+	return { artists: artists, error: null, page };
 };

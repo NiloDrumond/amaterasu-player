@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
 	}
 
 	return {
-		album: albumResult.data!,
-		tracks: tracksResult.data!,
+		album: albumResult.data,
+		tracks: tracksResult.data,
 	};
 };

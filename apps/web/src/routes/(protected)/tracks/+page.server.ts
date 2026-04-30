@@ -1,14 +1,18 @@
 import { extractPaginationFromUrl } from '$lib/utils/pagination';
 import type { PageServerLoad } from './$types';
 import { getTracks } from '$lib/services/track-service';
+import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
-	const { data: tracks, error } = await getTracks(fetch, { limit, offset });
+	const { data: tracks, error: errorMessage } = await getTracks(fetch, { limit, offset });
 
-	if (error) {
-		return { tracks: null as any, error: { status: 500, message: error }, page };
+	if (errorMessage) {
+		return { tracks: null, error: { status: 500, message: errorMessage }, page };
+	}
+	if (!tracks) {
+		error(500, 'Failed to load tracks');
 	}
 
-	return { tracks: tracks!, error: null, page };
+	return { tracks: tracks, error: null, page };
 };

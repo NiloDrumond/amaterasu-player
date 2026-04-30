@@ -46,8 +46,8 @@
 				color: color.trim() ? color.trim() : null,
 			};
 
-			const { error } = isEdit
-				? await updateTag(fetch, tag!.id, params)
+			const { error } = tag
+				? await updateTag(fetch, tag.id, params)
 				: await createTag(fetch, params);
 
 			if (error) {
