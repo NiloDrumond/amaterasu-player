@@ -1,9 +1,7 @@
 use crate::{
     dto::{
         request::PaginationParams,
-        response::{
-            album_response::AlbumResponse, artist_response::ArtistResponse, PaginatedResponse,
-        },
+        response::{AlbumResponse, ArtistResponse, PaginatedResponse},
     },
     error::{AppError, AppResult},
     services::LibraryService,

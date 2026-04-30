@@ -1,7 +1,7 @@
 use crate::{
     dto::{
         request::PaginationParams,
-        response::{track_response::TrackResponse, PaginatedResponse},
+        response::{PaginatedResponse, TrackResponse},
     },
     error::{AppError, AppResult},
     services::LibraryService,

@@ -157,7 +157,7 @@ pub async fn reorder_track(
 
     let mut tx = state.db.begin().await?;
 
-    let (prev, next) = PlaylistRepository::get_neighbor_positions(&mut *tx, id, body.after_id)
+    let (prev, next) = PlaylistRepository::get_neighbor_positions(&mut tx, id, body.after_id)
         .await?
         .ok_or(AppError::NotFound)?;
 
@@ -168,7 +168,7 @@ pub async fn reorder_track(
         if (n - p).abs() < MIN_GAP {
             PlaylistRepository::redistribute_positions(&mut *tx, id).await?;
             let (prev2, next2) =
-                PlaylistRepository::get_neighbor_positions(&mut *tx, id, body.after_id)
+                PlaylistRepository::get_neighbor_positions(&mut tx, id, body.after_id)
                     .await?
                     .ok_or(AppError::NotFound)?;
             compute_position(prev2, next2)
