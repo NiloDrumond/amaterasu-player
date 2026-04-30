@@ -2,6 +2,7 @@
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import ArtistActionItems from './artist-action-items.svelte';
 
 	let { id }: { id: string } = $props();
 </script>
@@ -16,11 +17,6 @@
 		{/snippet}
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content>
-		<DropdownMenu.Group>
-			<DropdownMenu.Label>Actions</DropdownMenu.Label>
-			<DropdownMenu.Item onclick={() => navigator.clipboard.writeText(id)}>
-				Copy ID
-			</DropdownMenu.Item>
-		</DropdownMenu.Group>
+		<ArtistActionItems {id} />
 	</DropdownMenu.Content>
 </DropdownMenu.Root>

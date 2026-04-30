@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { albumsColumns } from '$lib/components/albums/columns.js';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
+	import AlbumRowContextMenu from '$lib/components/albums/album-row-context-menu.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
@@ -29,6 +30,10 @@
 				onChangePage: onChangePage,
 			}}
 			onRowClick={(row) => goto(`/albums/${row.id}`)}
-		/>
+		>
+			{#snippet rowContextMenu({ row, trigger })}
+				<AlbumRowContextMenu id={row.id} {trigger} />
+			{/snippet}
+		</DataTable>
 	</div>
 {/if}

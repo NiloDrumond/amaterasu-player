@@ -10,6 +10,7 @@
 	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 	import PlaylistTrackActions from '$lib/components/playlists/playlist-track-actions.svelte';
+	import PlaylistTrackRowContextMenu from '$lib/components/playlists/playlist-track-row-context-menu.svelte';
 	import PlayIcon from '@lucide/svelte/icons/play';
 	import ShuffleIcon from '@lucide/svelte/icons/shuffle';
 	import ListStartIcon from '@lucide/svelte/icons/list-start';
@@ -156,63 +157,72 @@
 			</div>
 
 			{#each tracks as track (track.playlistTrackId)}
-				<div
-					class="group grid grid-cols-[40px_1fr_180px_80px_50px] items-center border-b px-2 py-1 transition-colors hover:bg-muted/50"
-					use:draggable={{
-						container: track.playlistTrackId,
-						dragData: track,
-						handle: '.drag-handle',
-					}}
-					use:droppable={{
-						container: track.playlistTrackId,
-						callbacks: { onDrop: handleDrop },
-					}}
+				<PlaylistTrackRowContextMenu
+					playlistId={data.playlist.id}
+					playlistTrackId={track.playlistTrackId}
+					onRemoved={() => invalidateAll()}
 				>
-					<!-- Drag handle -->
-					<div
-						class="drag-handle flex cursor-grab items-center justify-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
-					>
-						<GripVerticalIcon class="size-4" />
-					</div>
-
-					<!-- Title -->
-					<button
-						class="min-w-0 truncate text-left text-sm font-semibold"
-						onclick={() => {
-							const idx = tracks.findIndex((t) => t.playlistTrackId === track.playlistTrackId);
-							player.playQueue(tracks.map(asTrackResponse), idx);
-						}}
-					>
-						{track.title}
-					</button>
-
-					<!-- Artist -->
-					<span class="min-w-0 truncate text-sm text-muted-foreground">
-						{#if track.artist}
-							<a
-								href={`/artists/${track.artist.id}`}
-								class="transition-colors hover:text-foreground"
-								onclick={(e) => e.stopPropagation()}
+					{#snippet trigger({ props })}
+						<div
+							{...props}
+							class="group grid grid-cols-[40px_1fr_180px_80px_50px] items-center border-b px-2 py-1 transition-colors hover:bg-muted/50"
+							use:draggable={{
+								container: track.playlistTrackId,
+								dragData: track,
+								handle: '.drag-handle',
+							}}
+							use:droppable={{
+								container: track.playlistTrackId,
+								callbacks: { onDrop: handleDrop },
+							}}
+						>
+							<!-- Drag handle -->
+							<div
+								class="drag-handle flex cursor-grab items-center justify-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
 							>
-								{track.artist.name}
-							</a>
-						{/if}
-					</span>
+								<GripVerticalIcon class="size-4" />
+							</div>
 
-					<!-- Duration -->
-					<span class="text-right text-sm text-muted-foreground">
-						{formatMilliseconds(track.durationMs)}
-					</span>
+							<!-- Title -->
+							<button
+								class="min-w-0 truncate text-left text-sm font-semibold"
+								onclick={() => {
+									const idx = tracks.findIndex((t) => t.playlistTrackId === track.playlistTrackId);
+									player.playQueue(tracks.map(asTrackResponse), idx);
+								}}
+							>
+								{track.title}
+							</button>
 
-					<!-- Actions -->
-					<div class="flex justify-end">
-						<PlaylistTrackActions
-							playlistId={data.playlist.id}
-							playlistTrackId={track.playlistTrackId}
-							onRemoved={() => invalidateAll()}
-						/>
-					</div>
-				</div>
+							<!-- Artist -->
+							<span class="min-w-0 truncate text-sm text-muted-foreground">
+								{#if track.artist}
+									<a
+										href={`/artists/${track.artist.id}`}
+										class="transition-colors hover:text-foreground"
+										onclick={(e) => e.stopPropagation()}
+									>
+										{track.artist.name}
+									</a>
+								{/if}
+							</span>
+
+							<!-- Duration -->
+							<span class="text-right text-sm text-muted-foreground">
+								{formatMilliseconds(track.durationMs)}
+							</span>
+
+							<!-- Actions -->
+							<div class="flex justify-end">
+								<PlaylistTrackActions
+									playlistId={data.playlist.id}
+									playlistTrackId={track.playlistTrackId}
+									onRemoved={() => invalidateAll()}
+								/>
+							</div>
+						</div>
+					{/snippet}
+				</PlaylistTrackRowContextMenu>
 			{/each}
 		</div>
 	{/if}

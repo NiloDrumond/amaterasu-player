@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { artistsColumns } from '$lib/components/artists/columns.js';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
+	import ArtistRowContextMenu from '$lib/components/artists/artist-row-context-menu.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
@@ -29,6 +30,10 @@
 				onChangePage: onChangePage,
 			}}
 			onRowClick={(row) => goto(`/artists/${row.id}`)}
-		/>
+		>
+			{#snippet rowContextMenu({ row, trigger })}
+				<ArtistRowContextMenu id={row.id} {trigger} />
+			{/snippet}
+		</DataTable>
 	</div>
 {/if}

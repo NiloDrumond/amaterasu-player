@@ -5,6 +5,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { playlistsColumns } from '$lib/components/playlists/columns.js';
+	import PlaylistRowContextMenu from '$lib/components/playlists/playlist-row-context-menu.svelte';
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -102,6 +103,10 @@
 			data={data.playlists ?? []}
 			{columns}
 			onRowClick={(row) => goto(`/playlists/${row.id}`)}
-		/>
+		>
+			{#snippet rowContextMenu({ row, trigger })}
+				<PlaylistRowContextMenu id={row.id} onDeleted={() => invalidateAll()} {trigger} />
+			{/snippet}
+		</DataTable>
 	</div>
 {/if}

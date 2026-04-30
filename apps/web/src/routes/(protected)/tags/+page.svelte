@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { tagsColumns } from '$lib/components/tags/columns.js';
 	import TagDialog from '$lib/components/tags/tag-dialog.svelte';
+	import TagRowContextMenu from '$lib/components/tags/tag-row-context-menu.svelte';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import type { TagResponse } from '$lib/bindings/response/tag/tag-response';
 
@@ -38,7 +39,16 @@
 			</Button>
 		</div>
 
-		<DataTable data={data.tags ?? []} {columns} onRowClick={(row) => openEdit(row)} />
+		<DataTable data={data.tags ?? []} {columns} onRowClick={(row) => openEdit(row)}>
+			{#snippet rowContextMenu({ row, trigger })}
+				<TagRowContextMenu
+					tag={row}
+					onEdit={openEdit}
+					onDeleted={() => invalidateAll()}
+					{trigger}
+				/>
+			{/snippet}
+		</DataTable>
 	</div>
 
 	<TagDialog bind:open={dialogOpen} tag={editing} onSaved={() => invalidateAll()} />

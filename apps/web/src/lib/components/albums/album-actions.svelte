@@ -2,33 +2,12 @@
 	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import { toast } from 'svelte-sonner';
-	import { getPlayer } from '$lib/player/player.svelte';
-	import { getAlbumTracks } from '$lib/services/album-service';
 	import TagPickerDialog from '$lib/components/tags/tag-picker-dialog.svelte';
+	import AlbumActionItems from './album-action-items.svelte';
 
 	let { id }: { id: string } = $props();
 
-	const player = getPlayer();
 	let tagsOpen = $state(false);
-
-	async function playNext() {
-		const { data } = await getAlbumTracks(fetch, id);
-		if (!data) {
-			toast.error('Failed to load tracks');
-			return;
-		}
-		player.playNext(data);
-	}
-
-	async function playLater() {
-		const { data } = await getAlbumTracks(fetch, id);
-		if (!data) {
-			toast.error('Failed to load tracks');
-			return;
-		}
-		player.playLater(data);
-	}
 </script>
 
 <DropdownMenu.Root>
@@ -41,15 +20,7 @@
 		{/snippet}
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content>
-		<DropdownMenu.Group>
-			<DropdownMenu.Label>Actions</DropdownMenu.Label>
-			<DropdownMenu.Item onclick={playNext}>Play Next</DropdownMenu.Item>
-			<DropdownMenu.Item onclick={playLater}>Play Later</DropdownMenu.Item>
-			<DropdownMenu.Item onclick={() => (tagsOpen = true)}>Edit Tags</DropdownMenu.Item>
-			<DropdownMenu.Item onclick={() => navigator.clipboard.writeText(id)}>
-				Copy ID
-			</DropdownMenu.Item>
-		</DropdownMenu.Group>
+		<AlbumActionItems {id} onEditTags={() => (tagsOpen = true)} />
 	</DropdownMenu.Content>
 </DropdownMenu.Root>
 

@@ -14,6 +14,9 @@
 	import Button from '../button/button.svelte';
 	import { Icons } from '../icons';
 	import { cn } from 'tailwind-variants';
+	import type { Snippet } from 'svelte';
+
+	type RowTrigger = Snippet<[{ props: Record<string, unknown> }]>;
 
 	type DataTableProps<TData, TValue> = {
 		columns: ColumnDef<TData, TValue>[];
@@ -24,9 +27,11 @@
 			onChangePage: (page: number) => void;
 		};
 		onRowClick?: (row: TData, index: number) => void;
+		rowContextMenu?: Snippet<[{ row: TData; trigger: RowTrigger }]>;
 	};
 
-	let { data, columns, pagination, onRowClick }: DataTableProps<TData, TValue> = $props();
+	let { data, columns, pagination, onRowClick, rowContextMenu }: DataTableProps<TData, TValue> =
+		$props();
 
 	function handleRowClick(event: MouseEvent, row: TData, index: number) {
 		if (!onRowClick) return;
@@ -117,19 +122,27 @@
 		</Table.Header>
 		<Table.Body>
 			{#each table.getRowModel().rows as row (row.id)}
-				<Table.Row
-					data-state={row.getIsSelected() && 'selected'}
-					class={onRowClick ? 'cursor-pointer' : undefined}
-					onclick={onRowClick
-						? (e: MouseEvent) => handleRowClick(e, row.original, row.index)
-						: undefined}
-				>
-					{#each row.getVisibleCells() as cell (cell.id)}
-						<Table.Cell class={cell.column.columnDef.meta?.class}>
-							<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
-						</Table.Cell>
-					{/each}
-				</Table.Row>
+				{#snippet rowTrigger({ props: triggerProps }: { props: Record<string, unknown> })}
+					<Table.Row
+						{...triggerProps}
+						data-state={row.getIsSelected() ? 'selected' : undefined}
+						class={onRowClick ? 'cursor-pointer' : undefined}
+						onclick={onRowClick
+							? (e: MouseEvent) => handleRowClick(e, row.original, row.index)
+							: undefined}
+					>
+						{#each row.getVisibleCells() as cell (cell.id)}
+							<Table.Cell class={cell.column.columnDef.meta?.class}>
+								<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+							</Table.Cell>
+						{/each}
+					</Table.Row>
+				{/snippet}
+				{#if rowContextMenu}
+					{@render rowContextMenu({ row: row.original, trigger: rowTrigger })}
+				{:else}
+					{@render rowTrigger({ props: {} })}
+				{/if}
 			{:else}
 				<Table.Row>
 					<Table.Cell colspan={columns.length} class="h-24 text-center">No results.</Table.Cell>
