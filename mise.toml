@@ -64,22 +64,7 @@ cd apps/server
 
 [tasks.lint]
 description = "Check that all Serialize/Deserialize structs have rename_all"
-run = '''
-cd apps/server
-files=$(rg -Ul '#\[derive\([^]]*(?:Serialize|Deserialize)' src/dto/)
-if [ -z "$files" ]; then exit 0; fi
-bad=""
-for f in $files; do
-  if ! rg -q 'rename_all|api_type' "$f"; then
-    bad="$bad\n  $f"
-  fi
-done
-if [ -n "$bad" ]; then
-  echo "ERROR: These files derive Serialize/Deserialize without #[serde(rename_all)]:"
-  echo -e "$bad"
-  exit 1
-fi
-'''
+run = "cargo run --release -p dto-lint --quiet"
 
 [tasks.docker]
 description = "Start all docker services (attached)"
