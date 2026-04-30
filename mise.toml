@@ -1,5 +1,3 @@
-# Development commands for Amaterasu Player
-
 [tasks.default]
 description = "List all available tasks"
 run = "mise tasks"
@@ -16,27 +14,7 @@ run = """
 cd apps/server && cargo run
 """
 
-[tasks."dev:full"]
-description = "Start full development environment"
-run = """
-docker compose -f infra/docker-compose.yml up -d
-cd apps/server && watchexec -r -e rs,toml -- cargo run
-"""
-
-[tasks.backend]
-description = "Start backend with postgres only"
-run = """
-docker compose -f infra/docker-compose.yml up -d postgres
-cd apps/server && watchexec -r -e rs,toml -- cargo run
-"""
-
-[tasks.mobile]
-description = "Start environment for mobile development"
-run = """
-docker compose -f infra/docker-compose.yml up -d
-cd apps/server && cargo run --release
-"""
-
+# The format after the test is to format the ts-rs generated bindings
 [tasks."test"]
 description = "Run backend tests and generate type bindings"
 depends = ["lint"]
@@ -51,27 +29,23 @@ description = "Format code"
 run = '''
 cargo fmt
 cd apps/web && bun format
-cd ../apps/server && sqruff fix
+cd ../server && sqruff fix
 '''
 
 [tasks.check]
-description = "Run cargo check and clippy"
+description = "Run cargo check, clippy, and frontend type/lint checks"
 run = """
 cargo check
 cargo clippy
-cd apps/server
+cd apps/web && bun run check && bun run lint
 """
 
 [tasks.lint]
 description = "Check that all Serialize/Deserialize structs have rename_all"
 run = "cargo run --release -p dto-lint --quiet"
 
-[tasks.docker]
-description = "Start all docker services (attached)"
-run = "docker compose -f infra/docker-compose.yml up"
-
 [tasks."db:up"]
-description = "Start infrastructure services (detached)"
+description = "Start infrastructure services"
 run = "docker compose -f infra/docker-compose.yml up"
 
 [tasks."db:down"]
@@ -88,17 +62,13 @@ run = "sqlx migrate run"
 dir = "apps/server"
 
 [tasks."db:revert"]
-description = "Revert database migratin"
+description = "Revert database migration"
 run = "sqlx migrate revert"
 dir = "apps/server"
 
 [tasks.clean]
 description = "Clean everything (docker volumes + cargo)"
+depends = ["db:drop"]
 run = """
-docker compose -f infra/docker-compose.yml down -v
 cd apps/server && cargo clean
 """
-
-[tasks.build]
-description = "Build for production"
-run = "cd apps/server && cargo build --release"
