@@ -51,6 +51,7 @@ description = "Format code"
 run = '''
 cargo fmt
 cd apps/web && bun format
+cd ../apps/server && sqruff fix
 '''
 
 [tasks.check]
@@ -58,6 +59,7 @@ description = "Run cargo check and clippy"
 run = """
 cargo check
 cargo clippy
+cd apps/server
 """
 
 [tasks.lint]

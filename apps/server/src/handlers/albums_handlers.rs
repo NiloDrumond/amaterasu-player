@@ -2,9 +2,7 @@ use crate::{
     dto::{
         request::PaginationParams,
         response::{
-            album_response::AlbumResponse,
-            track_response::TrackResponse,
-            PaginatedResponse,
+            album_response::AlbumResponse, track_response::TrackResponse, PaginatedResponse,
         },
     },
     error::{AppError, AppResult},

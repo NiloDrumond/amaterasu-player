@@ -141,7 +141,9 @@
 
 		<!-- full-width seek bar pinned to top edge; outer div is the hitbox, inner is visual -->
 		<div class="group absolute inset-x-0 top-0 h-4">
-			<div class="absolute inset-x-0 top-0 h-px bg-muted transition-all duration-150 group-hover:h-[3px]">
+			<div
+				class="absolute inset-x-0 top-0 h-px bg-muted transition-all duration-150 group-hover:h-[3px]"
+			>
 				<div
 					class="h-full bg-primary"
 					style="width: {player.duration ? (player.currentTime / player.duration) * 100 : 0}%"

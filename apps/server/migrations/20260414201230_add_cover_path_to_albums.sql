@@ -1,2 +1,2 @@
 ALTER TABLE albums
-    ADD COLUMN cover_path text;
+ADD COLUMN cover_path text;

@@ -11,12 +11,15 @@
 	import ListEndIcon from '@lucide/svelte/icons/list-end';
 	import ListPlusIcon from '@lucide/svelte/icons/list-plus';
 	import MusicIcon from '@lucide/svelte/icons/music';
+	import TagIcon from '@lucide/svelte/icons/tag';
 	import AddToPlaylistDialog from '$lib/components/playlists/add-to-playlist-dialog.svelte';
+	import TagPickerDialog from '$lib/components/tags/tag-picker-dialog.svelte';
 
 	let { data } = $props();
 	const player = getPlayer();
 
 	let addToPlaylistOpen = $state(false);
+	let tagsOpen = $state(false);
 
 	const albumColumns = tracksColumns.filter((col) => col.id !== 'album');
 
@@ -93,6 +96,10 @@
 			<ListPlusIcon class="size-4" />
 			Add to Playlist
 		</Button>
+		<Button variant="ghost" onclick={() => (tagsOpen = true)} class="gap-2">
+			<TagIcon class="size-4" />
+			Edit Tags
+		</Button>
 	</div>
 
 	<AddToPlaylistDialog
@@ -100,6 +107,8 @@
 		bind:open={addToPlaylistOpen}
 		onClose={() => (addToPlaylistOpen = false)}
 	/>
+
+	<TagPickerDialog entity="album" entityId={data.album.id} bind:open={tagsOpen} />
 
 	<DataTable
 		data={data.tracks}

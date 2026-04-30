@@ -5,4 +5,5 @@ pub mod auth_handlers;
 pub mod covers_handlers;
 pub mod playlist_handlers;
 pub mod stream_handlers;
+pub mod tag_handlers;
 pub mod tracks_handlers;

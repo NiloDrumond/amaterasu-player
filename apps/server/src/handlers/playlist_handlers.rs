@@ -9,7 +9,9 @@ use uuid::Uuid;
 use crate::{
     auth::AuthUser,
     dto::{
-        request::{AddTracksParams, CreatePlaylistParams, RenamePlaylistParams, ReorderTrackParams},
+        request::{
+            AddTracksParams, CreatePlaylistParams, RenamePlaylistParams, ReorderTrackParams,
+        },
         response::{PlaylistResponse, PlaylistTrackResponse},
     },
     error::{AppError, AppResult},
@@ -25,8 +27,7 @@ pub async fn list_playlists(
     State(state): State<AppState>,
     auth_user: AuthUser,
 ) -> AppResult<Json<Vec<PlaylistResponse>>> {
-    let playlists =
-        PlaylistRepository::list_by_user(&state.db, auth_user.user.id).await?;
+    let playlists = PlaylistRepository::list_by_user(&state.db, auth_user.user.id).await?;
 
     Ok(Json(playlists.into_iter().map(Into::into).collect()))
 }
@@ -36,16 +37,11 @@ pub async fn create_playlist(
     auth_user: AuthUser,
     Garde(Json(body)): Garde<Json<CreatePlaylistParams>>,
 ) -> AppResult<(StatusCode, Json<PlaylistResponse>)> {
-    let playlist =
-        PlaylistRepository::create(&state.db, auth_user.user.id, &body.name).await?;
+    let playlist = PlaylistRepository::create(&state.db, auth_user.user.id, &body.name).await?;
 
-    let stats = PlaylistRepository::find_by_id_and_user(
-        &state.db,
-        playlist.id,
-        auth_user.user.id,
-    )
-    .await?
-    .ok_or(AppError::NotFound)?;
+    let stats = PlaylistRepository::find_by_id_and_user(&state.db, playlist.id, auth_user.user.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
 
     Ok((StatusCode::CREATED, Json(stats.into())))
 }
@@ -55,9 +51,9 @@ pub async fn get_playlist(
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<PlaylistResponse>> {
-    let stats =
-        PlaylistRepository::find_by_id_and_user(&state.db, id, auth_user.user.id).await?
-            .ok_or(AppError::NotFound)?;
+    let stats = PlaylistRepository::find_by_id_and_user(&state.db, id, auth_user.user.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
 
     Ok(Json(stats.into()))
 }
@@ -72,9 +68,9 @@ pub async fn rename_playlist(
         .await?
         .ok_or(AppError::NotFound)?;
 
-    let stats =
-        PlaylistRepository::find_by_id_and_user(&state.db, id, auth_user.user.id).await?
-            .ok_or(AppError::NotFound)?;
+    let stats = PlaylistRepository::find_by_id_and_user(&state.db, id, auth_user.user.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
 
     Ok(Json(stats.into()))
 }
@@ -84,8 +80,7 @@ pub async fn delete_playlist(
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    let deleted =
-        PlaylistRepository::delete(&state.db, id, auth_user.user.id).await?;
+    let deleted = PlaylistRepository::delete(&state.db, id, auth_user.user.id).await?;
 
     if deleted {
         Ok(StatusCode::NO_CONTENT)
@@ -104,8 +99,7 @@ pub async fn list_playlist_tracks(
         return Err(AppError::NotFound);
     }
 
-    let tracks =
-        PlaylistRepository::list_tracks(&state.db, id, auth_user.user.id).await?;
+    let tracks = PlaylistRepository::list_tracks(&state.db, id, auth_user.user.id).await?;
 
     Ok(Json(tracks.into_iter().map(Into::into).collect()))
 }
@@ -123,7 +117,9 @@ pub async fn add_tracks(
 
     // Get current max position once, then increment for each track
     let max_pos = PlaylistRepository::get_max_position(&state.db, id).await?;
-    let mut next_pos = max_pos.map(|p| p + POSITION_STEP).unwrap_or(INITIAL_POSITION);
+    let mut next_pos = max_pos
+        .map(|p| p + POSITION_STEP)
+        .unwrap_or(INITIAL_POSITION);
 
     for track_id in body.track_ids {
         // ON CONFLICT DO NOTHING in insert_track handles duplicates
@@ -139,8 +135,7 @@ pub async fn remove_track(
     auth_user: AuthUser,
     Path((id, tid)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
-    let deleted =
-        PlaylistRepository::remove_track(&state.db, id, auth_user.user.id, tid).await?;
+    let deleted = PlaylistRepository::remove_track(&state.db, id, auth_user.user.id, tid).await?;
 
     if deleted {
         Ok(StatusCode::NO_CONTENT)

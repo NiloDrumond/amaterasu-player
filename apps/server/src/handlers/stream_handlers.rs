@@ -349,7 +349,9 @@ mod tests {
     fn format_http_date_roundtrips_for_if_modified_since() {
         let dt = Utc.with_ymd_and_hms(2019, 11, 29, 0, 0, 0).unwrap();
         let s = format_http_date(dt);
-        let parsed = DateTime::parse_from_rfc2822(&s).unwrap().with_timezone(&Utc);
+        let parsed = DateTime::parse_from_rfc2822(&s)
+            .unwrap()
+            .with_timezone(&Utc);
         assert_eq!(parsed.timestamp(), dt.timestamp());
     }
 }

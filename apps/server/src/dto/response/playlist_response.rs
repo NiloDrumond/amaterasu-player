@@ -67,17 +67,19 @@ pub struct PlaylistTrackResponse {
 
 impl From<PlaylistTrackRow> for PlaylistTrackResponse {
     fn from(r: PlaylistTrackRow) -> Self {
-        let artist = r.artist_id.zip(r.artist_name).map(|(id, name)| {
-            PlaylistTrackArtistResponse { id, name }
-        });
+        let artist = r
+            .artist_id
+            .zip(r.artist_name)
+            .map(|(id, name)| PlaylistTrackArtistResponse { id, name });
 
-        let album = r.album_id.zip(r.album_title).map(|(id, title)| {
-            PlaylistTrackAlbumResponse {
+        let album = r
+            .album_id
+            .zip(r.album_title)
+            .map(|(id, title)| PlaylistTrackAlbumResponse {
                 id,
                 title,
                 cover_url: r.album_cover_path.map(|p| format!("/api/covers/{p}")),
-            }
-        });
+            });
 
         Self {
             id: r.track_id,

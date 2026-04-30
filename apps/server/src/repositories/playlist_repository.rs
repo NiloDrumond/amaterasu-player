@@ -189,11 +189,7 @@ impl PlaylistRepository {
         Ok(playlist)
     }
 
-    pub async fn delete(
-        executor: impl PgExecutor<'_>,
-        id: Uuid,
-        user_id: Uuid,
-    ) -> AppResult<bool> {
+    pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, user_id: Uuid) -> AppResult<bool> {
         let result = sqlx::query!(
             r#"
             DELETE FROM playlists

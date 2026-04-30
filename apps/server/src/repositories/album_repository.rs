@@ -230,7 +230,10 @@ impl AlbumRepository {
         .fetch_all(executor)
         .await?;
 
-        Ok(rows.into_iter().map(|r| (r.artist_id, r.album_count)).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.artist_id, r.album_count))
+            .collect())
     }
 
     pub async fn update_cover_path(

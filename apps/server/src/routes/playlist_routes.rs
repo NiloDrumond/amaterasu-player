@@ -10,7 +10,10 @@ pub fn playlist_routes() -> Router<AppState> {
         .route("/playlists", post(playlist_handlers::create_playlist))
         .route("/playlists/{id}", get(playlist_handlers::get_playlist))
         .route("/playlists/{id}", patch(playlist_handlers::rename_playlist))
-        .route("/playlists/{id}", delete(playlist_handlers::delete_playlist))
+        .route(
+            "/playlists/{id}",
+            delete(playlist_handlers::delete_playlist),
+        )
         .route(
             "/playlists/{id}/tracks",
             get(playlist_handlers::list_playlist_tracks),

@@ -2,7 +2,9 @@ use amaterasu_macros::api_type;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::{dto::response::common_response::PaginatedResponse, services::library_service::ArtistWithRefs};
+use crate::{
+    dto::response::common_response::PaginatedResponse, services::library_service::ArtistWithRefs,
+};
 
 #[api_type("response/artist")]
 #[derive(Debug, Serialize)]
