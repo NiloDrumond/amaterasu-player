@@ -4,12 +4,12 @@ use sqlx::FromRow;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Tag {
+pub struct TagCategory {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub category_id: Option<Uuid>,
     pub name: String,
     pub color: Option<String>,
+    pub position: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

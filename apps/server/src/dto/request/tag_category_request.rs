@@ -3,27 +3,27 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[api_type("request/tag")]
+#[api_type("request/tag-category")]
 #[derive(Serialize, Deserialize, Validate)]
-pub struct CreateTagParams {
+pub struct CreateTagCategoryParams {
     #[garde(length(min = 1, max = 64))]
     pub name: String,
-    #[garde(skip)]
-    pub category_id: Option<Uuid>,
     #[garde(inner(length(min = 1, max = 16)))]
     pub color: Option<String>,
 }
 
-#[api_type("request/tag")]
+#[api_type("request/tag-category")]
 #[derive(Serialize, Deserialize, Validate)]
-pub struct UpdateTagParams {
+pub struct UpdateTagCategoryParams {
     #[garde(inner(length(min = 1, max = 64)))]
     pub name: Option<String>,
-    #[garde(skip)]
-    pub category_id: Option<Uuid>,
-    #[garde(skip)]
-    #[serde(default)]
-    pub clear_category: bool,
     #[garde(inner(length(min = 1, max = 16)))]
     pub color: Option<String>,
+}
+
+#[api_type("request/tag-category")]
+#[derive(Serialize, Deserialize, Validate)]
+pub struct ReorderTagCategoriesParams {
+    #[garde(skip)]
+    pub ordered_ids: Vec<Uuid>,
 }

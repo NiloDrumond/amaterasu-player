@@ -2,10 +2,12 @@
 
 /**
  * PATCH semantics: any field present replaces the current value;
- * fields omitted from the request are left unchanged.
+ * fields omitted from the request are left unchanged. Set
+ * `clearCategory: true` to detach a tag from its category.
  */
 export type UpdateTagParams = {
 	name: string | null;
-	category: string | null;
+	categoryId: string | null;
+	clearCategory: boolean;
 	color: string | null;
 };

@@ -92,7 +92,7 @@
 		if (!name) return;
 		const { data, error } = await createTag(fetch, {
 			name,
-			category: null,
+			categoryId: null,
 			color: null,
 		});
 		if (error || !data) {
@@ -163,7 +163,7 @@
 						{/if}
 						<span>{tag.name}</span>
 						{#if tag.category}
-							<span class="ml-auto text-xs text-muted-foreground">{tag.category}</span>
+							<span class="ml-auto text-xs text-muted-foreground">{tag.category.name}</span>
 						{/if}
 					</button>
 				{/each}

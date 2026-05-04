@@ -24,7 +24,7 @@
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 z-50 bg-black/50" />
 		<Dialog.Content
-			class="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg"
+			class="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-secondary p-6 shadow-lg"
 		>
 			<Dialog.Title class="mb-1 text-lg font-semibold">Tags</Dialog.Title>
 			<Dialog.Description class="mb-4 text-sm text-muted-foreground">

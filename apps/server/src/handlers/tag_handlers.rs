@@ -35,7 +35,7 @@ pub async fn create_tag(
         &state.db,
         auth_user.user.id,
         &body.name,
-        body.category.as_deref(),
+        body.category_id,
         body.color.as_deref(),
     )
     .await?;
@@ -58,7 +58,8 @@ pub async fn update_tag(
         id,
         auth_user.user.id,
         body.name.as_deref(),
-        body.category.as_deref(),
+        body.category_id,
+        body.clear_category,
         body.color.as_deref(),
     )
     .await?

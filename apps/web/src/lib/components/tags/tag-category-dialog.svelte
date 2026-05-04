@@ -4,37 +4,30 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Dialog } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { createTag, updateTag } from '$lib/services/tag-service';
-	import type { TagResponse } from '$lib/bindings/response/tag/tag-response';
+	import { createTagCategory, updateTagCategory } from '$lib/services/tag-category-service';
 	import type { TagCategoryResponse } from '$lib/bindings/response/tag-category/tag-category-response';
 	import ColorPicker from './color-picker.svelte';
 
 	let {
 		open = $bindable(false),
-		tag = null,
-		categories = [],
-		defaultCategoryId = null,
+		category = null,
 		onSaved,
 	}: {
 		open?: boolean;
-		tag?: TagResponse | null;
-		categories?: TagCategoryResponse[];
-		defaultCategoryId?: string | null;
+		category?: TagCategoryResponse | null;
 		onSaved: () => void;
 	} = $props();
 
 	let name = $state('');
-	let categoryId = $state<string>('');
 	let color = $state('');
 	let submitting = $state(false);
 
-	const isEdit = $derived(tag !== null);
+	const isEdit = $derived(category !== null);
 
 	$effect(() => {
 		if (open) {
-			name = tag?.name ?? '';
-			categoryId = tag?.categoryId ?? defaultCategoryId ?? '';
-			color = tag?.color ?? '';
+			name = category?.name ?? '';
+			color = category?.color ?? '';
 		}
 	});
 
@@ -45,28 +38,21 @@
 
 		submitting = true;
 		try {
-			const trimmedColor = color.trim() ? color.trim() : null;
-			const targetCategoryId = categoryId || null;
+			const params = {
+				name: trimmedName,
+				color: color.trim() ? color.trim() : null,
+			};
 
-			const { error } = tag
-				? await updateTag(fetch, tag.id, {
-						name: trimmedName,
-						categoryId: targetCategoryId,
-						clearCategory: targetCategoryId === null,
-						color: trimmedColor,
-					})
-				: await createTag(fetch, {
-						name: trimmedName,
-						categoryId: targetCategoryId,
-						color: trimmedColor,
-					});
+			const { error } = category
+				? await updateTagCategory(fetch, category.id, params)
+				: await createTagCategory(fetch, params);
 
 			if (error) {
 				toast.error(error);
 				return;
 			}
 
-			toast.success(isEdit ? 'Tag updated' : 'Tag created');
+			toast.success(isEdit ? 'Category updated' : 'Category created');
 			open = false;
 			onSaved();
 		} finally {
@@ -80,7 +66,6 @@
 	onOpenChange={(o) => {
 		if (!o) {
 			name = '';
-			categoryId = '';
 			color = '';
 		}
 	}}
@@ -91,34 +76,21 @@
 			class="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-secondary p-6 shadow-lg"
 		>
 			<Dialog.Title class="mb-1 text-lg font-semibold">
-				{isEdit ? 'Edit Tag' : 'New Tag'}
+				{isEdit ? 'Edit Category' : 'New Category'}
 			</Dialog.Title>
 			<Dialog.Description class="mb-4 text-sm text-muted-foreground">
-				{isEdit ? 'Update this tag.' : 'Tags are personal — only you see and assign them.'}
+				Categories group related tags. Each tag belongs to at most one category.
 			</Dialog.Description>
 			<form onsubmit={handleSubmit} class="flex flex-col gap-4">
 				<div class="flex flex-col gap-2">
-					<Label for="tag-name">Name</Label>
+					<Label for="category-name">Name</Label>
 					<Input
-						id="tag-name"
+						id="category-name"
 						bind:value={name}
-						placeholder="e.g. piano"
+						placeholder="e.g. Genre, Mood, Instrument"
 						autocomplete="off"
 						required
 					/>
-				</div>
-				<div class="flex flex-col gap-2">
-					<Label for="tag-category">Category</Label>
-					<select
-						id="tag-category"
-						bind:value={categoryId}
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-					>
-						<option value="">Uncategorized</option>
-						{#each categories as cat (cat.id)}
-							<option value={cat.id}>{cat.name}</option>
-						{/each}
-					</select>
 				</div>
 				<div class="flex flex-col gap-2">
 					<Label>Color</Label>

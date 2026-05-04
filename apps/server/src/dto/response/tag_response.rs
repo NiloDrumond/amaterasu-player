@@ -3,15 +3,16 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::db::entities::Tag;
-use crate::repositories::tag_repository::TagWithUsage;
+use crate::dto::response::tag_category_response::TagCategorySummaryResponse;
+use crate::repositories::tag_repository::{TagWithCategory, TagWithUsage};
 
 #[api_type("response/tag")]
 #[derive(Debug, Serialize)]
 pub struct TagResponse {
     pub id: Uuid,
     pub name: String,
-    pub category: Option<String>,
+    pub category_id: Option<Uuid>,
+    pub category: Option<TagCategorySummaryResponse>,
     pub color: Option<String>,
     pub track_count: i64,
     pub album_count: i64,
@@ -24,7 +25,8 @@ impl From<TagWithUsage> for TagResponse {
         Self {
             id: value.tag.id,
             name: value.tag.name,
-            category: value.tag.category,
+            category_id: value.tag.category_id,
+            category: value.category.map(Into::into),
             color: value.tag.color,
             track_count: value.track_count,
             album_count: value.album_count,
@@ -39,17 +41,19 @@ impl From<TagWithUsage> for TagResponse {
 pub struct TagSummaryResponse {
     pub id: Uuid,
     pub name: String,
-    pub category: Option<String>,
+    pub category_id: Option<Uuid>,
+    pub category: Option<TagCategorySummaryResponse>,
     pub color: Option<String>,
 }
 
-impl From<Tag> for TagSummaryResponse {
-    fn from(value: Tag) -> Self {
+impl From<TagWithCategory> for TagSummaryResponse {
+    fn from(value: TagWithCategory) -> Self {
         Self {
-            id: value.id,
-            name: value.name,
-            category: value.category,
-            color: value.color,
+            id: value.tag.id,
+            name: value.tag.name,
+            category_id: value.tag.category_id,
+            category: value.category.map(Into::into),
+            color: value.tag.color,
         }
     }
 }
