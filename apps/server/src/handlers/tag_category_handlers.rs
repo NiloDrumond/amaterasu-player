@@ -9,9 +9,7 @@ use uuid::Uuid;
 use crate::{
     auth::AuthUser,
     dto::{
-        request::{
-            CreateTagCategoryParams, ReorderTagCategoriesParams, UpdateTagCategoryParams,
-        },
+        request::{CreateTagCategoryParams, ReorderTagCategoriesParams, UpdateTagCategoryParams},
         response::TagCategoryResponse,
     },
     error::{AppError, AppResult},

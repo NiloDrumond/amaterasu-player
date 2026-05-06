@@ -28,10 +28,19 @@
 		};
 		onRowClick?: (row: TData, index: number) => void;
 		rowContextMenu?: Snippet<[{ row: TData; trigger: RowTrigger }]>;
+		rowSelection?: RowSelectionState;
+		onSelectionChange?: (rows: TData[]) => void;
 	};
 
-	let { data, columns, pagination, onRowClick, rowContextMenu }: DataTableProps<TData, TValue> =
-		$props();
+	let {
+		data,
+		columns,
+		pagination,
+		onRowClick,
+		rowContextMenu,
+		rowSelection = $bindable<RowSelectionState>({}),
+		onSelectionChange,
+	}: DataTableProps<TData, TValue> = $props();
 
 	function handleRowClick(event: MouseEvent, row: TData, index: number) {
 		if (!onRowClick) return;
@@ -42,7 +51,6 @@
 
 	let columnFilters = $state<ColumnFiltersState>([]);
 	let columnVisibility = $state<VisibilityState>({});
-	let rowSelection = $state<RowSelectionState>({});
 
 	const table = createSvelteTable({
 		get data() {
@@ -78,6 +86,9 @@
 				rowSelection = updater(rowSelection);
 			} else {
 				rowSelection = updater;
+			}
+			if (onSelectionChange) {
+				onSelectionChange(table.getSelectedRowModel().rows.map((r) => r.original));
 			}
 		},
 		state: {
@@ -153,42 +164,44 @@
 	{#if pagination}
 		<div class={cn('flex flex-row items-center justify-center gap-2 border-t font-medium')}>
 			<Button
+				variant="ghost"
 				disabled={pagination.page - 1 <= 0}
 				onclick={() => pagination.onChangePage(pagination.page - 1)}
 			>
 				<Icons.GoLeft />
 			</Button>
 			{#if pagination.page - 1 > 1}
-				<Button onclick={() => pagination.onChangePage(pagination.page - 2)}>
+				<Button variant="ghost" onclick={() => pagination.onChangePage(pagination.page - 2)}>
 					{pagination.page - 2}
 				</Button>
 			{/if}
 			{#if pagination.page > 1}
-				<Button onclick={() => pagination.onChangePage(pagination.page - 1)}>
+				<Button variant="ghost" onclick={() => pagination.onChangePage(pagination.page - 1)}>
 					{pagination.page - 1}
 				</Button>
 			{/if}
 			<div>
-				<Button disabled>
+				<Button variant="ghost" disabled>
 					{pagination.page}
 				</Button>
 			</div>
 			{#if pagination.page < pagination.totalPages}
-				<Button onclick={() => pagination.onChangePage(pagination.page + 1)}>
+				<Button variant="ghost" onclick={() => pagination.onChangePage(pagination.page + 1)}>
 					{pagination.page + 1}
 				</Button>
 			{/if}
 			{#if pagination.page + 1 < pagination.totalPages}
-				<Button onclick={() => pagination.onChangePage(pagination.page + 2)}>
+				<Button variant="ghost" onclick={() => pagination.onChangePage(pagination.page + 2)}>
 					{pagination.page + 2}
 				</Button>
 			{/if}
 			{#if pagination.page + 2 < pagination.totalPages}
-				<Button onclick={() => pagination.onChangePage(pagination.page + 3)}>
+				<Button variant="ghost" onclick={() => pagination.onChangePage(pagination.page + 3)}>
 					{pagination.page + 3}
 				</Button>
 			{/if}
 			<Button
+				variant="ghost"
 				disabled={pagination.page + 1 > pagination.totalPages}
 				onclick={() => pagination.onChangePage(pagination.page + 1)}
 			>

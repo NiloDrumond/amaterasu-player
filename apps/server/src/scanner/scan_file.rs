@@ -64,6 +64,8 @@ impl From<ScannedFile> for Track {
             replaygain_track_gain: scanned.track_metadata.replaygain_track_gain,
             replaygain_track_peak: scanned.track_metadata.replaygain_track_peak,
             metadata_modified_at: None,
+            deleted_at: None,
+            locked_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

@@ -1,13 +1,17 @@
 <script lang="ts">
+	import { page } from '$app/state';
+
 	type AlbumCoverCellProps = {
 		id: string;
 		title: string;
 		coverUrl: string | null;
 	};
 	let { id, title, coverUrl }: AlbumCoverCellProps = $props();
+
+	const base = $derived(page.url.pathname.startsWith('/admin') ? '/admin/albums' : '/albums');
 </script>
 
-<a href={`/albums/${id}`} class="flex flex-row items-center gap-2">
+<a href={`${base}/${id}`} class="flex flex-row items-center gap-2">
 	<img class="size-8" src={coverUrl ?? undefined} alt={title} />
 	<span class="overflow-hidden text-ellipsis">
 		{title}

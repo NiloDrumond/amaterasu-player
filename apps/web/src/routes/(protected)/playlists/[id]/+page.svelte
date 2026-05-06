@@ -113,7 +113,7 @@
 		</div>
 		<div class="flex min-w-0 flex-col gap-1">
 			<p class="text-xs font-medium tracking-widest text-muted-foreground uppercase">Playlist</p>
-			<h1 class="truncate text-3xl font-bold">{data.playlist.name}</h1>
+			<h1 class="truncate text-3xl">{data.playlist.name}</h1>
 			<p class="text-sm text-muted-foreground">
 				{[`${String(data.playlist.trackCount)} tracks`, duration].filter(Boolean).join(' · ')}
 			</p>

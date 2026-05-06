@@ -5,6 +5,7 @@ import { renderComponent, renderSnippet } from '../ui/data-table';
 import { Checkbox } from '../ui/checkbox';
 import { cn } from 'tailwind-variants';
 import { createRawSnippet } from 'svelte';
+import { page } from '$app/state';
 
 export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 	{
@@ -42,9 +43,10 @@ export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 					render: () => `<a href="${href}">${content}</a>`,
 				};
 			});
+			const base = page.url.pathname.startsWith('/admin') ? '/admin/artists' : '/artists';
 			return renderSnippet(anchorSnippet, {
 				content: row.original.name,
-				href: `/artists/${row.original.id}`,
+				href: `${base}/${row.original.id}`,
 			});
 		},
 	},

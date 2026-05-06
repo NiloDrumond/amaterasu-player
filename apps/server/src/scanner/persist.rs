@@ -69,7 +69,8 @@ async fn find_or_create_artist(
         None => return Ok(None),
     };
 
-    if let Some(artist) = ArtistRepository::get_by_name(&mut *tx, name).await? {
+    // Match by source_name so admin renames don't cause duplicates.
+    if let Some(artist) = ArtistRepository::find_by_source_name(&mut *tx, name).await? {
         return Ok(Some(artist));
     }
 
@@ -79,6 +80,8 @@ async fn find_or_create_artist(
         name: name.to_string(),
         sort_name: sort_name.to_string(),
         mbid: None,
+        source_name: name.to_string(),
+        locked_at: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
@@ -92,7 +95,7 @@ async fn find_or_create_album(
 ) -> Result<Album, AppError> {
     let title = &scanned.album_metadata.name;
     if let Some(album) =
-        AlbumRepository::find_by_title_and_artist(&mut *tx, title, album_artist_id).await?
+        AlbumRepository::find_by_source_keys(&mut *tx, title, album_artist_id).await?
     {
         return Ok(album);
     }
@@ -157,7 +160,18 @@ async fn upsert_track(
                 );
             }
 
-            // Update existing track with fresh metadata (including file_path for moved files)
+            // Locked or soft-deleted tracks survive rescans untouched, except for
+            // file_path so file moves still resolve.
+            if track.locked_at.is_some() || track.deleted_at.is_some() {
+                if track.file_path != scanned.file_path {
+                    TrackRepository::update_file_path(&mut *tx, track.id, &scanned.file_path)
+                        .await?;
+                    track.file_path = scanned.file_path;
+                }
+                return Ok(track);
+            }
+
+            // Unlocked: refresh tag-derived fields.
             track.file_path = scanned.file_path;
             track.album_id = Some(album_id);
             track.artist_id = artist_id;
@@ -210,6 +224,8 @@ async fn upsert_track(
                 replaygain_track_gain: scanned.track_metadata.replaygain_track_gain,
                 replaygain_track_peak: scanned.track_metadata.replaygain_track_peak,
                 metadata_modified_at: None,
+                deleted_at: None,
+                locked_at: None,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
             };

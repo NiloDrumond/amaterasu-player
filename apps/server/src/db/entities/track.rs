@@ -33,6 +33,8 @@ pub struct Track {
     pub replaygain_track_gain: Option<f32>,
     pub replaygain_track_peak: Option<f32>,
     pub metadata_modified_at: Option<DateTime<Utc>>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub locked_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

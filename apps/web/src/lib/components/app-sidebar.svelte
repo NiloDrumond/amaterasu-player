@@ -115,6 +115,9 @@
 									<DropdownMenu.Separator />
 									<DropdownMenu.Group>
 										<DropdownMenu.Label>Admin</DropdownMenu.Label>
+										<DropdownMenu.Item onclick={() => window.open('/admin', '_blank', 'noopener')}>
+											Admin home ↗
+										</DropdownMenu.Item>
 										<DropdownMenu.Item onclick={handleScanLibrary}>Scan library</DropdownMenu.Item>
 										<DropdownMenu.Sub>
 											<DropdownMenu.SubTrigger>Invite users</DropdownMenu.SubTrigger>

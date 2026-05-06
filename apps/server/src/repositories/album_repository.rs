@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
@@ -11,8 +12,8 @@ impl AlbumRepository {
         let created = sqlx::query_as!(
             Album,
             r#"
-            INSERT INTO albums (id, artist_id, title, sort_title, date, mbid, cover_path, replaygain_album_gain, replaygain_album_peak, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO albums (id, artist_id, title, sort_title, date, mbid, cover_path, source_title, source_album_artist_id, locked_at, replaygain_album_gain, replaygain_album_peak, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING
                 *
             "#,
@@ -23,6 +24,9 @@ impl AlbumRepository {
             album.date,
             album.mbid,
             album.cover_path,
+            album.source_title,
+            album.source_album_artist_id,
+            album.locked_at,
             album.replaygain_album_gain,
             album.replaygain_album_peak,
             album.created_at,
@@ -79,10 +83,10 @@ impl AlbumRepository {
         Ok(albums)
     }
 
-    pub async fn find_by_title_and_artist(
+    pub async fn find_by_source_keys(
         executor: impl PgExecutor<'_>,
-        title: &str,
-        artist_id: Option<Uuid>,
+        source_title: &str,
+        source_album_artist_id: Option<Uuid>,
     ) -> Result<Option<Album>, AppError> {
         let album = sqlx::query_as!(
             Album,
@@ -92,13 +96,13 @@ impl AlbumRepository {
             FROM
                 albums
             WHERE
-                LOWER(title) = LOWER($1)
-                AND (artist_id = $2
-                    OR (artist_id IS NULL
+                LOWER(source_title) = LOWER($1)
+                AND (source_album_artist_id = $2
+                    OR (source_album_artist_id IS NULL
                         AND $2 IS NULL))
             "#,
-            title,
-            artist_id
+            source_title,
+            source_album_artist_id
         )
         .fetch_optional(executor)
         .await?;
@@ -125,6 +129,38 @@ impl AlbumRepository {
             "#,
             limit as i64,
             offset as i64,
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(albums)
+    }
+
+    pub async fn search(
+        executor: impl PgExecutor<'_>,
+        query: &str,
+        artist_id: Option<Uuid>,
+        limit: i32,
+    ) -> AppResult<Vec<Album>> {
+        let pattern = format!("%{}%", query.replace('%', "\\%").replace('_', "\\_"));
+        let albums = sqlx::query_as!(
+            Album,
+            r#"
+            SELECT
+                *
+            FROM
+                albums
+            WHERE
+                title ILIKE $1
+                AND ($2::uuid IS NULL OR artist_id = $2)
+            ORDER BY
+                sort_title,
+                title
+            LIMIT $3
+            "#,
+            pattern,
+            artist_id,
+            limit as i64,
         )
         .fetch_all(executor)
         .await?;
@@ -165,6 +201,7 @@ impl AlbumRepository {
                 tracks
             WHERE
                 album_id = ANY ($1)
+                AND deleted_at IS NULL
             GROUP BY
                 album_id
             "#,
@@ -258,5 +295,67 @@ impl AlbumRepository {
         .await?;
 
         Ok(())
+    }
+
+    pub async fn update(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+        title: &str,
+        sort_title: &str,
+        artist_id: Option<Uuid>,
+        date: Option<NaiveDate>,
+    ) -> Result<Album, AppError> {
+        let updated = sqlx::query_as!(
+            Album,
+            r#"
+            UPDATE albums
+            SET
+                title = $2,
+                sort_title = $3,
+                artist_id = $4,
+                date = $5,
+                locked_at = NOW(),
+                updated_at = NOW()
+            WHERE id = $1
+            RETURNING *
+            "#,
+            id,
+            title,
+            sort_title,
+            artist_id,
+            date,
+        )
+        .fetch_one(executor)
+        .await?;
+
+        Ok(updated)
+    }
+
+    pub async fn clear_lock(executor: impl PgExecutor<'_>, id: Uuid) -> Result<(), AppError> {
+        sqlx::query!(r#"UPDATE albums SET locked_at = NULL WHERE id = $1"#, id)
+            .execute(executor)
+            .await?;
+        Ok(())
+    }
+
+    /// Hard-deletes the album only if it has no live tracks. Returns true if deleted.
+    pub async fn delete_if_empty(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+    ) -> Result<bool, AppError> {
+        let result = sqlx::query!(
+            r#"
+            DELETE FROM albums
+            WHERE id = $1
+              AND NOT EXISTS (
+                  SELECT 1 FROM tracks
+                  WHERE album_id = $1 AND deleted_at IS NULL
+              )
+            "#,
+            id
+        )
+        .execute(executor)
+        .await?;
+        Ok(result.rows_affected() > 0)
     }
 }

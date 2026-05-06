@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
-	import { Dialog } from 'bits-ui';
+	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { toast } from 'svelte-sonner';
 	import { createTagCategory, updateTagCategory } from '$lib/services/tag-category-service';
 	import type { TagCategoryResponse } from '$lib/bindings/response/tag-category/tag-category-response';
@@ -70,20 +70,17 @@
 		}
 	}}
 >
-	<Dialog.Portal>
-		<Dialog.Overlay class="fixed inset-0 z-50 bg-black/50" />
-		<Dialog.Content
-			class="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-secondary p-6 shadow-lg"
-		>
-			<Dialog.Title class="mb-1 text-lg font-semibold">
-				{isEdit ? 'Edit Category' : 'New Category'}
-			</Dialog.Title>
-			<Dialog.Description class="mb-4 text-sm text-muted-foreground">
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>{isEdit ? 'Edit Category' : 'New Category'}</Dialog.Title>
+			<Dialog.Description>
 				Categories group related tags. Each tag belongs to at most one category.
 			</Dialog.Description>
-			<form onsubmit={handleSubmit} class="flex flex-col gap-4">
-				<div class="flex flex-col gap-2">
-					<Label for="category-name">Name</Label>
+		</Dialog.Header>
+		<form onsubmit={handleSubmit}>
+			<FieldGroup>
+				<Field>
+					<FieldLabel for="category-name">Name</FieldLabel>
 					<Input
 						id="category-name"
 						bind:value={name}
@@ -91,12 +88,12 @@
 						autocomplete="off"
 						required
 					/>
-				</div>
-				<div class="flex flex-col gap-2">
-					<Label>Color</Label>
+				</Field>
+				<Field>
+					<FieldLabel>Color</FieldLabel>
 					<ColorPicker bind:value={color} />
-				</div>
-				<div class="flex justify-end gap-2">
+				</Field>
+				<Dialog.Footer>
 					<Dialog.Close>
 						{#snippet child({ props })}
 							<Button {...props} variant="ghost" type="button">Cancel</Button>
@@ -105,8 +102,8 @@
 					<Button type="submit" disabled={submitting || !name.trim()}>
 						{submitting ? 'Saving…' : isEdit ? 'Save' : 'Create'}
 					</Button>
-				</div>
-			</form>
-		</Dialog.Content>
-	</Dialog.Portal>
+				</Dialog.Footer>
+			</FieldGroup>
+		</form>
+	</Dialog.Content>
 </Dialog.Root>

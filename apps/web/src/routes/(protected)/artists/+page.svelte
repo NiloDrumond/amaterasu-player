@@ -20,7 +20,7 @@
 	<p>{data.error.message}</p>
 {:else}
 	<div class="flex flex-col p-4">
-		<h1>ARTISTS</h1>
+		<h1 class="tracking-widest uppercase">Artists</h1>
 		<DataTable
 			data={data.artists.data}
 			columns={artistsColumns}

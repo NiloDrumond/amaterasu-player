@@ -3,10 +3,10 @@
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
 	import { playlistsColumns } from '$lib/components/playlists/columns.js';
 	import PlaylistRowContextMenu from '$lib/components/playlists/playlist-row-context-menu.svelte';
-	import { Dialog } from 'bits-ui';
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { toast } from 'svelte-sonner';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 
@@ -48,7 +48,7 @@
 {:else}
 	<div class="flex flex-col p-4">
 		<div class="mb-4 flex items-center justify-between">
-			<h1 class="text-xl font-bold tracking-widest uppercase">PLAYLISTS</h1>
+			<h1 class="tracking-widest uppercase">Playlists</h1>
 			<Dialog.Root
 				bind:open={dialogOpen}
 				onOpenChange={(open) => {
@@ -63,18 +63,15 @@
 						</Button>
 					{/snippet}
 				</Dialog.Trigger>
-				<Dialog.Portal>
-					<Dialog.Overlay class="fixed inset-0 z-50 bg-black/50" />
-					<Dialog.Content
-						class="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-background p-6 shadow-lg"
-					>
-						<Dialog.Title class="mb-1 text-lg font-semibold">New Playlist</Dialog.Title>
-						<Dialog.Description class="mb-4 text-sm text-muted-foreground">
-							Give your playlist a name to get started.
-						</Dialog.Description>
-						<form onsubmit={createPlaylist} class="flex flex-col gap-4">
-							<div class="flex flex-col gap-2">
-								<Label for="playlist-name">Name</Label>
+				<Dialog.Content>
+					<Dialog.Header>
+						<Dialog.Title>New Playlist</Dialog.Title>
+						<Dialog.Description>Give your playlist a name to get started.</Dialog.Description>
+					</Dialog.Header>
+					<form onsubmit={createPlaylist}>
+						<FieldGroup>
+							<Field>
+								<FieldLabel for="playlist-name">Name</FieldLabel>
 								<Input
 									id="playlist-name"
 									bind:value={newPlaylistName}
@@ -82,8 +79,8 @@
 									autocomplete="off"
 									required
 								/>
-							</div>
-							<div class="flex justify-end gap-2">
+							</Field>
+							<Dialog.Footer>
 								<Dialog.Close>
 									{#snippet child({ props })}
 										<Button {...props} variant="ghost" type="button">Cancel</Button>
@@ -92,10 +89,10 @@
 								<Button type="submit" disabled={submitting || !newPlaylistName.trim()}>
 									{submitting ? 'Creating…' : 'Create'}
 								</Button>
-							</div>
-						</form>
-					</Dialog.Content>
-				</Dialog.Portal>
+							</Dialog.Footer>
+						</FieldGroup>
+					</form>
+				</Dialog.Content>
 			</Dialog.Root>
 		</div>
 

@@ -1,18 +1,8 @@
 use ffmpeg_next::format::context::Input;
 
-use crate::db::entities::Artist;
-
 pub struct ScannedArtistMetadata {
     pub name: Option<String>,
     pub sort_name: Option<String>,
-}
-
-impl From<ScannedArtistMetadata> for Artist {
-    fn from(value: ScannedArtistMetadata) -> Self {
-        let name = value.name.unwrap_or("unknown".to_string());
-
-        Artist::new(name.clone(), value.sort_name.unwrap_or(name))
-    }
 }
 
 impl ScannedArtistMetadata {

@@ -22,7 +22,7 @@
 	<p>{data.error.message}</p>
 {:else}
 	<div class="flex flex-col p-4">
-		<h1>TRACKS</h1>
+		<h1 class="tracking-widest uppercase">Tracks</h1>
 		<div>TODO: Filters</div>
 		<DataTable
 			data={data.tracks.data}

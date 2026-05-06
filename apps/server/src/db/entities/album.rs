@@ -12,6 +12,9 @@ pub struct Album {
     pub date: Option<NaiveDate>,
     pub mbid: Option<String>, // MusicBrainz ID
     pub cover_path: Option<String>,
+    pub source_title: String,
+    pub source_album_artist_id: Option<Uuid>,
+    pub locked_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 
@@ -31,12 +34,15 @@ impl Album {
         Self {
             id: Uuid::new_v4(),
             artist_id,
+            source_album_artist_id: artist_id,
+            source_title: title.clone(),
             title,
             sort_title,
             date,
             // TODO: mbid
             mbid: None,
             cover_path: None,
+            locked_at: None,
             replaygain_album_gain,
             replaygain_album_peak,
             created_at: Utc::now(),

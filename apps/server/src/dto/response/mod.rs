@@ -1,3 +1,4 @@
+pub mod admin_response;
 pub mod album_response;
 pub mod artist_response;
 pub mod auth_response;
@@ -7,6 +8,7 @@ pub mod tag_category_response;
 pub mod tag_response;
 pub mod track_response;
 
+pub use admin_response::*;
 pub use album_response::*;
 pub use artist_response::*;
 pub use auth_response::*;

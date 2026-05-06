@@ -76,6 +76,7 @@
 			</Button>
 			<Button
 				size="icon"
+				variant="ghost"
 				onclick={() => player.toggle()}
 				aria-label={player.isPlaying ? 'Pause' : 'Play'}
 			>
@@ -107,17 +108,18 @@
 				</span>
 			</p>
 
-			<button
+			<Button
+				size="icon"
+				variant="ghost"
 				onclick={() => player.toggleMute()}
 				aria-label={player.volume === 0 ? 'Unmute' : 'Mute'}
-				class="shrink-0 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
 			>
 				{#if player.volume === 0}
 					<VolumeXIcon class="size-4" />
 				{:else}
 					<Volume2Icon class="size-4" />
 				{/if}
-			</button>
+			</Button>
 			<RangeSlider
 				min={0}
 				max={1}

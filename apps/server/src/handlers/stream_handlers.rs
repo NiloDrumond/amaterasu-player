@@ -256,6 +256,8 @@ mod tests {
             replaygain_track_gain: None,
             replaygain_track_peak: None,
             metadata_modified_at: None,
+            deleted_at: None,
+            locked_at: None,
             created_at: now,
             updated_at: now,
         }

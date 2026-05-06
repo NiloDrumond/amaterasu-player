@@ -81,7 +81,7 @@
 {:else}
 	<div class="flex flex-col gap-4 p-4">
 		<div class="flex items-center justify-between">
-			<h1 class="text-xl font-bold tracking-widest uppercase">Tags</h1>
+			<h1 class="tracking-widest uppercase">Tags</h1>
 			<div class="flex gap-2">
 				<Button variant="outline" class="gap-2" onclick={openCreateCategory}>
 					<FolderPlusIcon class="size-4" />

@@ -60,7 +60,7 @@
 		{/if}
 		<div class="flex min-w-0 flex-col gap-1">
 			<p class="text-xs font-medium tracking-widest text-muted-foreground uppercase">Album</p>
-			<h1 class="truncate text-3xl font-bold">{data.album.title}</h1>
+			<h1 class="truncate text-3xl">{data.album.title}</h1>
 			{#if data.album.artist}
 				<a
 					href="/artists/{data.album.artist.id}"

@@ -1,11 +1,13 @@
 use crate::{
     dto::{
-        request::PaginationParams,
+        request::{PaginationParams, SearchQuery},
         response::{
-            album_response::AlbumResponse, track_response::TrackResponse, PaginatedResponse,
+            album_response::AlbumResponse, track_response::TrackResponse, AdminAlbumResponse,
+            PaginatedResponse,
         },
     },
     error::{AppError, AppResult},
+    repositories::AlbumRepository,
     services::LibraryService,
     state::AppState,
 };
@@ -43,6 +45,15 @@ pub async fn get_album(
         .ok_or(AppError::NotFound)?;
 
     Ok(Json(album.into()))
+}
+
+pub async fn search_albums(
+    State(state): State<AppState>,
+    Query(params): Query<SearchQuery>,
+) -> AppResult<Json<Vec<AdminAlbumResponse>>> {
+    let limit = params.limit.clamp(1, 100);
+    let albums = AlbumRepository::search(&state.db, &params.q, params.artist_id, limit).await?;
+    Ok(Json(albums.into_iter().map(Into::into).collect()))
 }
 
 pub async fn get_album_tracks(

@@ -96,7 +96,7 @@
 		{#if swatch}
 			<span class="size-3 rounded-full border border-border" style:background-color={swatch}></span>
 		{/if}
-		<h2 class="text-sm font-semibold tracking-wide uppercase">
+		<h2 class="tracking-wide uppercase">
 			{category?.name ?? 'Uncategorized'}
 		</h2>
 		<span class="text-xs text-muted-foreground">{tags.length}</span>

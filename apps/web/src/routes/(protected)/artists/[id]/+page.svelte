@@ -18,7 +18,7 @@
 		</div>
 		<div class="flex min-w-0 flex-col gap-1">
 			<p class="text-xs font-medium tracking-widest text-muted-foreground uppercase">Artist</p>
-			<h1 class="truncate text-3xl font-bold">{data.artist.name}</h1>
+			<h1 class="truncate text-3xl">{data.artist.name}</h1>
 			<p class="text-sm text-muted-foreground">
 				{String(data.artist.albumCount)}
 				{Number(data.artist.albumCount) === 1 ? 'album' : 'albums'}

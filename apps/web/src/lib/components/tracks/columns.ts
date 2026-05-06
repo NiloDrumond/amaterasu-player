@@ -8,6 +8,7 @@ import { cn } from 'tailwind-variants';
 import AlbumCell from './album-cell.svelte';
 import { createRawSnippet } from 'svelte';
 import { formatMilliseconds } from '$lib/utils/date';
+import { page } from '$app/state';
 
 export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
@@ -64,9 +65,10 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 					},
 				};
 			});
+			const base = page.url.pathname.startsWith('/admin') ? '/admin/artists' : '/artists';
 			return renderSnippet(anchorSnippet, {
 				content: row.original.artist.name,
-				href: `/artists/${row.original.artist.id}`,
+				href: `${base}/${row.original.artist.id}`,
 			});
 		},
 	},

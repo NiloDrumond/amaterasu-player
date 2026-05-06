@@ -24,11 +24,11 @@ cd apps/web && bun format
 bun run test
 '''
 
-[tasks.fmt]
+[tasks.format]
 description = "Format code"
 run = '''
 cargo fmt
-cd apps/web && bun format
+cd apps/web && bun run format
 cd ../server && sqruff fix
 '''
 

@@ -3,6 +3,9 @@
 	import { toast } from 'svelte-sonner';
 	import { getPlayer } from '$lib/player/player.svelte';
 	import { getAlbumTracks } from '$lib/services/album-service';
+	import { page } from '$app/state';
+
+	const isAdmin = $derived(page.data.user?.role === 'admin');
 
 	let {
 		id,
@@ -39,4 +42,10 @@
 	<DropdownMenu.Item onclick={playLater}>Play Later</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={onEditTags}>Edit Tags</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={() => navigator.clipboard.writeText(id)}>Copy ID</DropdownMenu.Item>
+	{#if isAdmin}
+		<DropdownMenu.Separator />
+		<DropdownMenu.Item onclick={() => window.open(`/admin/albums/${id}`, '_blank', 'noopener')}>
+			Edit (admin)
+		</DropdownMenu.Item>
+	{/if}
 </DropdownMenu.Group>
