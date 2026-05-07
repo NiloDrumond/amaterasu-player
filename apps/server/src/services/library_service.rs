@@ -23,6 +23,7 @@ pub struct AlbumWithRefs {
 pub struct ArtistWithRefs {
     pub artist: Artist,
     pub album_count: i64,
+    pub track_count: i64,
 }
 
 pub struct LibraryService {
@@ -138,15 +139,20 @@ impl LibraryService {
         let artist_ids: Vec<Uuid> = artists.iter().map(|a| a.id).collect();
         let album_counts =
             AlbumRepository::get_album_count_for_artist_ids(&self.pool, &artist_ids).await?;
-        let counts_by_id: HashMap<Uuid, i64> = album_counts.into_iter().collect();
+        let track_counts =
+            TrackRepository::get_track_count_for_artist_ids(&self.pool, &artist_ids).await?;
+        let albums_by_id: HashMap<Uuid, i64> = album_counts.into_iter().collect();
+        let tracks_by_id: HashMap<Uuid, i64> = track_counts.into_iter().collect();
 
         let bundled = artists
             .into_iter()
             .map(|artist| {
-                let album_count = counts_by_id.get(&artist.id).copied().unwrap_or(0);
+                let album_count = albums_by_id.get(&artist.id).copied().unwrap_or(0);
+                let track_count = tracks_by_id.get(&artist.id).copied().unwrap_or(0);
                 ArtistWithRefs {
                     artist,
                     album_count,
+                    track_count,
                 }
             })
             .collect();
@@ -160,14 +166,23 @@ impl LibraryService {
             return Ok(None);
         };
 
-        let counts =
+        let album_counts =
             AlbumRepository::get_album_count_for_artist_ids(&self.pool, &[artist.id]).await?;
-        let album_count = counts.into_iter().next().map(|(_, c)| c).unwrap_or(0);
+        let album_count = album_counts.into_iter().next().map(|(_, c)| c).unwrap_or(0);
+        let track_counts =
+            TrackRepository::get_track_count_for_artist_ids(&self.pool, &[artist.id]).await?;
+        let track_count = track_counts.into_iter().next().map(|(_, c)| c).unwrap_or(0);
 
         Ok(Some(ArtistWithRefs {
             artist,
             album_count,
+            track_count,
         }))
+    }
+
+    pub async fn get_tracks_by_artist_id(&self, artist_id: Uuid) -> AppResult<Vec<TrackWithRefs>> {
+        let tracks = TrackRepository::find_by_artist_id(&self.pool, artist_id).await?;
+        self.attach_refs(tracks).await
     }
 
     pub async fn get_albums_by_artist_id(&self, artist_id: Uuid) -> AppResult<Vec<AlbumWithRefs>> {

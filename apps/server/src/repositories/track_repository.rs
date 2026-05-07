@@ -387,6 +387,33 @@ impl TrackRepository {
         Ok(tracks)
     }
 
+    pub async fn find_by_artist_id(
+        executor: impl PgExecutor<'_>,
+        artist_id: Uuid,
+    ) -> AppResult<Vec<Track>> {
+        let tracks = sqlx::query_as!(
+            Track,
+            r#"
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                artist_id = $1
+                AND deleted_at IS NULL
+            ORDER BY
+                disc NULLS LAST,
+                track_no NULLS LAST,
+                title
+            "#,
+            artist_id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(tracks)
+    }
+
     pub async fn find_deleted(executor: impl PgExecutor<'_>) -> AppResult<Vec<Track>> {
         let tracks = sqlx::query_as!(
             Track,
@@ -405,6 +432,38 @@ impl TrackRepository {
         .await?;
 
         Ok(tracks)
+    }
+
+    pub async fn get_track_count_for_artist_ids(
+        executor: impl PgExecutor<'_>,
+        ids: &[Uuid],
+    ) -> AppResult<Vec<(Uuid, i64)>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                artist_id AS "artist_id!",
+                COUNT(*) AS "track_count!"
+            FROM
+                tracks
+            WHERE
+                artist_id = ANY ($1)
+                AND deleted_at IS NULL
+            GROUP BY
+                artist_id
+            "#,
+            ids
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.artist_id, r.track_count))
+            .collect())
     }
 
     pub async fn count(executor: impl PgExecutor<'_>) -> AppResult<i64> {

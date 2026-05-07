@@ -57,6 +57,12 @@ export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 		cell: ({ row }) => String(row.original.albumCount),
 	},
 	{
+		id: 'trackCount',
+		header: 'TRACKS',
+		maxSize: 100,
+		cell: ({ row }) => String(row.original.trackCount),
+	},
+	{
 		id: 'actions',
 		size: 50,
 		meta: {

@@ -53,14 +53,21 @@
 		></audio>
 
 		<div class="flex min-w-0 flex-1 items-center gap-3">
-			{#if player.currentTrack.album?.coverUrl}
-				<img src={player.currentTrack.album.coverUrl} class="size-12 shrink-0 rounded" alt="" />
+			{#if player.currentTrack.album?.coverUrl && player.currentTrack.album}
+				<a href="/albums/{player.currentTrack.album.id}" class="shrink-0">
+					<img src={player.currentTrack.album.coverUrl} class="size-12 rounded" alt="" />
+				</a>
 			{/if}
 			<div class="flex min-w-0 flex-col">
 				<span class="truncate font-medium">{player.currentTrack.title}</span>
-				<span class="truncate text-sm text-muted-foreground">
-					{player.currentTrack.artist?.name ?? ''}
-				</span>
+				{#if player.currentTrack.artist}
+					<a
+						href="/artists/{player.currentTrack.artist.id}"
+						class="w-fit truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+					>
+						{player.currentTrack.artist.name}
+					</a>
+				{/if}
 			</div>
 		</div>
 

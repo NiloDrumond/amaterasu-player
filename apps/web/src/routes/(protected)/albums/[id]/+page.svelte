@@ -12,11 +12,14 @@
 	import ListPlusIcon from '@lucide/svelte/icons/list-plus';
 	import MusicIcon from '@lucide/svelte/icons/music';
 	import TagIcon from '@lucide/svelte/icons/tag';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import AddToPlaylistDialog from '$lib/components/playlists/add-to-playlist-dialog.svelte';
 	import TagPickerDialog from '$lib/components/tags/tag-picker-dialog.svelte';
+	import { page } from '$app/state';
 
 	let { data } = $props();
 	const player = getPlayer();
+	const isAdmin = $derived(page.data.user?.role === 'admin');
 
 	let addToPlaylistOpen = $state(false);
 	let tagsOpen = $state(false);
@@ -100,6 +103,16 @@
 			<TagIcon class="size-4" />
 			Edit Tags
 		</Button>
+		{#if isAdmin}
+			<Button
+				variant="ghost"
+				onclick={() => window.open(`/admin/albums/${data.album.id}`, '_blank', 'noopener')}
+				class="gap-2"
+			>
+				<PencilIcon class="size-4" />
+				Edit (admin)
+			</Button>
+		{/if}
 	</div>
 
 	<AddToPlaylistDialog

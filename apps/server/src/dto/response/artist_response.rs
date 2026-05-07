@@ -12,6 +12,7 @@ pub struct ArtistResponse {
     pub id: Uuid,
     pub name: String,
     pub album_count: i64,
+    pub track_count: i64,
 }
 
 impl From<ArtistWithRefs> for ArtistResponse {
@@ -20,6 +21,7 @@ impl From<ArtistWithRefs> for ArtistResponse {
             id: value.artist.id,
             name: value.artist.name,
             album_count: value.album_count,
+            track_count: value.track_count,
         }
     }
 }

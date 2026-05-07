@@ -1,12 +1,22 @@
 <script lang="ts">
 	import { albumsColumns } from '$lib/components/albums/columns.js';
+	import { tracksColumns } from '$lib/components/tracks/columns';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { getPlayer } from '$lib/player/player.svelte';
 	import MicVocalIcon from '@lucide/svelte/icons/mic-vocal';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 
 	let { data } = $props();
+	const player = getPlayer();
+	const isAdmin = $derived(page.data.user?.role === 'admin');
 
-	const artistColumns = albumsColumns.filter((col) => col.id !== 'artist');
+	const artistAlbumColumns = albumsColumns.filter((col) => col.id !== 'artist');
+	const artistTrackColumns = tracksColumns.filter(
+		(col) => !('accessorKey' in col && col.accessorKey === 'artist'),
+	);
 </script>
 
 <div class="flex flex-col gap-6 p-6">
@@ -26,9 +36,28 @@
 		</div>
 	</div>
 
+	{#if isAdmin}
+		<div class="flex flex-row flex-wrap items-center gap-2">
+			<Button
+				variant="ghost"
+				onclick={() => window.open(`/admin/artists/${data.artist.id}`, '_blank', 'noopener')}
+				class="gap-2"
+			>
+				<PencilIcon class="size-4" />
+				Edit (admin)
+			</Button>
+		</div>
+	{/if}
+
 	<DataTable
 		data={data.albums}
-		columns={artistColumns}
+		columns={artistAlbumColumns}
 		onRowClick={(row) => goto(`/albums/${row.id}`)}
+	/>
+
+	<DataTable
+		data={data.tracks}
+		columns={artistTrackColumns}
+		onRowClick={(_, index) => player.playQueue(data.tracks, index)}
 	/>
 </div>

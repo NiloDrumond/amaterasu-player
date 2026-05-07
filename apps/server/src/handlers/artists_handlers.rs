@@ -1,7 +1,9 @@
 use crate::{
     dto::{
         request::{PaginationParams, SearchQuery},
-        response::{AdminArtistResponse, AlbumResponse, ArtistResponse, PaginatedResponse},
+        response::{
+            AdminArtistResponse, AlbumResponse, ArtistResponse, PaginatedResponse, TrackResponse,
+        },
     },
     error::{AppError, AppResult},
     repositories::ArtistRepository,
@@ -61,4 +63,14 @@ pub async fn get_artist_albums(
     let albums = service.get_albums_by_artist_id(id).await?;
 
     Ok(Json(albums.into_iter().map(Into::into).collect()))
+}
+
+pub async fn get_artist_tracks(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<Vec<TrackResponse>>> {
+    let service = LibraryService::new(state.db.clone());
+    let tracks = service.get_tracks_by_artist_id(id).await?;
+
+    Ok(Json(tracks.into_iter().map(Into::into).collect()))
 }

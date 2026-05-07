@@ -10,4 +10,8 @@ pub fn artists_routes() -> Router<AppState> {
             "/artists/{id}/albums",
             get(artists_handlers::get_artist_albums),
         )
+        .route(
+            "/artists/{id}/tracks",
+            get(artists_handlers::get_artist_tracks),
+        )
 }
