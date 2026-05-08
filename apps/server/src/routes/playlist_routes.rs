@@ -30,4 +30,8 @@ pub fn playlist_routes() -> Router<AppState> {
             "/playlists/{id}/tracks/{tid}",
             patch(playlist_handlers::reorder_track),
         )
+        .route(
+            "/playlists/{id}/filter",
+            patch(playlist_handlers::update_playlist_filter),
+        )
 }

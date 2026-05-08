@@ -1,9 +1,10 @@
 use chrono::NaiveDate;
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::db::entities::Album;
 use crate::error::{AppError, AppResult};
+use crate::filters::{compile_albums_filter, FilterNode};
 
 pub struct AlbumRepository;
 
@@ -110,32 +111,6 @@ impl AlbumRepository {
         Ok(album)
     }
 
-    pub async fn find_all(
-        executor: impl PgExecutor<'_>,
-        limit: i32,
-        offset: i32,
-    ) -> AppResult<Vec<Album>> {
-        let albums = sqlx::query_as!(
-            Album,
-            r#"
-            SELECT
-                *
-            FROM
-                albums
-            ORDER BY
-                sort_title,
-                title
-            LIMIT $1 OFFSET $2
-            "#,
-            limit as i64,
-            offset as i64,
-        )
-        .fetch_all(executor)
-        .await?;
-
-        Ok(albums)
-    }
-
     pub async fn search(
         executor: impl PgExecutor<'_>,
         query: &str,
@@ -152,7 +127,8 @@ impl AlbumRepository {
                 albums
             WHERE
                 title ILIKE $1
-                AND ($2::uuid IS NULL OR artist_id = $2)
+                AND ($2::uuid IS NULL
+                    OR artist_id = $2)
             ORDER BY
                 sort_title,
                 title
@@ -168,19 +144,35 @@ impl AlbumRepository {
         Ok(albums)
     }
 
-    pub async fn count(executor: impl PgExecutor<'_>) -> AppResult<i64> {
-        let record = sqlx::query!(
-            r#"
-            SELECT
-                COUNT(*) AS count
-            FROM
-                albums
-            "#
-        )
-        .fetch_one(executor)
-        .await?;
+    pub async fn find(
+        pool: &PgPool,
+        filter: Option<&FilterNode>,
+        limit: i32,
+        offset: i32,
+    ) -> AppResult<Vec<Album>> {
+        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new("SELECT albums.* FROM albums");
+        if let Some(filter) = filter {
+            qb.push(" WHERE ");
+            compile_albums_filter(&mut qb, filter)
+                .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
+        }
+        qb.push(" ORDER BY albums.sort_title, albums.title");
+        qb.push(" LIMIT ").push_bind(limit as i64);
+        qb.push(" OFFSET ").push_bind(offset as i64);
 
-        Ok(record.count.unwrap_or(0))
+        let albums = qb.build_query_as::<Album>().fetch_all(pool).await?;
+        Ok(albums)
+    }
+
+    pub async fn count(pool: &PgPool, filter: Option<&FilterNode>) -> AppResult<i64> {
+        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new("SELECT COUNT(*) FROM albums");
+        if let Some(filter) = filter {
+            qb.push(" WHERE ");
+            compile_albums_filter(&mut qb, filter)
+                .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
+        }
+        let row: (i64,) = qb.build_query_as().fetch_one(pool).await?;
+        Ok(row.0)
     }
 
     pub async fn get_track_stats_for_album_ids(
@@ -308,7 +300,8 @@ impl AlbumRepository {
         let updated = sqlx::query_as!(
             Album,
             r#"
-            UPDATE albums
+            UPDATE
+                albums
             SET
                 title = $2,
                 sort_title = $3,
@@ -316,8 +309,10 @@ impl AlbumRepository {
                 date = $5,
                 locked_at = NOW(),
                 updated_at = NOW()
-            WHERE id = $1
-            RETURNING *
+            WHERE
+                id = $1
+            RETURNING
+                *
             "#,
             id,
             title,
@@ -332,9 +327,17 @@ impl AlbumRepository {
     }
 
     pub async fn clear_lock(executor: impl PgExecutor<'_>, id: Uuid) -> Result<(), AppError> {
-        sqlx::query!(r#"UPDATE albums SET locked_at = NULL WHERE id = $1"#, id)
-            .execute(executor)
-            .await?;
+        sqlx::query!(
+            r#"UPDATE
+    albums
+SET
+    locked_at = NULL
+WHERE
+    id = $1"#,
+            id
+        )
+        .execute(executor)
+        .await?;
         Ok(())
     }
 
@@ -347,10 +350,14 @@ impl AlbumRepository {
             r#"
             DELETE FROM albums
             WHERE id = $1
-              AND NOT EXISTS (
-                  SELECT 1 FROM tracks
-                  WHERE album_id = $1 AND deleted_at IS NULL
-              )
+                AND NOT EXISTS (
+                    SELECT
+                        1
+                    FROM
+                        tracks
+                    WHERE
+                        album_id = $1
+                        AND deleted_at IS NULL)
             "#,
             id
         )

@@ -1,8 +1,10 @@
-use sqlx::PgExecutor;
+use sqlx::types::Json;
+use sqlx::{PgExecutor, PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::db::entities::{Playlist, PlaylistTrack};
 use crate::error::AppResult;
+use crate::filters::{compile_tracks_filter, FilterNode};
 
 pub struct PlaylistRepository;
 
@@ -45,21 +47,29 @@ impl PlaylistRepository {
         executor: impl PgExecutor<'_>,
         user_id: Uuid,
         name: &str,
+        filter_definition: Option<&FilterNode>,
     ) -> AppResult<Playlist> {
+        let playlist_type = if filter_definition.is_some() {
+            "dynamic"
+        } else {
+            "manual"
+        };
+        let filter_json = filter_definition
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| crate::error::AppError::BadRequest(format!("invalid filter: {e}")))?;
         let playlist = sqlx::query_as!(
             Playlist,
             r#"
-            INSERT INTO playlists (user_id, name)
-                VALUES ($1, $2)
+            INSERT INTO playlists (user_id, name, type, filter_definition)
+                VALUES ($1, $2, $3, $4)
             RETURNING
-                id,
-                user_id,
-                name,
-                created_at,
-                updated_at
+                id, user_id, name, created_at, updated_at, type AS "playlist_type", filter_definition AS "filter_definition: Json<FilterNode>", cached_track_count, cached_total_duration_ms
             "#,
             user_id,
-            name
+            name,
+            playlist_type,
+            filter_json,
         )
         .fetch_one(executor)
         .await?;
@@ -80,12 +90,24 @@ impl PlaylistRepository {
                 p.name,
                 p.created_at,
                 p.updated_at,
-                COUNT(pt.id) AS "track_count!: i64",
-                COALESCE(SUM(t.duration_ms), 0)::bigint AS "total_duration_ms!: i64"
+                p.type AS "playlist_type!",
+                p.filter_definition AS "filter_definition: Json<FilterNode>",
+                p.cached_track_count,
+                p.cached_total_duration_ms,
+                CASE WHEN p.type = 'dynamic' THEN
+                    p.cached_track_count::bigint
+                ELSE
+                    COUNT(pt.id)
+                END AS "track_count!: i64",
+                CASE WHEN p.type = 'dynamic' THEN
+                    p.cached_total_duration_ms
+                ELSE
+                    COALESCE(SUM(t.duration_ms), 0)::bigint
+                END AS "total_duration_ms!: i64"
             FROM
                 playlists p
-            LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id
-            LEFT JOIN tracks t ON t.id = pt.track_id
+                LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id
+                LEFT JOIN tracks t ON t.id = pt.track_id
             WHERE
                 p.id = $1
                 AND p.user_id = $2
@@ -105,16 +127,29 @@ impl PlaylistRepository {
                 name: r.name,
                 created_at: r.created_at,
                 updated_at: r.updated_at,
+                playlist_type: r.playlist_type,
+                filter_definition: r.filter_definition,
+                cached_track_count: r.cached_track_count,
+                cached_total_duration_ms: r.cached_total_duration_ms,
             },
             track_count: r.track_count,
             total_duration_ms: r.total_duration_ms,
         }))
     }
 
-    pub async fn list_by_user(
+    pub async fn list_by_user_with_query(
         executor: impl PgExecutor<'_>,
         user_id: Uuid,
+        query: Option<&str>,
     ) -> AppResult<Vec<PlaylistStats>> {
+        let pattern = query.map(|q| {
+            format!(
+                "%{}%",
+                q.replace('\\', "\\\\")
+                    .replace('%', "\\%")
+                    .replace('_', "\\_")
+            )
+        });
         let rows = sqlx::query!(
             r#"
             SELECT
@@ -123,20 +158,35 @@ impl PlaylistRepository {
                 p.name,
                 p.created_at,
                 p.updated_at,
-                COUNT(pt.id) AS "track_count!: i64",
-                COALESCE(SUM(t.duration_ms), 0)::bigint AS "total_duration_ms!: i64"
+                p.type AS "playlist_type!",
+                p.filter_definition AS "filter_definition: Json<FilterNode>",
+                p.cached_track_count,
+                p.cached_total_duration_ms,
+                CASE WHEN p.type = 'dynamic' THEN
+                    p.cached_track_count::bigint
+                ELSE
+                    COUNT(pt.id)
+                END AS "track_count!: i64",
+                CASE WHEN p.type = 'dynamic' THEN
+                    p.cached_total_duration_ms
+                ELSE
+                    COALESCE(SUM(t.duration_ms), 0)::bigint
+                END AS "total_duration_ms!: i64"
             FROM
                 playlists p
-            LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id
-            LEFT JOIN tracks t ON t.id = pt.track_id
+                LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id
+                LEFT JOIN tracks t ON t.id = pt.track_id
             WHERE
                 p.user_id = $1
+                AND ($2::text IS NULL
+                    OR p.name ILIKE $2)
             GROUP BY
                 p.id
             ORDER BY
                 p.created_at DESC
             "#,
-            user_id
+            user_id,
+            pattern,
         )
         .fetch_all(executor)
         .await?;
@@ -150,6 +200,10 @@ impl PlaylistRepository {
                     name: r.name,
                     created_at: r.created_at,
                     updated_at: r.updated_at,
+                    playlist_type: r.playlist_type,
+                    filter_definition: r.filter_definition,
+                    cached_track_count: r.cached_track_count,
+                    cached_total_duration_ms: r.cached_total_duration_ms,
                 },
                 track_count: r.track_count,
                 total_duration_ms: r.total_duration_ms,
@@ -166,7 +220,8 @@ impl PlaylistRepository {
         let playlist = sqlx::query_as!(
             Playlist,
             r#"
-            UPDATE playlists
+            UPDATE
+                playlists
             SET
                 name = $3
             WHERE
@@ -177,7 +232,11 @@ impl PlaylistRepository {
                 user_id,
                 name,
                 created_at,
-                updated_at
+                updated_at,
+                type AS "playlist_type",
+                filter_definition AS "filter_definition: Json<FilterNode>",
+                cached_track_count,
+                cached_total_duration_ms
             "#,
             id,
             user_id,
@@ -189,12 +248,151 @@ impl PlaylistRepository {
         Ok(playlist)
     }
 
+    /// Updates the filter definition of a dynamic playlist.
+    pub async fn update_filter(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+        user_id: Uuid,
+        filter_definition: &FilterNode,
+    ) -> AppResult<Option<Playlist>> {
+        let filter_json = serde_json::to_value(filter_definition)
+            .map_err(|e| crate::error::AppError::BadRequest(format!("invalid filter: {e}")))?;
+        let playlist = sqlx::query_as!(
+            Playlist,
+            r#"
+            UPDATE
+                playlists
+            SET
+                filter_definition = $3,
+                updated_at = NOW()
+            WHERE
+                id = $1
+                AND user_id = $2
+                AND type = 'dynamic'
+            RETURNING
+                id,
+                user_id,
+                name,
+                created_at,
+                updated_at,
+                type AS "playlist_type",
+                filter_definition AS "filter_definition: Json<FilterNode>",
+                cached_track_count,
+                cached_total_duration_ms
+            "#,
+            id,
+            user_id,
+            filter_json,
+        )
+        .fetch_optional(executor)
+        .await?;
+
+        Ok(playlist)
+    }
+
+    /// Resolves a dynamic playlist's filter to a list of `PlaylistTrackRow`s.
+    /// Position is the row index, playlist_track_id is the synthetic UUID nil
+    /// (dynamic playlists have no real `playlist_tracks` rows).
+    pub async fn list_dynamic_tracks(
+        pool: &PgPool,
+        playlist_id: Uuid,
+        filter: &FilterNode,
+    ) -> AppResult<Vec<PlaylistTrackRow>> {
+        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"
+            SELECT
+                tracks.id           AS track_id,
+                tracks.title        AS title,
+                tracks.sort_title   AS sort_title,
+                tracks.artist_id,
+                tracks.album_id,
+                tracks.track_no,
+                tracks.disc,
+                tracks.duration_ms,
+                tracks.format,
+                tracks.codec,
+                tracks.bitrate,
+                tracks.file_path,
+                tracks.original_title,
+                tracks.original_artist,
+                tracks.original_album,
+                ar.name             AS artist_name,
+                al.title            AS album_title,
+                al.cover_path       AS album_cover_path
+            FROM tracks
+            LEFT JOIN artists ar ON ar.id = tracks.artist_id
+            LEFT JOIN albums al ON al.id = tracks.album_id
+            WHERE tracks.deleted_at IS NULL AND "#,
+        );
+        compile_tracks_filter(&mut qb, filter)
+            .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
+        qb.push(" ORDER BY tracks.disc NULLS LAST, tracks.track_no NULLS LAST, tracks.title");
+
+        let rows = qb.build().fetch_all(pool).await?;
+
+        // Write the resolved aggregates back to the playlist so the listing
+        // page can show accurate counts without re-running the filter.
+        {
+            use sqlx::Row;
+            let total_duration_ms: i64 = rows
+                .iter()
+                .map(|r| r.try_get::<i32, _>("duration_ms").map(i64::from))
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .sum();
+            sqlx::query!(
+                r#"
+                UPDATE
+                    playlists
+                SET
+                    cached_track_count = $1,
+                    cached_total_duration_ms = $2
+                WHERE
+                    id = $3
+                "#,
+                rows.len() as i32,
+                total_duration_ms,
+                playlist_id,
+            )
+            .execute(pool)
+            .await?;
+        }
+
+        let mut out = Vec::with_capacity(rows.len());
+        for (idx, r) in rows.iter().enumerate() {
+            use sqlx::Row;
+            out.push(PlaylistTrackRow {
+                playlist_track_id: Uuid::nil(),
+                position: (idx + 1) as f64,
+                added_at: chrono::Utc::now(),
+                track_id: r.try_get("track_id")?,
+                title: r.try_get("title")?,
+                sort_title: r.try_get("sort_title")?,
+                artist_id: r.try_get("artist_id")?,
+                album_id: r.try_get("album_id")?,
+                track_no: r.try_get("track_no")?,
+                disc: r.try_get("disc")?,
+                duration_ms: r.try_get("duration_ms")?,
+                format: r.try_get("format")?,
+                codec: r.try_get("codec")?,
+                bitrate: r.try_get("bitrate")?,
+                file_path: r.try_get("file_path")?,
+                original_title: r.try_get("original_title")?,
+                original_artist: r.try_get("original_artist")?,
+                original_album: r.try_get("original_album")?,
+                artist_name: r.try_get("artist_name")?,
+                album_title: r.try_get("album_title")?,
+                album_cover_path: r.try_get("album_cover_path")?,
+            });
+        }
+        Ok(out)
+    }
+
     pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, user_id: Uuid) -> AppResult<bool> {
         let result = sqlx::query!(
             r#"
             DELETE FROM playlists
-            WHERE
-                id = $1
+            WHERE id = $1
                 AND user_id = $2
             "#,
             id,
@@ -213,9 +411,12 @@ impl PlaylistRepository {
     ) -> AppResult<Option<f64>> {
         let row = sqlx::query!(
             r#"
-            SELECT MAX(position) AS max_pos
-            FROM playlist_tracks
-            WHERE playlist_id = $1
+            SELECT
+                MAX(position) AS max_pos
+            FROM
+                playlist_tracks
+            WHERE
+                playlist_id = $1
             "#,
             playlist_id
         )
@@ -236,13 +437,10 @@ impl PlaylistRepository {
             r#"
             INSERT INTO playlist_tracks (playlist_id, track_id, position)
                 VALUES ($1, $2, $3)
-            ON CONFLICT (playlist_id, track_id) DO NOTHING
+            ON CONFLICT (playlist_id, track_id)
+                DO NOTHING
             RETURNING
-                id,
-                playlist_id,
-                track_id,
-                position,
-                added_at
+                id, playlist_id, track_id, position, added_at
             "#,
             playlist_id,
             track_id,
@@ -262,10 +460,8 @@ impl PlaylistRepository {
     ) -> AppResult<bool> {
         let result = sqlx::query!(
             r#"
-            DELETE FROM playlist_tracks pt
-            USING playlists p
-            WHERE
-                pt.playlist_id = p.id
+            DELETE FROM playlist_tracks pt USING playlists p
+            WHERE pt.playlist_id = p.id
                 AND p.user_id = $3
                 AND pt.playlist_id = $1
                 AND pt.track_id = $2
@@ -288,33 +484,33 @@ impl PlaylistRepository {
         let rows = sqlx::query!(
             r#"
             SELECT
-                pt.id          AS "playlist_track_id!",
-                pt.position    AS "position!",
-                pt.added_at    AS "added_at!",
-                t.id           AS "track_id!",
-                t.title        AS "title!",
-                t.sort_title   AS "sort_title!",
+                pt.id AS "playlist_track_id!",
+                pt.position AS "position!",
+                pt.added_at AS "added_at!",
+                t.id AS "track_id!",
+                t.title AS "title!",
+                t.sort_title AS "sort_title!",
                 t.artist_id,
                 t.album_id,
                 t.track_no,
                 t.disc,
-                t.duration_ms  AS "duration_ms!",
-                t.format       AS "format!",
-                t.codec        AS "codec!",
+                t.duration_ms AS "duration_ms!",
+                t.format AS "format!",
+                t.codec AS "codec!",
                 t.bitrate,
-                t.file_path    AS "file_path!",
+                t.file_path AS "file_path!",
                 t.original_title,
                 t.original_artist,
                 t.original_album,
-                ar.name        AS "artist_name?",
-                al.title       AS "album_title?",
-                al.cover_path  AS "album_cover_path?"
+                ar.name AS "artist_name?",
+                al.title AS "album_title?",
+                al.cover_path AS "album_cover_path?"
             FROM
                 playlist_tracks pt
-            JOIN playlists p ON p.id = pt.playlist_id
-            JOIN tracks t ON t.id = pt.track_id
-            LEFT JOIN artists ar ON ar.id = t.artist_id
-            LEFT JOIN albums al ON al.id = t.album_id
+                JOIN playlists p ON p.id = pt.playlist_id
+                JOIN tracks t ON t.id = pt.track_id
+                LEFT JOIN artists ar ON ar.id = t.artist_id
+                LEFT JOIN albums al ON al.id = t.album_id
             WHERE
                 pt.playlist_id = $1
                 AND p.user_id = $2
@@ -373,9 +569,12 @@ impl PlaylistRepository {
                 // Moving to front: prev = None, next = current minimum position
                 let row = sqlx::query!(
                     r#"
-                    SELECT MIN(position) AS min_pos
-                    FROM playlist_tracks
-                    WHERE playlist_id = $1
+                    SELECT
+                        MIN(position) AS min_pos
+                    FROM
+                        playlist_tracks
+                    WHERE
+                        playlist_id = $1
                     "#,
                     playlist_id
                 )
@@ -387,9 +586,13 @@ impl PlaylistRepository {
                 // Get the position of `after_track_id`
                 let after_row = sqlx::query!(
                     r#"
-                    SELECT position
-                    FROM playlist_tracks
-                    WHERE playlist_id = $1 AND track_id = $2
+                    SELECT
+                        position
+                    FROM
+                        playlist_tracks
+                    WHERE
+                        playlist_id = $1
+                        AND track_id = $2
                     "#,
                     playlist_id,
                     after_track_id
@@ -406,10 +609,15 @@ impl PlaylistRepository {
                 // Find the next position after after_pos
                 let next_row = sqlx::query!(
                     r#"
-                    SELECT position
-                    FROM playlist_tracks
-                    WHERE playlist_id = $1 AND position > $2
-                    ORDER BY position ASC
+                    SELECT
+                        position
+                    FROM
+                        playlist_tracks
+                    WHERE
+                        playlist_id = $1
+                        AND position > $2
+                    ORDER BY
+                        position ASC
                     LIMIT 1
                     "#,
                     playlist_id,
@@ -431,9 +639,13 @@ impl PlaylistRepository {
     ) -> AppResult<bool> {
         let result = sqlx::query!(
             r#"
-            UPDATE playlist_tracks
-            SET position = $3
-            WHERE playlist_id = $1 AND track_id = $2
+            UPDATE
+                playlist_tracks
+            SET
+                position = $3
+            WHERE
+                playlist_id = $1
+                AND track_id = $2
             "#,
             playlist_id,
             track_id,
@@ -452,14 +664,20 @@ impl PlaylistRepository {
     ) -> AppResult<()> {
         sqlx::query!(
             r#"
-            UPDATE playlist_tracks pt
-            SET position = sub.new_pos
+            UPDATE
+                playlist_tracks pt
+            SET
+                position = sub.new_pos
             FROM (
-                SELECT id, ROW_NUMBER() OVER (ORDER BY position ASC) * 1000.0 AS new_pos
-                FROM playlist_tracks
-                WHERE playlist_id = $1
-            ) sub
-            WHERE pt.id = sub.id
+                SELECT
+                    id,
+                    ROW_NUMBER() OVER (ORDER BY position ASC) * 1000.0 AS new_pos
+                FROM
+                    playlist_tracks
+                WHERE
+                    playlist_id = $1) sub
+            WHERE
+                pt.id = sub.id
             "#,
             playlist_id
         )
@@ -477,9 +695,13 @@ impl PlaylistRepository {
     ) -> AppResult<bool> {
         let row = sqlx::query!(
             r#"
-            SELECT 1 AS exists
-            FROM playlists
-            WHERE id = $1 AND user_id = $2
+            SELECT
+                1 AS exists
+            FROM
+                playlists
+            WHERE
+                id = $1
+                AND user_id = $2
             "#,
             playlist_id,
             user_id

@@ -18,6 +18,12 @@ export function playlistsColumns(onDeleted: () => void): ColumnDef<PlaylistRespo
 			cell: ({ row }) => row.original.name,
 		},
 		{
+			id: 'type',
+			header: 'TYPE',
+			maxSize: 90,
+			cell: ({ row }) => (row.original.playlistType === 'dynamic' ? '✨ Dynamic' : 'Manual'),
+		},
+		{
 			id: 'trackCount',
 			header: 'TRACKS',
 			maxSize: 80,

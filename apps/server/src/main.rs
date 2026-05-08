@@ -10,6 +10,7 @@ mod config;
 mod db;
 mod dto;
 mod error;
+mod filters;
 mod handlers;
 mod repositories;
 mod routes;

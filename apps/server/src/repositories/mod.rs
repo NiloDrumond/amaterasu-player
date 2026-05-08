@@ -1,3 +1,4 @@
+pub mod album_collection_repository;
 pub mod album_repository;
 pub mod artist_repository;
 pub mod playlist_repository;
@@ -7,6 +8,7 @@ pub mod tag_repository;
 pub mod track_repository;
 pub mod user_repository;
 
+pub use album_collection_repository::AlbumCollectionRepository;
 pub use album_repository::AlbumRepository;
 pub use artist_repository::ArtistRepository;
 pub use playlist_repository::PlaylistRepository;

@@ -1,9 +1,10 @@
 use chrono::NaiveDate;
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::db::entities::Track;
 use crate::error::AppResult;
+use crate::filters::{compile_tracks_filter, FilterNode};
 
 pub struct TrackRepository;
 
@@ -186,7 +187,12 @@ impl TrackRepository {
         file_path: &str,
     ) -> AppResult<()> {
         sqlx::query!(
-            r#"UPDATE tracks SET file_path = $2 WHERE id = $1"#,
+            r#"UPDATE
+    tracks
+SET
+    file_path = $2
+WHERE
+    id = $1"#,
             id,
             file_path
         )
@@ -206,20 +212,52 @@ impl TrackRepository {
         let updated = sqlx::query_as!(
             Track,
             r#"
-            UPDATE tracks SET
+            UPDATE
+                tracks
+            SET
                 title = COALESCE($2, title),
                 sort_title = COALESCE($3, sort_title),
-                artist_id = CASE WHEN $4::bool THEN $5 ELSE artist_id END,
-                album_id = CASE WHEN $6::bool THEN $7 ELSE album_id END,
-                disc = CASE WHEN $8::bool THEN $9 ELSE disc END,
-                track_no = CASE WHEN $10::bool THEN $11 ELSE track_no END,
-                date = CASE WHEN $12::bool THEN $13 ELSE date END,
-                composer = CASE WHEN $14::bool THEN $15 ELSE composer END,
-                comment = CASE WHEN $16::bool THEN $17 ELSE comment END,
+                artist_id = CASE WHEN $4::bool THEN
+                    $5
+                ELSE
+                    artist_id
+                END,
+                album_id = CASE WHEN $6::bool THEN
+                    $7
+                ELSE
+                    album_id
+                END,
+                disc = CASE WHEN $8::bool THEN
+                    $9
+                ELSE
+                    disc
+                END,
+                track_no = CASE WHEN $10::bool THEN
+                    $11
+                ELSE
+                    track_no
+                END,
+                date = CASE WHEN $12::bool THEN
+                    $13
+                ELSE
+                    date
+                END,
+                composer = CASE WHEN $14::bool THEN
+                    $15
+                ELSE
+                    composer
+                END,
+                comment = CASE WHEN $16::bool THEN
+                    $17
+                ELSE
+                    comment
+                END,
                 locked_at = NOW(),
                 updated_at = NOW()
-            WHERE id = $1
-            RETURNING *
+            WHERE
+                id = $1
+            RETURNING
+                *
             "#,
             id,
             patch.title.as_deref(),
@@ -253,19 +291,50 @@ impl TrackRepository {
     ) -> AppResult<u64> {
         let result = sqlx::query!(
             r#"
-            UPDATE tracks SET
+            UPDATE
+                tracks
+            SET
                 title = COALESCE($2, title),
                 sort_title = COALESCE($3, sort_title),
-                artist_id = CASE WHEN $4::bool THEN $5 ELSE artist_id END,
-                album_id = CASE WHEN $6::bool THEN $7 ELSE album_id END,
-                disc = CASE WHEN $8::bool THEN $9 ELSE disc END,
-                track_no = CASE WHEN $10::bool THEN $11 ELSE track_no END,
-                date = CASE WHEN $12::bool THEN $13 ELSE date END,
-                composer = CASE WHEN $14::bool THEN $15 ELSE composer END,
-                comment = CASE WHEN $16::bool THEN $17 ELSE comment END,
+                artist_id = CASE WHEN $4::bool THEN
+                    $5
+                ELSE
+                    artist_id
+                END,
+                album_id = CASE WHEN $6::bool THEN
+                    $7
+                ELSE
+                    album_id
+                END,
+                disc = CASE WHEN $8::bool THEN
+                    $9
+                ELSE
+                    disc
+                END,
+                track_no = CASE WHEN $10::bool THEN
+                    $11
+                ELSE
+                    track_no
+                END,
+                date = CASE WHEN $12::bool THEN
+                    $13
+                ELSE
+                    date
+                END,
+                composer = CASE WHEN $14::bool THEN
+                    $15
+                ELSE
+                    composer
+                END,
+                comment = CASE WHEN $16::bool THEN
+                    $17
+                ELSE
+                    comment
+                END,
                 locked_at = NOW(),
                 updated_at = NOW()
-            WHERE id = ANY($1)
+            WHERE
+                id = ANY ($1)
             "#,
             ids,
             patch.title.as_deref(),
@@ -292,7 +361,13 @@ impl TrackRepository {
 
     pub async fn soft_delete(executor: impl PgExecutor<'_>, id: Uuid) -> AppResult<()> {
         sqlx::query!(
-            r#"UPDATE tracks SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL"#,
+            r#"UPDATE
+    tracks
+SET
+    deleted_at = NOW()
+WHERE
+    id = $1
+    AND deleted_at IS NULL"#,
             id
         )
         .execute(executor)
@@ -301,15 +376,29 @@ impl TrackRepository {
     }
 
     pub async fn restore(executor: impl PgExecutor<'_>, id: Uuid) -> AppResult<()> {
-        sqlx::query!(r#"UPDATE tracks SET deleted_at = NULL WHERE id = $1"#, id)
-            .execute(executor)
-            .await?;
+        sqlx::query!(
+            r#"UPDATE
+    tracks
+SET
+    deleted_at = NULL
+WHERE
+    id = $1"#,
+            id
+        )
+        .execute(executor)
+        .await?;
         Ok(())
     }
 
     pub async fn force_rescan(executor: impl PgExecutor<'_>, id: Uuid) -> AppResult<()> {
         sqlx::query!(
-            r#"UPDATE tracks SET deleted_at = NULL, locked_at = NULL WHERE id = $1"#,
+            r#"UPDATE
+    tracks
+SET
+    deleted_at = NULL,
+    locked_at = NULL
+WHERE
+    id = $1"#,
             id
         )
         .execute(executor)
@@ -324,41 +413,14 @@ impl TrackRepository {
         id: Uuid,
     ) -> AppResult<bool> {
         let result = sqlx::query!(
-            r#"DELETE FROM tracks WHERE id = $1 AND deleted_at IS NOT NULL"#,
+            r#"DELETE FROM tracks
+WHERE id = $1
+    AND deleted_at IS NOT NULL"#,
             id
         )
         .execute(executor)
         .await?;
         Ok(result.rows_affected() > 0)
-    }
-
-    pub async fn find_all(
-        executor: impl PgExecutor<'_>,
-        limit: i32,
-        offset: i32,
-    ) -> AppResult<Vec<Track>> {
-        let tracks = sqlx::query_as!(
-            Track,
-            r#"
-            SELECT
-                *
-            FROM
-                tracks
-            WHERE
-                deleted_at IS NULL
-            ORDER BY
-                disc,
-                track_no,
-                title
-            LIMIT $1 OFFSET $2
-            "#,
-            limit as i64,
-            offset as i64,
-        )
-        .fetch_all(executor)
-        .await?;
-
-        Ok(tracks)
     }
 
     pub async fn find_by_album_id(
@@ -466,20 +528,36 @@ impl TrackRepository {
             .collect())
     }
 
-    pub async fn count(executor: impl PgExecutor<'_>) -> AppResult<i64> {
-        let record = sqlx::query!(
-            r#"
-            SELECT
-                COUNT(*) AS count
-            FROM
-                tracks
-            WHERE
-                deleted_at IS NULL
-            "#
-        )
-        .fetch_one(executor)
-        .await?;
+    pub async fn find(
+        pool: &PgPool,
+        filter: Option<&FilterNode>,
+        limit: i32,
+        offset: i32,
+    ) -> AppResult<Vec<Track>> {
+        let mut qb: QueryBuilder<Postgres> =
+            QueryBuilder::new("SELECT tracks.* FROM tracks WHERE tracks.deleted_at IS NULL");
+        if let Some(filter) = filter {
+            qb.push(" AND ");
+            compile_tracks_filter(&mut qb, filter)
+                .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
+        }
+        qb.push(" ORDER BY tracks.disc, tracks.track_no, tracks.title");
+        qb.push(" LIMIT ").push_bind(limit as i64);
+        qb.push(" OFFSET ").push_bind(offset as i64);
 
-        Ok(record.count.unwrap_or(0))
+        let tracks = qb.build_query_as::<Track>().fetch_all(pool).await?;
+        Ok(tracks)
+    }
+
+    pub async fn count(pool: &PgPool, filter: Option<&FilterNode>) -> AppResult<i64> {
+        let mut qb: QueryBuilder<Postgres> =
+            QueryBuilder::new("SELECT COUNT(*) FROM tracks WHERE tracks.deleted_at IS NULL");
+        if let Some(filter) = filter {
+            qb.push(" AND ");
+            compile_tracks_filter(&mut qb, filter)
+                .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
+        }
+        let row: (i64,) = qb.build_query_as().fetch_one(pool).await?;
+        Ok(row.0)
     }
 }

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
+	import SearchInput from '$lib/components/filters/search-input.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
@@ -24,7 +26,7 @@
 			const res = await fetch('/api/playlists', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name: newPlaylistName.trim() }),
+				body: JSON.stringify({ name: newPlaylistName.trim(), filterDefinition: null }),
 			});
 			if (res.ok) {
 				toast.success('Playlist created');
@@ -40,6 +42,13 @@
 	}
 
 	const columns = $derived(playlistsColumns(() => invalidateAll()));
+
+	function onSearch(q: string) {
+		const url = new URL(page.url);
+		if (q) url.searchParams.set('q', q);
+		else url.searchParams.delete('q');
+		goto(url, { keepFocus: true, noScroll: true });
+	}
 </script>
 
 {#if data.error}
@@ -47,8 +56,14 @@
 	<p>{data.error.message}</p>
 {:else}
 	<div class="flex flex-col p-4">
-		<div class="mb-4 flex items-center justify-between">
+		<div class="mb-4 flex items-center gap-3">
 			<h1 class="tracking-widest uppercase">Playlists</h1>
+			<SearchInput
+				value={page.url.searchParams.get('q') ?? ''}
+				onChange={onSearch}
+				placeholder="Search playlists…"
+			/>
+			<div class="ml-auto"></div>
 			<Dialog.Root
 				bind:open={dialogOpen}
 				onOpenChange={(open) => {

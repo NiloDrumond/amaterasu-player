@@ -72,7 +72,7 @@ impl ArtistRepository {
             FROM
                 artists
             WHERE
-                id = ANY($1)
+                id = ANY ($1)
             "#,
             ids
         )
@@ -104,32 +104,6 @@ impl ArtistRepository {
         Ok(artist)
     }
 
-    pub async fn find_all(
-        executor: impl PgExecutor<'_>,
-        limit: i32,
-        offset: i32,
-    ) -> Result<Vec<Artist>, AppError> {
-        let artists = sqlx::query_as!(
-            Artist,
-            r#"
-            SELECT
-                *
-            FROM
-                artists
-            ORDER BY
-                sort_name,
-                name
-            LIMIT $1 OFFSET $2
-            "#,
-            limit as i64,
-            offset as i64,
-        )
-        .fetch_all(executor)
-        .await?;
-
-        Ok(artists)
-    }
-
     pub async fn search(
         executor: impl PgExecutor<'_>,
         query: &str,
@@ -159,18 +133,70 @@ impl ArtistRepository {
         Ok(artists)
     }
 
-    pub async fn count(executor: impl PgExecutor<'_>) -> Result<i64, AppError> {
+    pub async fn find_all_with_query(
+        executor: impl PgExecutor<'_>,
+        query: Option<&str>,
+        limit: i32,
+        offset: i32,
+    ) -> Result<Vec<Artist>, AppError> {
+        let pattern = query.map(|q| {
+            format!(
+                "%{}%",
+                q.replace('\\', "\\\\")
+                    .replace('%', "\\%")
+                    .replace('_', "\\_")
+            )
+        });
+        let artists = sqlx::query_as!(
+            Artist,
+            r#"
+            SELECT
+                *
+            FROM
+                artists
+            WHERE
+                $1::text IS NULL
+                OR name ILIKE $1
+            ORDER BY
+                sort_name,
+                name
+            LIMIT $2 OFFSET $3
+            "#,
+            pattern,
+            limit as i64,
+            offset as i64,
+        )
+        .fetch_all(executor)
+        .await?;
+        Ok(artists)
+    }
+
+    pub async fn count_with_query(
+        executor: impl PgExecutor<'_>,
+        query: Option<&str>,
+    ) -> Result<i64, AppError> {
+        let pattern = query.map(|q| {
+            format!(
+                "%{}%",
+                q.replace('\\', "\\\\")
+                    .replace('%', "\\%")
+                    .replace('_', "\\_")
+            )
+        });
         let record = sqlx::query!(
             r#"
             SELECT
                 COUNT(*) AS count
             FROM
                 artists
-            "#
+            WHERE
+                $1::text IS NULL
+                OR name ILIKE $1
+            "#,
+            pattern,
         )
         .fetch_one(executor)
         .await?;
-
         Ok(record.count.unwrap_or(0))
     }
 
@@ -183,14 +209,17 @@ impl ArtistRepository {
         let updated = sqlx::query_as!(
             Artist,
             r#"
-            UPDATE artists
+            UPDATE
+                artists
             SET
                 name = $2,
                 sort_name = $3,
                 locked_at = NOW(),
                 updated_at = NOW()
-            WHERE id = $1
-            RETURNING *
+            WHERE
+                id = $1
+            RETURNING
+                *
             "#,
             id,
             name,
@@ -203,9 +232,17 @@ impl ArtistRepository {
     }
 
     pub async fn clear_lock(executor: impl PgExecutor<'_>, id: Uuid) -> Result<(), AppError> {
-        sqlx::query!(r#"UPDATE artists SET locked_at = NULL WHERE id = $1"#, id)
-            .execute(executor)
-            .await?;
+        sqlx::query!(
+            r#"UPDATE
+    artists
+SET
+    locked_at = NULL
+WHERE
+    id = $1"#,
+            id
+        )
+        .execute(executor)
+        .await?;
         Ok(())
     }
 
@@ -220,14 +257,22 @@ impl ArtistRepository {
             r#"
             DELETE FROM artists
             WHERE id = $1
-              AND NOT EXISTS (
-                  SELECT 1 FROM albums
-                  WHERE artist_id = $1 OR source_album_artist_id = $1
-              )
-              AND NOT EXISTS (
-                  SELECT 1 FROM tracks
-                  WHERE artist_id = $1 AND deleted_at IS NULL
-              )
+                AND NOT EXISTS (
+                    SELECT
+                        1
+                    FROM
+                        albums
+                    WHERE
+                        artist_id = $1
+                        OR source_album_artist_id = $1)
+                AND NOT EXISTS (
+                    SELECT
+                        1
+                    FROM
+                        tracks
+                    WHERE
+                        artist_id = $1
+                        AND deleted_at IS NULL)
             "#,
             id
         )

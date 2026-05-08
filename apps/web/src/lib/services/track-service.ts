@@ -4,10 +4,19 @@ import { api, type Result } from './api';
 
 type Fetch = typeof fetch;
 
+export interface GetTracksParams extends PaginationParams {
+	/** base64url-encoded JSON FilterNode */
+	f?: string | null;
+}
+
 export function getTracks(
 	fetch: Fetch,
-	params?: PaginationParams,
+	params?: GetTracksParams,
 ): Promise<Result<GetTracksResponse>> {
-	const query = params ? `?limit=${params.limit}&offset=${params.offset}` : '';
-	return api<GetTracksResponse>(fetch, `/api/tracks${query}`);
+	if (!params) return api<GetTracksResponse>(fetch, '/api/tracks');
+	const search = new URLSearchParams();
+	search.set('limit', String(params.limit));
+	search.set('offset', String(params.offset));
+	if (params.f) search.set('f', params.f);
+	return api<GetTracksResponse>(fetch, `/api/tracks?${search.toString()}`);
 }

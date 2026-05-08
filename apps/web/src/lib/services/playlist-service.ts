@@ -4,12 +4,14 @@ import type { CreatePlaylistParams } from '$lib/bindings/request/playlist/create
 import type { RenamePlaylistParams } from '$lib/bindings/request/playlist/rename-playlist-params';
 import type { AddTracksParams } from '$lib/bindings/request/playlist/add-tracks-params';
 import type { ReorderTrackParams } from '$lib/bindings/request/playlist/reorder-track-params';
+import type { UpdatePlaylistFilterParams } from '$lib/bindings/request/playlist/update-playlist-filter-params';
 import { api, type Result } from './api';
 
 type Fetch = typeof fetch;
 
-export function getPlaylists(fetch: Fetch): Promise<Result<PlaylistResponse[]>> {
-	return api<PlaylistResponse[]>(fetch, '/api/playlists');
+export function getPlaylists(fetch: Fetch, q?: string | null): Promise<Result<PlaylistResponse[]>> {
+	const search = q ? `?q=${encodeURIComponent(q)}` : '';
+	return api<PlaylistResponse[]>(fetch, `/api/playlists${search}`);
 }
 
 export function getPlaylist(fetch: Fetch, id: string): Promise<Result<PlaylistResponse>> {
@@ -57,6 +59,17 @@ export function removeTrackFromPlaylist(
 ): Promise<Result<void>> {
 	return api<void>(fetch, `/api/playlists/${playlistId}/tracks/${playlistTrackId}`, {
 		method: 'DELETE',
+	});
+}
+
+export function updatePlaylistFilter(
+	fetch: Fetch,
+	id: string,
+	params: UpdatePlaylistFilterParams,
+): Promise<Result<PlaylistResponse>> {
+	return api<PlaylistResponse>(fetch, `/api/playlists/${id}/filter`, {
+		method: 'PATCH',
+		body: params,
 	});
 }
 

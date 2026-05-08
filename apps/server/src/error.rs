@@ -21,6 +21,9 @@ pub enum AppError {
     #[error("Not found")]
     NotFound,
 
+    #[error("Bad request: {0}")]
+    BadRequest(String),
+
     #[error("Album is not empty")]
     AlbumNotEmpty,
 
@@ -63,6 +66,7 @@ impl IntoResponse for AppError {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Database error")
             }
             AppError::NotFound => (StatusCode::NOT_FOUND, "Resource not found"),
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.as_str()),
             AppError::AlbumNotEmpty => (StatusCode::CONFLICT, "Album still has tracks"),
             AppError::ArtistNotEmpty => (StatusCode::CONFLICT, "Artist still has albums or tracks"),
             AppError::RangeNotSatisfiable => {

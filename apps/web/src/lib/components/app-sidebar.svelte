@@ -82,6 +82,13 @@
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}
+							<a href="/collections" {...props}>Collections</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
 							<a href="/tags" {...props}>Tags</a>
 						{/snippet}
 					</Sidebar.MenuButton>

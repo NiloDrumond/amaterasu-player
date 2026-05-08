@@ -2,8 +2,9 @@ import type { PageServerLoad } from './$types';
 import { getPlaylists } from '$lib/services/playlist-service';
 import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ fetch }) => {
-	const { data: playlists, error: errorMessage } = await getPlaylists(fetch);
+export const load: PageServerLoad = async ({ fetch, url }) => {
+	const q = url.searchParams.get('q');
+	const { data: playlists, error: errorMessage } = await getPlaylists(fetch, q);
 
 	if (errorMessage) {
 		return { playlists: null, error: { status: 500, message: errorMessage } };

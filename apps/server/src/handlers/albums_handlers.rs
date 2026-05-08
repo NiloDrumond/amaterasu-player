@@ -1,6 +1,6 @@
 use crate::{
     dto::{
-        request::{PaginationParams, SearchQuery},
+        request::{FilteredPaginationParams, SearchQuery},
         response::{
             album_response::AlbumResponse, track_response::TrackResponse, AdminAlbumResponse,
             PaginatedResponse,
@@ -19,10 +19,13 @@ use uuid::Uuid;
 
 pub async fn get_albums(
     State(state): State<AppState>,
-    Query(params): Query<PaginationParams>,
+    Query(params): Query<FilteredPaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<AlbumResponse>>> {
+    let filter = params.decode_filter()?;
     let service = LibraryService::new(state.db.clone());
-    let (albums, total) = service.get_albums(params.limit, params.offset).await?;
+    let (albums, total) = service
+        .get_albums(filter.as_ref(), params.limit, params.offset)
+        .await?;
 
     let response = PaginatedResponse {
         data: albums.into_iter().map(Into::into).collect(),

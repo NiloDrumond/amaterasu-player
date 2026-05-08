@@ -17,7 +17,8 @@ type LoadData =
 	  };
 export const load: PageServerLoad = async ({ fetch, url }): Promise<LoadData> => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
-	const { data: artists, error: errorMessage } = await getArtists(fetch, { limit, offset });
+	const q = url.searchParams.get('q');
+	const { data: artists, error: errorMessage } = await getArtists(fetch, { limit, offset, q });
 
 	if (errorMessage) {
 		return { artists: null, error: { status: 500, message: errorMessage }, page };

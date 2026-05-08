@@ -70,3 +70,4 @@ walkdir = "2"
 # Macros
 amaterasu-macros = { path = "../../libs/macros" }
 ron = "0.12.0"
+base64 = "0.22.1"

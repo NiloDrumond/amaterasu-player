@@ -1,5 +1,6 @@
 use crate::auth::{admin_guard, auth_guard, session_extractor};
 use crate::routes::admin_routes::admin_routes;
+use crate::routes::album_collection_routes::album_collection_routes;
 use crate::routes::album_routes::albums_routes;
 use crate::routes::artist_routes::artists_routes;
 use crate::routes::cover_routes::covers_routes;
@@ -17,6 +18,7 @@ use tower_governor::key_extractor::PeerIpKeyExtractor;
 use tower_governor::GovernorLayer;
 
 mod admin_routes;
+mod album_collection_routes;
 mod album_routes;
 mod artist_routes;
 mod auth_routes;
@@ -36,6 +38,7 @@ pub fn create_api_router(
 
     let protected_routes = Router::new()
         .merge(albums_routes())
+        .merge(album_collection_routes())
         .merge(artists_routes())
         .merge(tracks_routes())
         .merge(covers_routes())

@@ -36,6 +36,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "axum-valid",
+ "base64",
  "chrono",
  "dotenvy",
  "ffmpeg-next",

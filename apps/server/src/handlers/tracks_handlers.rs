@@ -1,6 +1,6 @@
 use crate::{
     dto::{
-        request::PaginationParams,
+        request::FilteredPaginationParams,
         response::{PaginatedResponse, TrackResponse},
     },
     error::{AppError, AppResult},
@@ -15,10 +15,13 @@ use uuid::Uuid;
 
 pub async fn get_tracks(
     State(state): State<AppState>,
-    Query(params): Query<PaginationParams>,
+    Query(params): Query<FilteredPaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<TrackResponse>>> {
+    let filter = params.decode_filter()?;
     let service = LibraryService::new(state.db.clone());
-    let (tracks, total) = service.get_tracks(params.limit, params.offset).await?;
+    let (tracks, total) = service
+        .get_tracks(filter.as_ref(), params.limit, params.offset)
+        .await?;
 
     let response = PaginatedResponse {
         data: tracks.into_iter().map(Into::into).collect(),

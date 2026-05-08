@@ -5,7 +5,8 @@ import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
-	const { data: tracks, error: errorMessage } = await getTracks(fetch, { limit, offset });
+	const f = url.searchParams.get('f');
+	const { data: tracks, error: errorMessage } = await getTracks(fetch, { limit, offset, f });
 
 	if (errorMessage) {
 		return { tracks: null, error: { status: 500, message: errorMessage }, page };

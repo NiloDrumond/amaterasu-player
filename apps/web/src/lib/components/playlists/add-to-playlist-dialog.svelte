@@ -62,6 +62,7 @@
 		submitting = true;
 		const { data: newPlaylist, error: createError } = await createPlaylist(fetch, {
 			name: newPlaylistName.trim(),
+			filterDefinition: null,
 		});
 		if (createError || !newPlaylist) {
 			toast.error('Failed to create playlist');

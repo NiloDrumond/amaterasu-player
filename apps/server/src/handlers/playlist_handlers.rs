@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -11,6 +11,7 @@ use crate::{
     dto::{
         request::{
             AddTracksParams, CreatePlaylistParams, RenamePlaylistParams, ReorderTrackParams,
+            SearchPaginationParams, UpdatePlaylistFilterParams,
         },
         response::{PlaylistResponse, PlaylistTrackResponse},
     },
@@ -26,8 +27,14 @@ const MIN_GAP: f64 = 1e-9;
 pub async fn list_playlists(
     State(state): State<AppState>,
     auth_user: AuthUser,
+    Query(params): Query<SearchPaginationParams>,
 ) -> AppResult<Json<Vec<PlaylistResponse>>> {
-    let playlists = PlaylistRepository::list_by_user(&state.db, auth_user.user.id).await?;
+    let playlists = PlaylistRepository::list_by_user_with_query(
+        &state.db,
+        auth_user.user.id,
+        params.q.as_deref(),
+    )
+    .await?;
 
     Ok(Json(playlists.into_iter().map(Into::into).collect()))
 }
@@ -37,7 +44,13 @@ pub async fn create_playlist(
     auth_user: AuthUser,
     Garde(Json(body)): Garde<Json<CreatePlaylistParams>>,
 ) -> AppResult<(StatusCode, Json<PlaylistResponse>)> {
-    let playlist = PlaylistRepository::create(&state.db, auth_user.user.id, &body.name).await?;
+    let playlist = PlaylistRepository::create(
+        &state.db,
+        auth_user.user.id,
+        &body.name,
+        body.filter_definition.as_ref(),
+    )
+    .await?;
 
     let stats = PlaylistRepository::find_by_id_and_user(&state.db, playlist.id, auth_user.user.id)
         .await?
@@ -94,14 +107,39 @@ pub async fn list_playlist_tracks(
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Vec<PlaylistTrackResponse>>> {
-    // Verify ownership
-    if !PlaylistRepository::belongs_to_user(&state.db, id, auth_user.user.id).await? {
-        return Err(AppError::NotFound);
-    }
+    let stats = PlaylistRepository::find_by_id_and_user(&state.db, id, auth_user.user.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
 
-    let tracks = PlaylistRepository::list_tracks(&state.db, id, auth_user.user.id).await?;
+    let tracks = if stats.playlist.playlist_type == "dynamic" {
+        match stats.playlist.filter_definition.as_ref() {
+            Some(filter) => {
+                PlaylistRepository::list_dynamic_tracks(&state.db, id, &filter.0).await?
+            }
+            None => Vec::new(),
+        }
+    } else {
+        PlaylistRepository::list_tracks(&state.db, id, auth_user.user.id).await?
+    };
 
     Ok(Json(tracks.into_iter().map(Into::into).collect()))
+}
+
+pub async fn update_playlist_filter(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(id): Path<Uuid>,
+    Garde(Json(body)): Garde<Json<UpdatePlaylistFilterParams>>,
+) -> AppResult<Json<PlaylistResponse>> {
+    PlaylistRepository::update_filter(&state.db, id, auth_user.user.id, &body.filter_definition)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let stats = PlaylistRepository::find_by_id_and_user(&state.db, id, auth_user.user.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    Ok(Json(stats.into()))
 }
 
 pub async fn add_tracks(

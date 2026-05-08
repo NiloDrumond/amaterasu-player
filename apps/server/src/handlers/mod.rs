@@ -1,4 +1,5 @@
 pub mod admin_handlers;
+pub mod album_collection_handlers;
 pub mod albums_handlers;
 pub mod artists_handlers;
 pub mod auth_handlers;

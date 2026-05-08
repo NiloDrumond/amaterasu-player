@@ -2,18 +2,47 @@
 	import { tracksColumns } from '$lib/components/tracks/columns.js';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import TrackRowContextMenu from '$lib/components/tracks/track-row-context-menu.svelte';
+	import FilterBar from '$lib/components/filters/filter-bar.svelte';
+	import SearchInput from '$lib/components/filters/search-input.svelte';
+	import SaveAsDynamicPlaylist from '$lib/components/filters/save-as-dynamic-playlist.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { getPlayer } from '$lib/player/player.svelte';
+	import { decodeFilter, encodeFilter, getTextSearch, setTextSearch } from '$lib/utils/filter-url';
+	import type { FilterNode } from '$lib/bindings/filter/filter-node';
 
 	let { data } = $props();
 	const player = getPlayer();
 
+	// Optimistic local state — chips render from this immediately. URL syncs in
+	// the background, and we re-sync from URL when the user navigates back/forward.
+	let filter = $state<FilterNode | null>(decodeFilter(page.url.searchParams.get('f')));
+	let lastSyncedF = $state(page.url.searchParams.get('f') ?? '');
+
+	$effect(() => {
+		const urlF = page.url.searchParams.get('f') ?? '';
+		if (urlF !== lastSyncedF) {
+			filter = decodeFilter(urlF);
+			lastSyncedF = urlF;
+		}
+	});
+
 	function onChangePage(newPage: number) {
 		if (!data.tracks) return;
-		let url = new URL(page.url);
+		const url = new URL(page.url);
 		url.searchParams.set('offset', (data.tracks.limit * (newPage - 1)).toString());
 		goto(url);
+	}
+
+	function onFilterChange(next: FilterNode | null) {
+		filter = next;
+		const url = new URL(page.url);
+		const encoded = encodeFilter(next);
+		if (encoded) url.searchParams.set('f', encoded);
+		else url.searchParams.delete('f');
+		url.searchParams.delete('offset');
+		lastSyncedF = encoded ?? '';
+		goto(url, { keepFocus: true, replaceState: false, noScroll: true });
 	}
 </script>
 
@@ -21,9 +50,18 @@
 	<h1>Error</h1>
 	<p>{data.error.message}</p>
 {:else}
-	<div class="flex flex-col p-4">
+	<div class="flex flex-col gap-3 p-4">
 		<h1 class="tracking-widest uppercase">Tracks</h1>
-		<div>TODO: Filters</div>
+		<div class="flex flex-row flex-wrap items-center gap-2">
+			<SearchInput
+				value={getTextSearch(filter)}
+				onChange={(q) => onFilterChange(setTextSearch(filter, q))}
+				placeholder="Search tracks…"
+			/>
+			<FilterBar entity="tracks" {filter} onChange={onFilterChange} />
+			<div class="ml-auto"></div>
+			<SaveAsDynamicPlaylist {filter} />
+		</div>
 		<DataTable
 			data={data.tracks.data}
 			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}

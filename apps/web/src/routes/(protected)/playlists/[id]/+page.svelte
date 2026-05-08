@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { reorderPlaylistTrack } from '$lib/services/playlist-service';
+	import { reorderPlaylistTrack, updatePlaylistFilter } from '$lib/services/playlist-service';
 	import { getPlayer } from '$lib/player/player.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { formatMilliseconds } from '$lib/utils/date';
@@ -9,17 +9,43 @@
 	import { draggable, droppable, type DragDropState } from '@thisux/sveltednd';
 	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
+	import type { FilterNode } from '$lib/bindings/filter/filter-node';
 	import PlaylistTrackActions from '$lib/components/playlists/playlist-track-actions.svelte';
 	import PlaylistTrackRowContextMenu from '$lib/components/playlists/playlist-track-row-context-menu.svelte';
+	import TrackRowContextMenu from '$lib/components/tracks/track-row-context-menu.svelte';
+	import { tracksColumns } from '$lib/components/tracks/columns.js';
+	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
+	import FilterBar from '$lib/components/filters/filter-bar.svelte';
+	import SearchInput from '$lib/components/filters/search-input.svelte';
+	import { getTextSearch, setTextSearch } from '$lib/utils/filter-url';
 	import PlayIcon from '@lucide/svelte/icons/play';
 	import ShuffleIcon from '@lucide/svelte/icons/shuffle';
 	import ListStartIcon from '@lucide/svelte/icons/list-start';
 	import ListEndIcon from '@lucide/svelte/icons/list-end';
 	import ListMusicIcon from '@lucide/svelte/icons/list-music';
+	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import GripVerticalIcon from '@lucide/svelte/icons/grip-vertical';
 
 	let { data } = $props();
 	const player = getPlayer();
+
+	const isDynamic = $derived(data.playlist.playlistType === 'dynamic');
+	// Writable derived: tracks `data.playlist.filterDefinition` by default, but
+	// `onDynamicFilterChange` assigns to it for optimistic local updates.
+	let dynamicFilter: FilterNode | null = $derived(data.playlist.filterDefinition ?? null);
+
+	async function onDynamicFilterChange(next: FilterNode | null) {
+		dynamicFilter = next;
+		if (!next) return;
+		const { error } = await updatePlaylistFilter(fetch, data.playlist.id, {
+			filterDefinition: next,
+		});
+		if (error) {
+			toast.error('Failed to update filter');
+			return;
+		}
+		await invalidateAll();
+	}
 
 	// Local override for optimistic drag reorder; null means "use server data"
 	let localTracks = $state<PlaylistTrackResponse[] | null>(null);
@@ -58,7 +84,16 @@
 		player.playLater(tracks.map(asTrackResponse));
 	}
 
-	const duration = $derived(formatMilliseconds(Number(data.playlist.totalDurationMs)));
+	// For dynamic playlists, the server returns 0 for these aggregates (they're
+	// derived from playlist_tracks which dynamic playlists don't use). Compute
+	// from the resolved track list instead.
+	const trackCount = $derived(isDynamic ? tracks.length : Number(data.playlist.trackCount));
+	const totalDurationMs = $derived(
+		isDynamic
+			? tracks.reduce((sum, t) => sum + t.durationMs, 0)
+			: Number(data.playlist.totalDurationMs),
+	);
+	const duration = $derived(formatMilliseconds(totalDurationMs));
 
 	async function handleDrop(state: DragDropState<PlaylistTrackResponse>) {
 		const { draggedItem, targetContainer, dropPosition } = state;
@@ -109,16 +144,36 @@
 		<div
 			class="flex size-48 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
 		>
-			<ListMusicIcon class="size-16 opacity-30" />
+			{#if isDynamic}
+				<SparklesIcon class="size-16 opacity-30" />
+			{:else}
+				<ListMusicIcon class="size-16 opacity-30" />
+			{/if}
 		</div>
 		<div class="flex min-w-0 flex-col gap-1">
-			<p class="text-xs font-medium tracking-widest text-muted-foreground uppercase">Playlist</p>
+			<p class="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+				{isDynamic ? 'Dynamic Playlist' : 'Playlist'}
+			</p>
 			<h1 class="truncate text-3xl">{data.playlist.name}</h1>
 			<p class="text-sm text-muted-foreground">
-				{[`${String(data.playlist.trackCount)} tracks`, duration].filter(Boolean).join(' · ')}
+				{[`${trackCount} tracks`, duration].filter(Boolean).join(' · ')}
 			</p>
 		</div>
 	</div>
+
+	{#if isDynamic}
+		<div class="flex flex-col gap-2">
+			<p class="text-xs tracking-widest text-muted-foreground uppercase">Filters</p>
+			<div class="flex flex-row flex-wrap items-center gap-2">
+				<SearchInput
+					value={getTextSearch(dynamicFilter)}
+					onChange={(q) => onDynamicFilterChange(setTextSearch(dynamicFilter, q))}
+					placeholder="Search tracks…"
+				/>
+				<FilterBar entity="tracks" filter={dynamicFilter} onChange={onDynamicFilterChange} />
+			</div>
+		</div>
+	{/if}
 
 	<!-- Toolbar -->
 	<div class="flex flex-row flex-wrap items-center gap-2">
@@ -140,9 +195,20 @@
 		</Button>
 	</div>
 
-	<!-- Tracks table with drag-to-reorder -->
+	<!-- Tracks table -->
 	{#if tracks.length === 0}
 		<p class="text-sm text-muted-foreground">No tracks in this playlist yet.</p>
+	{:else if isDynamic}
+		{@const tracksAsResponse = tracks.map(asTrackResponse)}
+		<DataTable
+			data={tracksAsResponse}
+			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}
+			onRowClick={(_row, index) => player.playQueue(tracksAsResponse, index)}
+		>
+			{#snippet rowContextMenu({ row, trigger })}
+				<TrackRowContextMenu track={row} {trigger} />
+			{/snippet}
+		</DataTable>
 	{:else}
 		<div class="flex flex-col">
 			<!-- Table header -->
@@ -187,8 +253,8 @@
 							<button
 								class="min-w-0 truncate text-left text-sm font-semibold"
 								onclick={() => {
-									const idx = tracks.findIndex((t) => t.playlistTrackId === track.playlistTrackId);
-									player.playQueue(tracks.map(asTrackResponse), idx);
+									const i = tracks.findIndex((t) => t.playlistTrackId === track.playlistTrackId);
+									player.playQueue(tracks.map(asTrackResponse), i);
 								}}
 							>
 								{track.title}

@@ -1,4 +1,5 @@
 pub mod album;
+pub mod album_collection;
 pub mod artist;
 pub mod playlist;
 pub mod session;
@@ -8,6 +9,7 @@ pub mod track;
 pub mod user;
 
 pub use album::Album;
+pub use album_collection::AlbumCollection;
 pub use artist::Artist;
 pub use playlist::{Playlist, PlaylistTrack};
 pub use session::Session;
