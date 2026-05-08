@@ -5,6 +5,8 @@
 	import SearchInput from '$lib/components/filters/search-input.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { applySortToUrl, extractSortFromUrl } from '$lib/utils/pagination';
+	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 
 	let { data } = $props();
 
@@ -42,6 +44,15 @@
 				page: data.page,
 				totalPages: Math.ceil(Number(data.artists.total) / data.artists.limit),
 				onChangePage: onChangePage,
+			}}
+			serverSort={{
+				...extractSortFromUrl(page.url),
+				onSortChange: (sort: string | null, dir: SortDir) => {
+					goto(applySortToUrl(new URL(page.url), sort, dir), {
+						keepFocus: true,
+						noScroll: true,
+					});
+				},
 			}}
 			onRowClick={(row) => goto(`/artists/${row.id}`)}
 		>

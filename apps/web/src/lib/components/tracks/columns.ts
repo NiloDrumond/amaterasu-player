@@ -46,6 +46,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 		id: 'album',
 		header: 'ALBUM',
 		maxSize: 200,
+		accessorFn: (row) => row.album?.title ?? '',
 		cell: ({ row }) => {
 			if (!row.original.album) return null;
 			return renderComponent(AlbumCell, { album: row.original.album });
@@ -76,6 +77,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 		id: 'quality',
 		header: 'QUALITY',
 		maxSize: 120,
+		enableSorting: false,
 		cell: ({ row }) => {
 			return renderComponent(TrackQuality, { track: row.original });
 		},

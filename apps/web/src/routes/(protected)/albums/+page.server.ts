@@ -1,4 +1,4 @@
-import { extractPaginationFromUrl } from '$lib/utils/pagination';
+import { extractPaginationFromUrl, extractSortFromUrl } from '$lib/utils/pagination';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getAlbums } from '$lib/services/album-service';
@@ -18,8 +18,15 @@ type LoadData =
 
 export const load: PageServerLoad = async ({ fetch, url }): Promise<LoadData> => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
+	const { sort, dir } = extractSortFromUrl(url);
 	const f = url.searchParams.get('f');
-	const { data: albums, error: errorMessage } = await getAlbums(fetch, { limit, offset, f });
+	const { data: albums, error: errorMessage } = await getAlbums(fetch, {
+		limit,
+		offset,
+		f,
+		sort,
+		dir,
+	});
 
 	if (errorMessage) {
 		return { albums: null, error: { status: 501, message: errorMessage }, page };

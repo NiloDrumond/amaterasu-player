@@ -1,10 +1,32 @@
-use sqlx::PgExecutor;
+use std::str::FromStr;
+
+use sqlx::{PgExecutor, PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::db::entities::Artist;
+use crate::dto::request::SortDir;
 use crate::error::AppError;
 
 pub struct ArtistRepository;
+
+#[derive(Debug, Clone, Copy)]
+pub enum ArtistSortKey {
+    Name,
+    AlbumCount,
+    TrackCount,
+}
+
+impl FromStr for ArtistSortKey {
+    type Err = AppError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "name" => Ok(Self::Name),
+            "albumCount" => Ok(Self::AlbumCount),
+            "trackCount" => Ok(Self::TrackCount),
+            other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
+        }
+    }
+}
 
 impl ArtistRepository {
     pub async fn create(
@@ -134,10 +156,12 @@ impl ArtistRepository {
     }
 
     pub async fn find_all_with_query(
-        executor: impl PgExecutor<'_>,
+        pool: &PgPool,
         query: Option<&str>,
         limit: i32,
         offset: i32,
+        sort: Option<ArtistSortKey>,
+        dir: Option<SortDir>,
     ) -> Result<Vec<Artist>, AppError> {
         let pattern = query.map(|q| {
             format!(
@@ -147,27 +171,45 @@ impl ArtistRepository {
                     .replace('_', "\\_")
             )
         });
-        let artists = sqlx::query_as!(
-            Artist,
-            r#"
-            SELECT
-                *
-            FROM
-                artists
-            WHERE
-                $1::text IS NULL
-                OR name ILIKE $1
-            ORDER BY
-                sort_name,
-                name
-            LIMIT $2 OFFSET $3
-            "#,
-            pattern,
-            limit as i64,
-            offset as i64,
-        )
-        .fetch_all(executor)
-        .await?;
+        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT artists.* FROM artists \
+             LEFT JOIN ( \
+               SELECT artist_id, COUNT(DISTINCT album_id) AS album_count, COUNT(*) AS track_count \
+               FROM tracks WHERE deleted_at IS NULL AND artist_id IS NOT NULL \
+               GROUP BY artist_id \
+             ) agg ON agg.artist_id = artists.id \
+             WHERE (",
+        );
+        qb.push_bind(pattern.clone());
+        qb.push("::text IS NULL OR artists.name ILIKE ");
+        qb.push_bind(pattern);
+        qb.push(")");
+
+        let d = dir.unwrap_or(SortDir::Asc).as_sql();
+        match sort {
+            None => {
+                qb.push(" ORDER BY artists.sort_name, artists.name, artists.id");
+            }
+            Some(ArtistSortKey::Name) => {
+                qb.push(format!(
+                    " ORDER BY artists.sort_name {d}, artists.name {d}, artists.id"
+                ));
+            }
+            Some(ArtistSortKey::AlbumCount) => {
+                qb.push(format!(
+                    " ORDER BY agg.album_count {d} NULLS LAST, artists.sort_name, artists.id"
+                ));
+            }
+            Some(ArtistSortKey::TrackCount) => {
+                qb.push(format!(
+                    " ORDER BY agg.track_count {d} NULLS LAST, artists.sort_name, artists.id"
+                ));
+            }
+        };
+        qb.push(" LIMIT ").push_bind(limit as i64);
+        qb.push(" OFFSET ").push_bind(offset as i64);
+
+        let artists = qb.build_query_as::<Artist>().fetch_all(pool).await?;
         Ok(artists)
     }
 

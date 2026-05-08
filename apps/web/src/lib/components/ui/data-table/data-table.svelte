@@ -7,6 +7,7 @@
 		getPaginationRowModel,
 		getSortedRowModel,
 		type RowSelectionState,
+		type SortingState,
 		type VisibilityState,
 	} from '@tanstack/table-core';
 	import { createSvelteTable, FlexRender } from '$lib/components/ui/data-table/index.js';
@@ -15,8 +16,15 @@
 	import { Icons } from '../icons';
 	import { cn } from 'tailwind-variants';
 	import type { Snippet } from 'svelte';
+	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 
 	type RowTrigger = Snippet<[{ props: Record<string, unknown> }]>;
+
+	type ServerSort = {
+		sort: string | null;
+		dir: SortDir;
+		onSortChange: (sort: string | null, dir: SortDir) => void;
+	};
 
 	type DataTableProps<TData, TValue> = {
 		columns: ColumnDef<TData, TValue>[];
@@ -26,6 +34,7 @@
 			totalPages: number;
 			onChangePage: (page: number) => void;
 		};
+		serverSort?: ServerSort;
 		onRowClick?: (row: TData, index: number) => void;
 		rowContextMenu?: Snippet<[{ row: TData; trigger: RowTrigger }]>;
 		rowSelection?: RowSelectionState;
@@ -36,6 +45,7 @@
 		data,
 		columns,
 		pagination,
+		serverSort,
 		onRowClick,
 		rowContextMenu,
 		rowSelection = $bindable<RowSelectionState>({}),
@@ -52,6 +62,10 @@
 	let columnFilters = $state<ColumnFiltersState>([]);
 	let columnVisibility = $state<VisibilityState>({});
 
+	const sorting = $derived<SortingState>(
+		serverSort?.sort ? [{ id: serverSort.sort, desc: serverSort.dir === 'desc' }] : [],
+	);
+
 	const table = createSvelteTable({
 		get data() {
 			return data;
@@ -63,10 +77,26 @@
 			size: 50,
 		},
 		rowCount: 32,
+		get manualSorting() {
+			return !!serverSort;
+		},
+		enableSortingRemoval: true,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
+		get getSortedRowModel() {
+			return serverSort ? undefined : getSortedRowModel();
+		},
 		getFilteredRowModel: getFilteredRowModel(),
+		onSortingChange: (updater) => {
+			if (!serverSort) return;
+			const next = typeof updater === 'function' ? updater(sorting) : updater;
+			if (next.length === 0) {
+				serverSort.onSortChange(null, 'asc');
+			} else {
+				const s = next[0];
+				serverSort.onSortChange(s.id, s.desc ? 'desc' : 'asc');
+			}
+		},
 		onColumnFiltersChange: (updater) => {
 			if (typeof updater === 'function') {
 				columnFilters = updater(columnFilters);
@@ -105,6 +135,9 @@
 			get rowSelection() {
 				return rowSelection;
 			},
+			get sorting() {
+				return sorting;
+			},
 		},
 	});
 </script>
@@ -121,10 +154,29 @@
 							class={header.column.columnDef.meta?.class}
 						>
 							{#if !header.isPlaceholder}
-								<FlexRender
-									content={header.column.columnDef.header}
-									context={header.getContext()}
-								/>
+								{#if header.column.getCanSort()}
+									{@const sorted = header.column.getIsSorted()}
+									<button
+										type="button"
+										class="inline-flex cursor-pointer items-center gap-1 select-none hover:text-foreground"
+										onclick={header.column.getToggleSortingHandler()}
+									>
+										<FlexRender
+											content={header.column.columnDef.header}
+											context={header.getContext()}
+										/>
+										{#if sorted === 'asc'}
+											<Icons.SortAsc class="size-3" />
+										{:else if sorted === 'desc'}
+											<Icons.SortDesc class="size-3" />
+										{/if}
+									</button>
+								{:else}
+									<FlexRender
+										content={header.column.columnDef.header}
+										context={header.getContext()}
+									/>
+								{/if}
 							{/if}
 						</Table.Head>
 					{/each}

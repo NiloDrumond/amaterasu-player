@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -16,7 +18,7 @@ use crate::{
         response::{AlbumCollectionResponse, AlbumResponse, PaginatedResponse},
     },
     error::{AppError, AppResult},
-    repositories::AlbumCollectionRepository,
+    repositories::{AlbumCollectionRepository, AlbumSortKey},
     services::LibraryService,
     state::AppState,
 };
@@ -109,12 +111,19 @@ pub async fn list_collection_albums(
             .await?
             .ok_or(AppError::NotFound)?;
 
+    let sort = params
+        .sort
+        .as_deref()
+        .map(AlbumSortKey::from_str)
+        .transpose()?;
     let service = LibraryService::new(state.db.clone());
     let (albums, total) = service
         .get_albums(
             Some(&collection.filter_definition.0),
             params.limit,
             params.offset,
+            sort,
+            params.dir,
         )
         .await?;
 

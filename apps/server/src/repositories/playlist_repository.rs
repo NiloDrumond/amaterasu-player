@@ -1,12 +1,38 @@
+use std::str::FromStr;
+
 use sqlx::types::Json;
 use sqlx::{PgExecutor, PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::db::entities::{Playlist, PlaylistTrack};
-use crate::error::AppResult;
+use crate::dto::request::SortDir;
+use crate::error::{AppError, AppResult};
 use crate::filters::{compile_tracks_filter, FilterNode};
 
 pub struct PlaylistRepository;
+
+#[derive(Debug, Clone, Copy)]
+pub enum PlaylistSortKey {
+    Name,
+    Type,
+    TrackCount,
+    Duration,
+    CreatedAt,
+}
+
+impl FromStr for PlaylistSortKey {
+    type Err = AppError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "name" => Ok(Self::Name),
+            "type" => Ok(Self::Type),
+            "trackCount" => Ok(Self::TrackCount),
+            "duration" => Ok(Self::Duration),
+            "createdAt" => Ok(Self::CreatedAt),
+            other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
+        }
+    }
+}
 
 // A row returned when querying playlist details (with aggregate stats)
 pub struct PlaylistStats {
@@ -138,10 +164,16 @@ impl PlaylistRepository {
     }
 
     pub async fn list_by_user_with_query(
-        executor: impl PgExecutor<'_>,
+        pool: &PgPool,
         user_id: Uuid,
         query: Option<&str>,
+        limit: i32,
+        offset: i32,
+        sort: Option<PlaylistSortKey>,
+        dir: Option<SortDir>,
     ) -> AppResult<Vec<PlaylistStats>> {
+        use sqlx::Row;
+
         let pattern = query.map(|q| {
             format!(
                 "%{}%",
@@ -150,65 +182,101 @@ impl PlaylistRepository {
                     .replace('_', "\\_")
             )
         });
-        let rows = sqlx::query!(
+
+        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT \
+                p.id, p.user_id, p.name, p.created_at, p.updated_at, \
+                p.type AS playlist_type, \
+                p.filter_definition, \
+                p.cached_track_count, p.cached_total_duration_ms, \
+                CASE WHEN p.type = 'dynamic' THEN p.cached_track_count::bigint \
+                     ELSE COUNT(pt.id) END AS track_count, \
+                CASE WHEN p.type = 'dynamic' THEN p.cached_total_duration_ms \
+                     ELSE COALESCE(SUM(t.duration_ms), 0)::bigint END AS total_duration_ms \
+             FROM playlists p \
+             LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id \
+             LEFT JOIN tracks t ON t.id = pt.track_id \
+             WHERE p.user_id = ",
+        );
+        qb.push_bind(user_id);
+        qb.push(" AND (");
+        qb.push_bind(pattern.clone());
+        qb.push("::text IS NULL OR p.name ILIKE ");
+        qb.push_bind(pattern);
+        qb.push(") GROUP BY p.id");
+
+        let d = dir.unwrap_or(SortDir::Asc).as_sql();
+        match sort {
+            None => qb.push(" ORDER BY p.created_at DESC, p.id"),
+            Some(PlaylistSortKey::Name) => {
+                qb.push(format!(" ORDER BY p.name {d}, p.id"))
+            }
+            Some(PlaylistSortKey::Type) => {
+                qb.push(format!(" ORDER BY p.type {d}, p.name, p.id"))
+            }
+            Some(PlaylistSortKey::TrackCount) => qb.push(format!(
+                " ORDER BY (CASE WHEN p.type = 'dynamic' THEN p.cached_track_count::bigint ELSE COUNT(pt.id) END) {d} NULLS LAST, p.id"
+            )),
+            Some(PlaylistSortKey::Duration) => qb.push(format!(
+                " ORDER BY (CASE WHEN p.type = 'dynamic' THEN p.cached_total_duration_ms ELSE COALESCE(SUM(t.duration_ms), 0)::bigint END) {d} NULLS LAST, p.id"
+            )),
+            Some(PlaylistSortKey::CreatedAt) => {
+                qb.push(format!(" ORDER BY p.created_at {d}, p.id"))
+            }
+        };
+        qb.push(" LIMIT ").push_bind(limit as i64);
+        qb.push(" OFFSET ").push_bind(offset as i64);
+
+        let rows = qb.build().fetch_all(pool).await?;
+
+        let mut out = Vec::with_capacity(rows.len());
+        for r in rows {
+            out.push(PlaylistStats {
+                playlist: Playlist {
+                    id: r.try_get("id")?,
+                    user_id: r.try_get("user_id")?,
+                    name: r.try_get("name")?,
+                    created_at: r.try_get("created_at")?,
+                    updated_at: r.try_get("updated_at")?,
+                    playlist_type: r.try_get("playlist_type")?,
+                    filter_definition: r
+                        .try_get::<Option<Json<FilterNode>>, _>("filter_definition")?,
+                    cached_track_count: r.try_get("cached_track_count")?,
+                    cached_total_duration_ms: r.try_get("cached_total_duration_ms")?,
+                },
+                track_count: r.try_get("track_count")?,
+                total_duration_ms: r.try_get("total_duration_ms")?,
+            });
+        }
+        Ok(out)
+    }
+
+    pub async fn count_by_user_with_query(
+        pool: &PgPool,
+        user_id: Uuid,
+        query: Option<&str>,
+    ) -> AppResult<i64> {
+        let pattern = query.map(|q| {
+            format!(
+                "%{}%",
+                q.replace('\\', "\\\\")
+                    .replace('%', "\\%")
+                    .replace('_', "\\_")
+            )
+        });
+        let row = sqlx::query!(
             r#"
-            SELECT
-                p.id,
-                p.user_id,
-                p.name,
-                p.created_at,
-                p.updated_at,
-                p.type AS "playlist_type!",
-                p.filter_definition AS "filter_definition: Json<FilterNode>",
-                p.cached_track_count,
-                p.cached_total_duration_ms,
-                CASE WHEN p.type = 'dynamic' THEN
-                    p.cached_track_count::bigint
-                ELSE
-                    COUNT(pt.id)
-                END AS "track_count!: i64",
-                CASE WHEN p.type = 'dynamic' THEN
-                    p.cached_total_duration_ms
-                ELSE
-                    COALESCE(SUM(t.duration_ms), 0)::bigint
-                END AS "total_duration_ms!: i64"
-            FROM
-                playlists p
-                LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id
-                LEFT JOIN tracks t ON t.id = pt.track_id
-            WHERE
-                p.user_id = $1
-                AND ($2::text IS NULL
-                    OR p.name ILIKE $2)
-            GROUP BY
-                p.id
-            ORDER BY
-                p.created_at DESC
+            SELECT COUNT(*) AS "count!"
+            FROM playlists p
+            WHERE p.user_id = $1
+              AND ($2::text IS NULL OR p.name ILIKE $2)
             "#,
             user_id,
             pattern,
         )
-        .fetch_all(executor)
+        .fetch_one(pool)
         .await?;
-
-        Ok(rows
-            .into_iter()
-            .map(|r| PlaylistStats {
-                playlist: Playlist {
-                    id: r.id,
-                    user_id: r.user_id,
-                    name: r.name,
-                    created_at: r.created_at,
-                    updated_at: r.updated_at,
-                    playlist_type: r.playlist_type,
-                    filter_definition: r.filter_definition,
-                    cached_track_count: r.cached_track_count,
-                    cached_total_duration_ms: r.cached_total_duration_ms,
-                },
-                track_count: r.track_count,
-                total_duration_ms: r.total_duration_ms,
-            })
-            .collect())
+        Ok(row.count)
     }
 
     pub async fn rename(

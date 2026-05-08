@@ -11,6 +11,7 @@ export function playlistsColumns(onDeleted: () => void): ColumnDef<PlaylistRespo
 			id: 'name',
 			header: 'NAME',
 			size: 99999,
+			accessorFn: (row) => row.name,
 			meta: {
 				mainColumn: true,
 				class: cn('font-semibold'),
@@ -21,24 +22,28 @@ export function playlistsColumns(onDeleted: () => void): ColumnDef<PlaylistRespo
 			id: 'type',
 			header: 'TYPE',
 			maxSize: 90,
+			accessorFn: (row) => row.playlistType,
 			cell: ({ row }) => (row.original.playlistType === 'dynamic' ? '✨ Dynamic' : 'Manual'),
 		},
 		{
 			id: 'trackCount',
 			header: 'TRACKS',
 			maxSize: 80,
+			accessorFn: (row) => Number(row.trackCount),
 			cell: ({ row }) => String(row.original.trackCount),
 		},
 		{
 			id: 'duration',
 			header: 'DURATION',
 			maxSize: 120,
+			accessorFn: (row) => Number(row.totalDurationMs),
 			cell: ({ row }) => formatMilliseconds(Number(row.original.totalDurationMs)),
 		},
 		{
 			id: 'createdAt',
 			header: 'CREATED',
 			maxSize: 140,
+			accessorFn: (row) => row.createdAt,
 			cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
 		},
 		{

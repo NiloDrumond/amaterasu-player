@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::dto::response::PaginatedResponse;
 use crate::filters::FilterNode;
 use crate::repositories::playlist_repository::{PlaylistStats, PlaylistTrackRow};
 
@@ -70,6 +71,11 @@ pub struct PlaylistTrackResponse {
     pub position: f64,
     pub added_at: DateTime<Utc>,
 }
+
+#[api_type("response/playlist")]
+#[derive(Debug, Serialize)]
+#[allow(dead_code)]
+struct GetPlaylistsResponse(PaginatedResponse<PlaylistResponse>);
 
 impl From<PlaylistTrackRow> for PlaylistTrackResponse {
     fn from(r: PlaylistTrackRow) -> Self {

@@ -9,11 +9,11 @@ pub mod track_repository;
 pub mod user_repository;
 
 pub use album_collection_repository::AlbumCollectionRepository;
-pub use album_repository::AlbumRepository;
-pub use artist_repository::ArtistRepository;
-pub use playlist_repository::PlaylistRepository;
+pub use album_repository::{AlbumRepository, AlbumSortKey};
+pub use artist_repository::{ArtistRepository, ArtistSortKey};
+pub use playlist_repository::{PlaylistRepository, PlaylistSortKey};
 pub use session_repository::SessionRepository;
 pub use tag_category_repository::TagCategoryRepository;
 pub use tag_repository::TagRepository;
-pub use track_repository::TrackRepository;
+pub use track_repository::{TrackRepository, TrackSortKey};
 pub use user_repository::UserRepository;

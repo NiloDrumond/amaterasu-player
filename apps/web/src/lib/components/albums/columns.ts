@@ -35,6 +35,7 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 		id: 'title',
 		header: 'TITLE',
 		size: 99999,
+		accessorFn: (row) => row.title,
 		meta: {
 			mainColumn: true,
 		},
@@ -49,6 +50,7 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 		id: 'artist',
 		header: 'ARTIST',
 		maxSize: 200,
+		accessorFn: (row) => row.artist?.name ?? '',
 		cell: ({ row }) => {
 			if (!row.original.artist) return null;
 			const anchorSnippet = createRawSnippet<[{ content: string; href: string }]>((getData) => {
@@ -65,15 +67,10 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 		},
 	},
 	{
-		id: 'date',
-		header: 'DATE',
-		maxSize: 120,
-		cell: ({ row }) => row.original.date ?? '',
-	},
-	{
 		id: 'year',
 		header: 'YEAR',
 		maxSize: 80,
+		accessorFn: (row) => row.date ?? '',
 		cell: ({ row }) => {
 			if (!row.original.date) return '';
 			return String(new Date(row.original.date).getUTCFullYear());
@@ -83,12 +80,14 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 		id: 'trackCount',
 		header: 'TRACKS',
 		maxSize: 80,
+		accessorFn: (row) => Number(row.trackCount),
 		cell: ({ row }) => String(row.original.trackCount),
 	},
 	{
 		id: 'time',
 		header: 'TIME',
 		maxSize: 100,
+		accessorFn: (row) => Number(row.totalDurationMs),
 		cell: ({ row }) => formatMilliseconds(Number(row.original.totalDurationMs)),
 	},
 	{

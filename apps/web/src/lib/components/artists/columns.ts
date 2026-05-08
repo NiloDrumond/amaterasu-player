@@ -33,6 +33,7 @@ export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 		id: 'name',
 		header: 'NAME',
 		size: 99999,
+		accessorFn: (row) => row.name,
 		meta: {
 			mainColumn: true,
 		},
@@ -54,12 +55,14 @@ export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 		id: 'albumCount',
 		header: 'ALBUMS',
 		maxSize: 100,
+		accessorFn: (row) => Number(row.albumCount),
 		cell: ({ row }) => String(row.original.albumCount),
 	},
 	{
 		id: 'trackCount',
 		header: 'TRACKS',
 		maxSize: 100,
+		accessorFn: (row) => Number(row.trackCount),
 		cell: ({ row }) => String(row.original.trackCount),
 	},
 	{

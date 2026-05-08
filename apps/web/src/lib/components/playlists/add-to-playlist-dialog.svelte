@@ -35,7 +35,7 @@
 		if (error) {
 			toast.error('Failed to load playlists');
 		} else if (data) {
-			playlists = data;
+			playlists = data.data;
 		}
 		loading = false;
 	}

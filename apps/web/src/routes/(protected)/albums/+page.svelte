@@ -8,7 +8,9 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { decodeFilter, encodeFilter, getTextSearch, setTextSearch } from '$lib/utils/filter-url';
+	import { applySortToUrl, extractSortFromUrl } from '$lib/utils/pagination';
 	import type { FilterNode } from '$lib/bindings/filter/filter-node';
+	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 
 	let { data } = $props();
 
@@ -65,6 +67,15 @@
 				page: data.page,
 				totalPages: Math.ceil(Number(data.albums.total) / data.albums.limit),
 				onChangePage: onChangePage,
+			}}
+			serverSort={{
+				...extractSortFromUrl(page.url),
+				onSortChange: (sort: string | null, dir: SortDir) => {
+					goto(applySortToUrl(new URL(page.url), sort, dir), {
+						keepFocus: true,
+						noScroll: true,
+					});
+				},
 			}}
 			onRowClick={(row) => goto(`/albums/${row.id}`)}
 		>

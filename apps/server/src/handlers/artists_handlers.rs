@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     dto::{
         request::{SearchPaginationParams, SearchQuery},
@@ -6,7 +8,7 @@ use crate::{
         },
     },
     error::{AppError, AppResult},
-    repositories::ArtistRepository,
+    repositories::{ArtistRepository, ArtistSortKey},
     services::LibraryService,
     state::AppState,
 };
@@ -20,9 +22,20 @@ pub async fn get_artists(
     State(state): State<AppState>,
     Query(params): Query<SearchPaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<ArtistResponse>>> {
+    let sort = params
+        .sort
+        .as_deref()
+        .map(ArtistSortKey::from_str)
+        .transpose()?;
     let service = LibraryService::new(state.db.clone());
     let (artists, total) = service
-        .get_artists_with_query(params.q.as_deref(), params.limit, params.offset)
+        .get_artists_with_query(
+            params.q.as_deref(),
+            params.limit,
+            params.offset,
+            sort,
+            params.dir,
+        )
         .await?;
 
     let response = PaginatedResponse {

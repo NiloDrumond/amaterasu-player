@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -13,10 +15,10 @@ use crate::{
             AddTracksParams, CreatePlaylistParams, RenamePlaylistParams, ReorderTrackParams,
             SearchPaginationParams, UpdatePlaylistFilterParams,
         },
-        response::{PlaylistResponse, PlaylistTrackResponse},
+        response::{PaginatedResponse, PlaylistResponse, PlaylistTrackResponse},
     },
     error::{AppError, AppResult},
-    repositories::PlaylistRepository,
+    repositories::{PlaylistRepository, PlaylistSortKey},
     state::AppState,
 };
 
@@ -28,15 +30,35 @@ pub async fn list_playlists(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Query(params): Query<SearchPaginationParams>,
-) -> AppResult<Json<Vec<PlaylistResponse>>> {
+) -> AppResult<Json<PaginatedResponse<PlaylistResponse>>> {
+    let sort = params
+        .sort
+        .as_deref()
+        .map(PlaylistSortKey::from_str)
+        .transpose()?;
     let playlists = PlaylistRepository::list_by_user_with_query(
+        &state.db,
+        auth_user.user.id,
+        params.q.as_deref(),
+        params.limit,
+        params.offset,
+        sort,
+        params.dir,
+    )
+    .await?;
+    let total = PlaylistRepository::count_by_user_with_query(
         &state.db,
         auth_user.user.id,
         params.q.as_deref(),
     )
     .await?;
 
-    Ok(Json(playlists.into_iter().map(Into::into).collect()))
+    Ok(Json(PaginatedResponse {
+        data: playlists.into_iter().map(Into::into).collect(),
+        total,
+        limit: params.limit,
+        offset: params.offset,
+    }))
 }
 
 pub async fn create_playlist(

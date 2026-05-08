@@ -1,3 +1,4 @@
+import type { GetPlaylistsResponse } from '$lib/bindings/response/playlist/get-playlists-response';
 import type { PlaylistResponse } from '$lib/bindings/response/playlist/playlist-response';
 import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
 import type { CreatePlaylistParams } from '$lib/bindings/request/playlist/create-playlist-params';
@@ -5,13 +6,32 @@ import type { RenamePlaylistParams } from '$lib/bindings/request/playlist/rename
 import type { AddTracksParams } from '$lib/bindings/request/playlist/add-tracks-params';
 import type { ReorderTrackParams } from '$lib/bindings/request/playlist/reorder-track-params';
 import type { UpdatePlaylistFilterParams } from '$lib/bindings/request/playlist/update-playlist-filter-params';
+import type { PaginationParams } from '$lib/bindings/request/common/pagination-params';
+import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 import { api, type Result } from './api';
 
 type Fetch = typeof fetch;
 
-export function getPlaylists(fetch: Fetch, q?: string | null): Promise<Result<PlaylistResponse[]>> {
-	const search = q ? `?q=${encodeURIComponent(q)}` : '';
-	return api<PlaylistResponse[]>(fetch, `/api/playlists${search}`);
+export interface GetPlaylistsParams extends PaginationParams {
+	q?: string | null;
+	sort?: string | null;
+	dir?: SortDir | null;
+}
+
+export function getPlaylists(
+	fetch: Fetch,
+	params?: GetPlaylistsParams,
+): Promise<Result<GetPlaylistsResponse>> {
+	if (!params) return api<GetPlaylistsResponse>(fetch, '/api/playlists');
+	const search = new URLSearchParams();
+	search.set('limit', String(params.limit));
+	search.set('offset', String(params.offset));
+	if (params.q) search.set('q', params.q);
+	if (params.sort) {
+		search.set('sort', params.sort);
+		search.set('dir', params.dir ?? 'asc');
+	}
+	return api<GetPlaylistsResponse>(fetch, `/api/playlists?${search.toString()}`);
 }
 
 export function getPlaylist(fetch: Fetch, id: string): Promise<Result<PlaylistResponse>> {

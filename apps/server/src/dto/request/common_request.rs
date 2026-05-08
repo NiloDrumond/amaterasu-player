@@ -8,6 +8,22 @@ fn default_limit() -> i32 {
 }
 
 #[api_type("request/common")]
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub enum SortDir {
+    Asc,
+    Desc,
+}
+
+impl SortDir {
+    pub fn as_sql(self) -> &'static str {
+        match self {
+            SortDir::Asc => "ASC",
+            SortDir::Desc => "DESC",
+        }
+    }
+}
+
+#[api_type("request/common")]
 #[derive(Debug, Deserialize)]
 pub struct SearchPaginationParams {
     #[serde(default = "default_limit")]
@@ -17,6 +33,10 @@ pub struct SearchPaginationParams {
     /// Optional case-insensitive `q` text query.
     #[serde(default)]
     pub q: Option<String>,
+    #[serde(default)]
+    pub sort: Option<String>,
+    #[serde(default)]
+    pub dir: Option<SortDir>,
 }
 
 #[api_type("request/common")]
@@ -29,6 +49,10 @@ pub struct FilteredPaginationParams {
     /// base64url-encoded JSON FilterNode
     #[serde(default)]
     pub f: Option<String>,
+    #[serde(default)]
+    pub sort: Option<String>,
+    #[serde(default)]
+    pub dir: Option<SortDir>,
 }
 
 impl FilteredPaginationParams {

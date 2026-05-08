@@ -4,9 +4,12 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::db::entities::{Album, Artist, Track};
+use crate::dto::request::SortDir;
 use crate::error::AppResult;
 use crate::filters::FilterNode;
-use crate::repositories::{AlbumRepository, ArtistRepository, TrackRepository};
+use crate::repositories::{
+    AlbumRepository, AlbumSortKey, ArtistRepository, ArtistSortKey, TrackRepository, TrackSortKey,
+};
 
 pub struct TrackWithRefs {
     pub track: Track,
@@ -41,8 +44,10 @@ impl LibraryService {
         filter: Option<&FilterNode>,
         limit: i32,
         offset: i32,
+        sort: Option<TrackSortKey>,
+        dir: Option<SortDir>,
     ) -> AppResult<(Vec<TrackWithRefs>, i64)> {
-        let tracks = TrackRepository::find(&self.pool, filter, limit, offset).await?;
+        let tracks = TrackRepository::find(&self.pool, filter, limit, offset, sort, dir).await?;
         let total = TrackRepository::count(&self.pool, filter).await?;
         let bundled = self.attach_refs(tracks).await?;
 
@@ -62,8 +67,10 @@ impl LibraryService {
         filter: Option<&FilterNode>,
         limit: i32,
         offset: i32,
+        sort: Option<AlbumSortKey>,
+        dir: Option<SortDir>,
     ) -> AppResult<(Vec<AlbumWithRefs>, i64)> {
-        let albums = AlbumRepository::find(&self.pool, filter, limit, offset).await?;
+        let albums = AlbumRepository::find(&self.pool, filter, limit, offset, sort, dir).await?;
         let total = AlbumRepository::count(&self.pool, filter).await?;
 
         let artist_ids: Vec<Uuid> = albums.iter().filter_map(|a| a.artist_id).collect();
@@ -136,9 +143,12 @@ impl LibraryService {
         query: Option<&str>,
         limit: i32,
         offset: i32,
+        sort: Option<ArtistSortKey>,
+        dir: Option<SortDir>,
     ) -> AppResult<(Vec<ArtistWithRefs>, i64)> {
         let artists =
-            ArtistRepository::find_all_with_query(&self.pool, query, limit, offset).await?;
+            ArtistRepository::find_all_with_query(&self.pool, query, limit, offset, sort, dir)
+                .await?;
         let total = ArtistRepository::count_with_query(&self.pool, query).await?;
 
         let artist_ids: Vec<Uuid> = artists.iter().map(|a| a.id).collect();

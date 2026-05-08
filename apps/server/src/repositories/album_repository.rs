@@ -1,12 +1,38 @@
+use std::str::FromStr;
+
 use chrono::NaiveDate;
 use sqlx::{PgExecutor, PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::db::entities::Album;
+use crate::dto::request::SortDir;
 use crate::error::{AppError, AppResult};
 use crate::filters::{compile_albums_filter, FilterNode};
 
 pub struct AlbumRepository;
+
+#[derive(Debug, Clone, Copy)]
+pub enum AlbumSortKey {
+    Title,
+    Artist,
+    Year,
+    TrackCount,
+    Time,
+}
+
+impl FromStr for AlbumSortKey {
+    type Err = AppError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "title" => Ok(Self::Title),
+            "artist" => Ok(Self::Artist),
+            "year" => Ok(Self::Year),
+            "trackCount" => Ok(Self::TrackCount),
+            "time" => Ok(Self::Time),
+            other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
+        }
+    }
+}
 
 impl AlbumRepository {
     pub async fn create(executor: impl PgExecutor<'_>, album: &Album) -> Result<Album, AppError> {
@@ -149,14 +175,55 @@ impl AlbumRepository {
         filter: Option<&FilterNode>,
         limit: i32,
         offset: i32,
+        sort: Option<AlbumSortKey>,
+        dir: Option<SortDir>,
     ) -> AppResult<Vec<Album>> {
-        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new("SELECT albums.* FROM albums");
+        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT albums.* FROM albums \
+             LEFT JOIN artists ON artists.id = albums.artist_id \
+             LEFT JOIN ( \
+               SELECT album_id, COUNT(*) AS track_count, \
+                      COALESCE(SUM(duration_ms), 0)::bigint AS total_duration_ms \
+               FROM tracks WHERE deleted_at IS NULL AND album_id IS NOT NULL \
+               GROUP BY album_id \
+             ) agg ON agg.album_id = albums.id",
+        );
         if let Some(filter) = filter {
             qb.push(" WHERE ");
             compile_albums_filter(&mut qb, filter)
                 .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
         }
-        qb.push(" ORDER BY albums.sort_title, albums.title");
+        let d = dir.unwrap_or(SortDir::Asc).as_sql();
+        match sort {
+            None => {
+                qb.push(" ORDER BY albums.sort_title, albums.title, albums.id");
+            }
+            Some(AlbumSortKey::Title) => {
+                qb.push(format!(
+                    " ORDER BY albums.sort_title {d}, albums.title {d}, albums.id"
+                ));
+            }
+            Some(AlbumSortKey::Artist) => {
+                qb.push(format!(
+                    " ORDER BY artists.sort_name {d} NULLS LAST, albums.sort_title, albums.id"
+                ));
+            }
+            Some(AlbumSortKey::Year) => {
+                qb.push(format!(
+                    " ORDER BY albums.date {d} NULLS LAST, albums.sort_title, albums.id"
+                ));
+            }
+            Some(AlbumSortKey::TrackCount) => {
+                qb.push(format!(
+                    " ORDER BY agg.track_count {d} NULLS LAST, albums.sort_title, albums.id"
+                ));
+            }
+            Some(AlbumSortKey::Time) => {
+                qb.push(format!(
+                    " ORDER BY agg.total_duration_ms {d} NULLS LAST, albums.sort_title, albums.id"
+                ));
+            }
+        };
         qb.push(" LIMIT ").push_bind(limit as i64);
         qb.push(" OFFSET ").push_bind(offset as i64);
 

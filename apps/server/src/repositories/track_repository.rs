@@ -1,12 +1,38 @@
+use std::str::FromStr;
+
 use chrono::NaiveDate;
 use sqlx::{PgExecutor, PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::db::entities::Track;
-use crate::error::AppResult;
+use crate::dto::request::SortDir;
+use crate::error::{AppError, AppResult};
 use crate::filters::{compile_tracks_filter, FilterNode};
 
 pub struct TrackRepository;
+
+#[derive(Debug, Clone, Copy)]
+pub enum TrackSortKey {
+    Title,
+    TrackNo,
+    Album,
+    Artist,
+    DurationMs,
+}
+
+impl FromStr for TrackSortKey {
+    type Err = AppError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "title" => Ok(Self::Title),
+            "trackNo" => Ok(Self::TrackNo),
+            "album" => Ok(Self::Album),
+            "artist" => Ok(Self::Artist),
+            "durationMs" => Ok(Self::DurationMs),
+            other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
+        }
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct TrackUpdate {
@@ -533,15 +559,51 @@ WHERE id = $1
         filter: Option<&FilterNode>,
         limit: i32,
         offset: i32,
+        sort: Option<TrackSortKey>,
+        dir: Option<SortDir>,
     ) -> AppResult<Vec<Track>> {
-        let mut qb: QueryBuilder<Postgres> =
-            QueryBuilder::new("SELECT tracks.* FROM tracks WHERE tracks.deleted_at IS NULL");
+        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT tracks.* FROM tracks \
+             LEFT JOIN albums ON albums.id = tracks.album_id \
+             LEFT JOIN artists ON artists.id = tracks.artist_id \
+             WHERE tracks.deleted_at IS NULL",
+        );
         if let Some(filter) = filter {
             qb.push(" AND ");
             compile_tracks_filter(&mut qb, filter)
                 .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
         }
-        qb.push(" ORDER BY tracks.disc, tracks.track_no, tracks.title");
+        let d = dir.unwrap_or(SortDir::Asc).as_sql();
+        match sort {
+            None => {
+                qb.push(" ORDER BY tracks.disc, tracks.track_no, tracks.title, tracks.id");
+            }
+            Some(TrackSortKey::Title) => {
+                qb.push(format!(
+                    " ORDER BY tracks.sort_title {d}, tracks.title {d}, tracks.id"
+                ));
+            }
+            Some(TrackSortKey::TrackNo) => {
+                qb.push(format!(
+                    " ORDER BY tracks.disc {d} NULLS LAST, tracks.track_no {d} NULLS LAST, tracks.id"
+                ));
+            }
+            Some(TrackSortKey::Album) => {
+                qb.push(format!(
+                    " ORDER BY albums.sort_title {d} NULLS LAST, tracks.disc, tracks.track_no, tracks.id"
+                ));
+            }
+            Some(TrackSortKey::Artist) => {
+                qb.push(format!(
+                    " ORDER BY artists.sort_name {d} NULLS LAST, tracks.id"
+                ));
+            }
+            Some(TrackSortKey::DurationMs) => {
+                qb.push(format!(
+                    " ORDER BY tracks.duration_ms {d} NULLS LAST, tracks.id"
+                ));
+            }
+        };
         qb.push(" LIMIT ").push_bind(limit as i64);
         qb.push(" OFFSET ").push_bind(offset as i64);
 

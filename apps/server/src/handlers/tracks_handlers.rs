@@ -1,9 +1,12 @@
+use std::str::FromStr;
+
 use crate::{
     dto::{
         request::FilteredPaginationParams,
         response::{PaginatedResponse, TrackResponse},
     },
     error::{AppError, AppResult},
+    repositories::TrackSortKey,
     services::LibraryService,
     state::AppState,
 };
@@ -18,9 +21,20 @@ pub async fn get_tracks(
     Query(params): Query<FilteredPaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<TrackResponse>>> {
     let filter = params.decode_filter()?;
+    let sort = params
+        .sort
+        .as_deref()
+        .map(TrackSortKey::from_str)
+        .transpose()?;
     let service = LibraryService::new(state.db.clone());
     let (tracks, total) = service
-        .get_tracks(filter.as_ref(), params.limit, params.offset)
+        .get_tracks(
+            filter.as_ref(),
+            params.limit,
+            params.offset,
+            sort,
+            params.dir,
+        )
         .await?;
 
     let response = PaginatedResponse {

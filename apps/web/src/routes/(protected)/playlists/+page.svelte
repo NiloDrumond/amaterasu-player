@@ -8,6 +8,8 @@
 	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
 	import { playlistsColumns } from '$lib/components/playlists/columns.js';
 	import PlaylistRowContextMenu from '$lib/components/playlists/playlist-row-context-menu.svelte';
+	import { applySortToUrl, extractSortFromUrl } from '$lib/utils/pagination';
+	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { toast } from 'svelte-sonner';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -47,7 +49,15 @@
 		const url = new URL(page.url);
 		if (q) url.searchParams.set('q', q);
 		else url.searchParams.delete('q');
+		url.searchParams.delete('offset');
 		goto(url, { keepFocus: true, noScroll: true });
+	}
+
+	function onChangePage(newPage: number) {
+		if (!data.playlists) return;
+		const url = new URL(page.url);
+		url.searchParams.set('offset', (data.playlists.limit * (newPage - 1)).toString());
+		goto(url);
 	}
 </script>
 
@@ -112,8 +122,24 @@
 		</div>
 
 		<DataTable
-			data={data.playlists ?? []}
+			data={data.playlists?.data ?? []}
 			{columns}
+			pagination={data.playlists
+				? {
+						page: data.page,
+						totalPages: Math.ceil(Number(data.playlists.total) / data.playlists.limit),
+						onChangePage,
+					}
+				: undefined}
+			serverSort={{
+				...extractSortFromUrl(page.url),
+				onSortChange: (sort: string | null, dir: SortDir) => {
+					goto(applySortToUrl(new URL(page.url), sort, dir), {
+						keepFocus: true,
+						noScroll: true,
+					});
+				},
+			}}
 			onRowClick={(row) => goto(`/playlists/${row.id}`)}
 		>
 			{#snippet rowContextMenu({ row, trigger })}

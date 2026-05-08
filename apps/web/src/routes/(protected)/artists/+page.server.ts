@@ -1,4 +1,4 @@
-import { extractPaginationFromUrl } from '$lib/utils/pagination';
+import { extractPaginationFromUrl, extractSortFromUrl } from '$lib/utils/pagination';
 import type { PageServerLoad } from './$types';
 import { getArtists } from '$lib/services/artist-service';
 import type { GetArtistsResponse } from '$lib/bindings/response/artist/get-artists-response';
@@ -17,8 +17,15 @@ type LoadData =
 	  };
 export const load: PageServerLoad = async ({ fetch, url }): Promise<LoadData> => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
+	const { sort, dir } = extractSortFromUrl(url);
 	const q = url.searchParams.get('q');
-	const { data: artists, error: errorMessage } = await getArtists(fetch, { limit, offset, q });
+	const { data: artists, error: errorMessage } = await getArtists(fetch, {
+		limit,
+		offset,
+		q,
+		sort,
+		dir,
+	});
 
 	if (errorMessage) {
 		return { artists: null, error: { status: 500, message: errorMessage }, page };

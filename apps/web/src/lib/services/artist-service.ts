@@ -4,12 +4,15 @@ import type { AlbumResponse } from '$lib/bindings/response/album/album-response'
 import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 import type { AdminArtistResponse } from '$lib/bindings/response/admin/admin-artist-response';
 import type { PaginationParams } from '$lib/bindings/request/common/pagination-params';
+import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 import { api, type Result } from './api';
 
 type Fetch = typeof fetch;
 
 export interface GetArtistsParams extends PaginationParams {
 	q?: string | null;
+	sort?: string | null;
+	dir?: SortDir | null;
 }
 
 export function getArtists(
@@ -21,6 +24,10 @@ export function getArtists(
 	search.set('limit', String(params.limit));
 	search.set('offset', String(params.offset));
 	if (params.q) search.set('q', params.q);
+	if (params.sort) {
+		search.set('sort', params.sort);
+		search.set('dir', params.dir ?? 'asc');
+	}
 	return api<GetArtistsResponse>(fetch, `/api/artists?${search.toString()}`);
 }
 
