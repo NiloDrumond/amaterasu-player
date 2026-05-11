@@ -5,6 +5,7 @@
 	import FilterBar from '$lib/components/filters/filter-bar.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
 	import SaveAsDynamicPlaylist from '$lib/components/filters/save-as-dynamic-playlist.svelte';
+	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { getPlayer } from '$lib/player/player.svelte';
@@ -22,11 +23,16 @@
 	let lastSyncedF = $state(page.url.searchParams.get('f') ?? '');
 
 	$effect(() => {
+		// Resync ONLY when the URL itself changes (back/forward, external nav).
+		// `lastSyncedF` is read untracked so that mutating it inside `onFilterChange`
+		// before calling `goto()` does not re-fire this effect against the stale URL.
 		const urlF = page.url.searchParams.get('f') ?? '';
-		if (urlF !== lastSyncedF) {
-			filter = decodeFilter(urlF);
-			lastSyncedF = urlF;
-		}
+		untrack(() => {
+			if (urlF !== lastSyncedF) {
+				filter = decodeFilter(urlF);
+				lastSyncedF = urlF;
+			}
+		});
 	});
 
 	function onChangePage(newPage: number) {
@@ -54,16 +60,18 @@
 {:else}
 	<div class="flex flex-col gap-3 p-4">
 		<h1 class="tracking-widest uppercase">Tracks</h1>
-		<div class="flex flex-row flex-wrap items-center gap-2">
-			<SearchInput
-				value={getTextSearch(filter)}
-				onChange={(q) => onFilterChange(setTextSearch(filter, q))}
-				placeholder="Search tracks…"
-			/>
-			<FilterBar entity="tracks" {filter} onChange={onFilterChange} />
-			<div class="ml-auto"></div>
-			<SaveAsDynamicPlaylist {filter} />
-		</div>
+		<FilterBar entity="tracks" {filter} onChange={onFilterChange}>
+			{#snippet leading()}
+				<SearchInput
+					value={getTextSearch(filter)}
+					onChange={(q) => onFilterChange(setTextSearch(filter, q))}
+					placeholder="Search tracks…"
+				/>
+			{/snippet}
+			{#snippet trailing()}
+				<SaveAsDynamicPlaylist {filter} />
+			{/snippet}
+		</FilterBar>
 		<DataTable
 			data={data.tracks.data}
 			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}

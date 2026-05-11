@@ -5,6 +5,7 @@
 	import FilterBar from '$lib/components/filters/filter-bar.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
 	import SaveAsAlbumCollection from '$lib/components/filters/save-as-album-collection.svelte';
+	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { decodeFilter, encodeFilter, getTextSearch, setTextSearch } from '$lib/utils/filter-url';
@@ -18,11 +19,16 @@
 	let lastSyncedF = $state(page.url.searchParams.get('f') ?? '');
 
 	$effect(() => {
+		// Resync ONLY when the URL itself changes (back/forward, external nav).
+		// `lastSyncedF` is read untracked so that mutating it inside `onFilterChange`
+		// before calling `goto()` does not re-fire this effect against the stale URL.
 		const urlF = page.url.searchParams.get('f') ?? '';
-		if (urlF !== lastSyncedF) {
-			filter = decodeFilter(urlF);
-			lastSyncedF = urlF;
-		}
+		untrack(() => {
+			if (urlF !== lastSyncedF) {
+				filter = decodeFilter(urlF);
+				lastSyncedF = urlF;
+			}
+		});
 	});
 
 	function onChangePage(newPage: number) {
@@ -50,16 +56,18 @@
 {:else}
 	<div class="flex flex-col gap-3 p-4">
 		<h1 class="tracking-widest uppercase">Albums</h1>
-		<div class="flex flex-row flex-wrap items-center gap-2">
-			<SearchInput
-				value={getTextSearch(filter)}
-				onChange={(q) => onFilterChange(setTextSearch(filter, q))}
-				placeholder="Search albums…"
-			/>
-			<FilterBar entity="albums" {filter} onChange={onFilterChange} />
-			<div class="ml-auto"></div>
-			<SaveAsAlbumCollection {filter} />
-		</div>
+		<FilterBar entity="albums" {filter} onChange={onFilterChange}>
+			{#snippet leading()}
+				<SearchInput
+					value={getTextSearch(filter)}
+					onChange={(q) => onFilterChange(setTextSearch(filter, q))}
+					placeholder="Search albums…"
+				/>
+			{/snippet}
+			{#snippet trailing()}
+				<SaveAsAlbumCollection {filter} />
+			{/snippet}
+		</FilterBar>
 		<DataTable
 			data={data.albums.data}
 			columns={albumsColumns}

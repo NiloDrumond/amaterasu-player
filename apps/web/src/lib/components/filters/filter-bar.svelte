@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { FilterNode } from '$lib/bindings/filter/filter-node';
+	import type { Snippet } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import FilterChip from './filter-chip.svelte';
 	import FilterAddPopover from './filter-add-popover.svelte';
@@ -9,6 +10,8 @@
 		entity,
 		filter,
 		onChange,
+		leading,
+		trailing,
 	}: {
 		entity: Entity;
 		filter: FilterNode | null;
@@ -17,6 +20,10 @@
 		 * are active.
 		 */
 		onChange: (next: FilterNode | null) => void;
+		/** Rendered on the controls row, before the add-filter button. */
+		leading?: Snippet;
+		/** Rendered on the controls row, pushed to the right. */
+		trailing?: Snippet;
 	} = $props();
 
 	/**
@@ -81,26 +88,35 @@
 	}
 </script>
 
-<div class="flex flex-wrap items-center gap-1.5">
-	{#each children as child, idx (isLeaf(child) ? leafKey(child) : idx)}
-		{#if isLeaf(child)}
-			<FilterChip
-				{entity}
-				leaf={child}
-				labelOverride={labels.get(leafKey(child))}
-				onRemove={() => removeAt(idx)}
-				onToggleNegate={() => toggleNegateAt(idx)}
-			/>
+<div class="flex flex-col gap-2">
+	<div class="flex flex-row flex-wrap items-center gap-2">
+		{@render leading?.()}
+		<FilterAddPopover {entity} onAdd={addLeaf} />
+		{#if children.length > 0}
+			<button
+				type="button"
+				class="text-xs text-muted-foreground hover:text-foreground hover:underline"
+				onclick={clear}
+			>
+				Clear all
+			</button>
 		{/if}
-	{/each}
-	<FilterAddPopover {entity} onAdd={addLeaf} />
+		<div class="ml-auto"></div>
+		{@render trailing?.()}
+	</div>
 	{#if children.length > 0}
-		<button
-			type="button"
-			class="text-xs text-muted-foreground hover:text-foreground hover:underline"
-			onclick={clear}
-		>
-			Clear all
-		</button>
+		<div class="flex flex-wrap items-center gap-1.5">
+			{#each children as child, idx (isLeaf(child) ? leafKey(child) : idx)}
+				{#if isLeaf(child)}
+					<FilterChip
+						{entity}
+						leaf={child}
+						labelOverride={labels.get(leafKey(child))}
+						onRemove={() => removeAt(idx)}
+						onToggleNegate={() => toggleNegateAt(idx)}
+					/>
+				{/if}
+			{/each}
+		</div>
 	{/if}
 </div>

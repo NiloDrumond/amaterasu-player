@@ -148,9 +148,13 @@
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 				<Table.Row>
 					{#each headerGroup.headers as header (header.id)}
+						{@const maxSize = header.column.columnDef.maxSize}
+						{@const wrapStyle = maxSize
+							? `max-width: ${maxSize}px;`
+							: undefined}
 						<Table.Head
 							colspan={header.colSpan}
-							style={`width: ${header.getSize()}px;`}
+							style={`width: ${header.getSize()}px;${maxSize ? ` max-width: ${maxSize}px;` : ''}`}
 							class={header.column.columnDef.meta?.class}
 						>
 							{#if !header.isPlaceholder}
@@ -161,16 +165,32 @@
 										class="inline-flex cursor-pointer items-center gap-1 select-none hover:text-foreground"
 										onclick={header.column.getToggleSortingHandler()}
 									>
-										<FlexRender
-											content={header.column.columnDef.header}
-											context={header.getContext()}
-										/>
+										{#if wrapStyle}
+											<span class="overflow-hidden text-ellipsis whitespace-nowrap" style={wrapStyle}>
+												<FlexRender
+													content={header.column.columnDef.header}
+													context={header.getContext()}
+												/>
+											</span>
+										{:else}
+											<FlexRender
+												content={header.column.columnDef.header}
+												context={header.getContext()}
+											/>
+										{/if}
 										{#if sorted === 'asc'}
 											<Icons.SortAsc class="size-3" />
 										{:else if sorted === 'desc'}
 											<Icons.SortDesc class="size-3" />
 										{/if}
 									</button>
+								{:else if wrapStyle}
+									<span class="block overflow-hidden text-ellipsis whitespace-nowrap" style={wrapStyle}>
+										<FlexRender
+											content={header.column.columnDef.header}
+											context={header.getContext()}
+										/>
+									</span>
 								{:else}
 									<FlexRender
 										content={header.column.columnDef.header}
@@ -195,8 +215,18 @@
 							: undefined}
 					>
 						{#each row.getVisibleCells() as cell (cell.id)}
-							<Table.Cell class={cell.column.columnDef.meta?.class}>
-								<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+							{@const cellMax = cell.column.columnDef.maxSize}
+							<Table.Cell
+								class={cell.column.columnDef.meta?.class}
+								style={cellMax ? `max-width: ${cellMax}px;` : undefined}
+							>
+								{#if cellMax}
+									<div class="overflow-hidden text-ellipsis whitespace-nowrap" style={`max-width: ${cellMax}px;`}>
+										<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+									</div>
+								{:else}
+									<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+								{/if}
 							</Table.Cell>
 						{/each}
 					</Table.Row>

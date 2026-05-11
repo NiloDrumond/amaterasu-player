@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import XIcon from '@lucide/svelte/icons/x';
@@ -23,11 +24,16 @@
 	let timer: ReturnType<typeof setTimeout> | null = null;
 
 	$effect(() => {
-		// Resync when the upstream value changes (e.g. back button).
-		if (value !== lastSyncedValue) {
-			draft = value;
-			lastSyncedValue = value;
-		}
+		// Resync ONLY when the upstream `value` itself changes (e.g. back button).
+		// `lastSyncedValue` is read untracked so that mutating it inside `commit()`
+		// does not re-fire this effect against a stale `value`.
+		const next = value;
+		untrack(() => {
+			if (next !== lastSyncedValue) {
+				draft = next;
+				lastSyncedValue = next;
+			}
+		});
 	});
 
 	function commit(q: string) {

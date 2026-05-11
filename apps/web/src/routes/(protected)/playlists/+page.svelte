@@ -65,9 +65,9 @@
 	<h1>Error</h1>
 	<p>{data.error.message}</p>
 {:else}
-	<div class="flex flex-col p-4">
-		<div class="mb-4 flex items-center gap-3">
-			<h1 class="tracking-widest uppercase">Playlists</h1>
+	<div class="flex flex-col gap-3 p-4">
+		<h1 class="tracking-widest uppercase">Playlists</h1>
+		<div class="flex flex-row flex-wrap items-center gap-2">
 			<SearchInput
 				value={page.url.searchParams.get('q') ?? ''}
 				onChange={onSearch}
