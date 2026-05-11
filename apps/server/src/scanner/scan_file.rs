@@ -73,6 +73,17 @@ impl From<ScannedFile> for Track {
 }
 
 impl ScannedFile {
+    pub fn file_stem(&self) -> &str {
+        std::path::Path::new(&self.file_path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+    }
+
+    pub fn file_path(&self) -> &str {
+        &self.file_path
+    }
+
     pub fn scan(path: &std::path::Path, library_path: &str) -> ScannerResult<Self> {
         ffmpeg::init()?;
 

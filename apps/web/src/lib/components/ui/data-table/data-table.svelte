@@ -149,9 +149,7 @@
 				<Table.Row>
 					{#each headerGroup.headers as header (header.id)}
 						{@const maxSize = header.column.columnDef.maxSize}
-						{@const wrapStyle = maxSize
-							? `max-width: ${maxSize}px;`
-							: undefined}
+						{@const wrapStyle = maxSize ? `max-width: ${maxSize}px;` : undefined}
 						<Table.Head
 							colspan={header.colSpan}
 							style={`width: ${header.getSize()}px;${maxSize ? ` max-width: ${maxSize}px;` : ''}`}
@@ -166,7 +164,10 @@
 										onclick={header.column.getToggleSortingHandler()}
 									>
 										{#if wrapStyle}
-											<span class="overflow-hidden text-ellipsis whitespace-nowrap" style={wrapStyle}>
+											<span
+												class="overflow-hidden text-ellipsis whitespace-nowrap"
+												style={wrapStyle}
+											>
 												<FlexRender
 													content={header.column.columnDef.header}
 													context={header.getContext()}
@@ -185,7 +186,10 @@
 										{/if}
 									</button>
 								{:else if wrapStyle}
-									<span class="block overflow-hidden text-ellipsis whitespace-nowrap" style={wrapStyle}>
+									<span
+										class="block overflow-hidden text-ellipsis whitespace-nowrap"
+										style={wrapStyle}
+									>
 										<FlexRender
 											content={header.column.columnDef.header}
 											context={header.getContext()}
@@ -221,7 +225,10 @@
 								style={cellMax ? `max-width: ${cellMax}px;` : undefined}
 							>
 								{#if cellMax}
-									<div class="overflow-hidden text-ellipsis whitespace-nowrap" style={`max-width: ${cellMax}px;`}>
+									<div
+										class="overflow-hidden text-ellipsis whitespace-nowrap"
+										style={`max-width: ${cellMax}px;`}
+									>
 										<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
 									</div>
 								{:else}

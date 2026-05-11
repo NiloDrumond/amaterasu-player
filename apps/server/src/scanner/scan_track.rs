@@ -3,6 +3,18 @@ use ffmpeg_next::format::context::Input;
 
 use crate::scanner::error::{ScannerError, ScannerResult};
 
+pub fn parse_numeric_prefix(stem: &str) -> Option<(i32, String)> {
+    let (prefix, rest) = stem.split_once('_')?;
+    if prefix.is_empty() || rest.is_empty() {
+        return None;
+    }
+    if !prefix.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    let n = prefix.parse::<i32>().ok()?;
+    Some((n, rest.to_string()))
+}
+
 pub struct ScannedTrackMetadata {
     pub title: String,
     pub disc: Option<i32>,
@@ -77,5 +89,91 @@ impl ScannedTrackMetadata {
             replaygain_track_gain: parse_gain("replaygain_track_gain"),
             replaygain_track_peak: parse_peak("replaygain_track_peak"),
         })
+    }
+
+    pub fn apply_filename_track_number(&mut self, file_stem: &str) {
+        if self.track_no.is_some() {
+            return;
+        }
+        let Some((n, rest)) = parse_numeric_prefix(file_stem) else {
+            return;
+        };
+        self.track_no = Some(n);
+        if self.title == file_stem {
+            self.title = rest;
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_numeric_prefix_basic() {
+        assert_eq!(parse_numeric_prefix("1_Hello"), Some((1, "Hello".into())));
+        assert_eq!(parse_numeric_prefix("01_Hello"), Some((1, "Hello".into())));
+        assert_eq!(
+            parse_numeric_prefix("12_Foo_Bar"),
+            Some((12, "Foo_Bar".into()))
+        );
+    }
+
+    #[test]
+    fn parse_numeric_prefix_rejects_non_matches() {
+        assert_eq!(parse_numeric_prefix("Hello"), None);
+        assert_eq!(parse_numeric_prefix("1-Hello"), None);
+        assert_eq!(parse_numeric_prefix("_Hello"), None);
+        assert_eq!(parse_numeric_prefix("1_"), None);
+        assert_eq!(parse_numeric_prefix("1a_Hello"), None);
+    }
+
+    fn meta(title: &str, track_no: Option<i32>) -> ScannedTrackMetadata {
+        ScannedTrackMetadata {
+            title: title.to_string(),
+            disc: None,
+            track_no,
+            date: None,
+            composer: None,
+            comment: None,
+            original_title: None,
+            original_artist: None,
+            original_album: None,
+            sort_title: None,
+            replaygain_track_gain: None,
+            replaygain_track_peak: None,
+        }
+    }
+
+    #[test]
+    fn apply_noop_when_track_no_present() {
+        let mut m = meta("1_Hello", Some(5));
+        m.apply_filename_track_number("1_Hello");
+        assert_eq!(m.track_no, Some(5));
+        assert_eq!(m.title, "1_Hello");
+    }
+
+    #[test]
+    fn apply_strips_prefix_when_title_equals_stem() {
+        let mut m = meta("1_Hello", None);
+        m.apply_filename_track_number("1_Hello");
+        assert_eq!(m.track_no, Some(1));
+        assert_eq!(m.title, "Hello");
+    }
+
+    #[test]
+    fn apply_keeps_tagged_title_but_sets_track_no() {
+        let mut m = meta("Real Title", None);
+        m.apply_filename_track_number("1_Hello");
+        assert_eq!(m.track_no, Some(1));
+        assert_eq!(m.title, "Real Title");
+    }
+
+    #[test]
+    fn apply_noop_when_stem_doesnt_match() {
+        let mut m = meta("Hello", None);
+        m.apply_filename_track_number("Hello");
+        assert_eq!(m.track_no, None);
+        assert_eq!(m.title, "Hello");
     }
 }
