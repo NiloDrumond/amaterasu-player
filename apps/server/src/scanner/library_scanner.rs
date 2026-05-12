@@ -4,7 +4,28 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use sqlx::PgPool;
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
+
+const AUDIO_EXTENSIONS: &[&str] = &[
+    "mp3", "flac", "wav", "ogg", "oga", "opus", "m4a", "m4b", "aac", "wma", "aiff", "aif", "alac",
+    "ape", "wv",
+];
+
+fn is_audio_file(path: &std::path::Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .map(|e| AUDIO_EXTENSIONS.contains(&e.as_str()))
+        .unwrap_or(false)
+}
+
+fn is_system_junk(entry: &DirEntry) -> bool {
+    let name = entry.file_name().to_string_lossy();
+    if name == "__MACOSX" || name == ".DS_Store" || name == "Thumbs.db" {
+        return true;
+    }
+    name.starts_with("._")
+}
 
 use crate::scanner::persist::persist_scanned_file;
 use crate::scanner::scan_file::ScannedFile;
@@ -60,9 +81,15 @@ impl LibraryScanner {
         let mut failed: u64 = 0;
 
         let mut by_folder: BTreeMap<PathBuf, Vec<PathBuf>> = BTreeMap::new();
-        for entry in WalkDir::new(&self.library_path) {
+        let walker = WalkDir::new(&self.library_path)
+            .into_iter()
+            .filter_entry(|e| !is_system_junk(e));
+        for entry in walker {
             let entry = entry?;
             if !entry.file_type().is_file() {
+                continue;
+            }
+            if !is_audio_file(entry.path()) {
                 continue;
             }
             let path = entry.path().to_path_buf();
@@ -103,7 +130,8 @@ impl LibraryScanner {
             for scanned_file in scanned_files {
                 let display_path = scanned_file.file_path().to_string();
                 match persist_scanned_file(&self.pool, &self.covers_dir, scanned_file).await {
-                    Ok(_) => scanned += 1,
+                    Ok(Some(_)) => scanned += 1,
+                    Ok(None) => {}
                     Err(e) => {
                         tracing::warn!("Failed to persist {}: {}", display_path, e);
                         failed += 1;

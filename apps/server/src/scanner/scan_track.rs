@@ -42,7 +42,11 @@ impl ScannedTrackMetadata {
 
         let metadata = ictx.metadata();
 
-        let get_string = |key: &str| -> Option<String> { metadata.get(key).map(|v| v.to_string()) };
+        let get_string = |key: &str| -> Option<String> {
+            metadata
+                .get(key)
+                .map(|v| String::from_utf8_lossy(v.as_bytes()).into_owned())
+        };
 
         let get_int =
             |key: &str| -> Option<i32> { metadata.get(key).and_then(|v| v.parse::<i32>().ok()) };

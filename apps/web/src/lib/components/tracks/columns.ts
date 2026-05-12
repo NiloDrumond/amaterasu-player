@@ -36,7 +36,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		accessorKey: 'title',
 		header: 'TITLE',
-		size: 99999,
+		size: 400,
+		maxSize: 400,
 		meta: {
 			mainColumn: true,
 			class: cn('font-semibold'),

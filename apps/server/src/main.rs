@@ -88,7 +88,6 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(interval).await;
-            tracing::info!("rate limiting storage size: {}", governor_limiter.len());
             governor_limiter.retain_recent();
         }
     });

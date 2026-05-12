@@ -23,7 +23,11 @@ impl ScannedAlbumMetadata {
     ) -> ScannerResult<Self> {
         let metadata = ictx.metadata();
 
-        let get_string = |key: &str| -> Option<String> { metadata.get(key).map(|v| v.to_string()) };
+        let get_string = |key: &str| -> Option<String> {
+            metadata
+                .get(key)
+                .map(|v| String::from_utf8_lossy(v.as_bytes()).into_owned())
+        };
 
         let parse_gain = |key: &str| -> Option<f32> {
             metadata.get(key).and_then(|v| {

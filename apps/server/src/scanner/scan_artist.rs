@@ -9,7 +9,11 @@ impl ScannedArtistMetadata {
     pub fn from_track_context(ictx: &Input, folder_name: Option<String>) -> Self {
         let metadata = ictx.metadata();
 
-        let get_string = |key: &str| -> Option<String> { metadata.get(key).map(|v| v.to_string()) };
+        let get_string = |key: &str| -> Option<String> {
+            metadata
+                .get(key)
+                .map(|v| String::from_utf8_lossy(v.as_bytes()).into_owned())
+        };
 
         Self {
             name: get_string("artist")
@@ -22,7 +26,11 @@ impl ScannedArtistMetadata {
     pub fn from_album_context(ictx: &Input, folder_name: Option<String>) -> Self {
         let metadata = ictx.metadata();
 
-        let get_string = |key: &str| -> Option<String> { metadata.get(key).map(|v| v.to_string()) };
+        let get_string = |key: &str| -> Option<String> {
+            metadata
+                .get(key)
+                .map(|v| String::from_utf8_lossy(v.as_bytes()).into_owned())
+        };
 
         Self {
             name: get_string("album_artist")

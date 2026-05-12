@@ -135,6 +135,31 @@ impl TrackRepository {
         Ok(track)
     }
 
+    pub async fn find_by_album_and_title(
+        executor: impl PgExecutor<'_>,
+        album_id: Uuid,
+        title: &str,
+    ) -> AppResult<Option<Track>> {
+        let track = sqlx::query_as!(
+            Track,
+            r#"
+            SELECT
+                *
+            FROM
+                tracks
+            WHERE
+                album_id = $1 AND lower(title) = lower($2)
+            LIMIT 1
+            "#,
+            album_id,
+            title
+        )
+        .fetch_optional(executor)
+        .await?;
+
+        Ok(track)
+    }
+
     /// Full-row update used by the scanner when refreshing tag-derived fields.
     pub async fn update(executor: impl PgExecutor<'_>, track: &Track) -> AppResult<Track> {
         let updated = sqlx::query_as!(
