@@ -15,12 +15,16 @@ use crate::{
             AddTracksParams, CreatePlaylistParams, RenamePlaylistParams, ReorderTrackParams,
             SearchPaginationParams, UpdatePlaylistFilterParams,
         },
-        response::{PaginatedResponse, PlaylistResponse, PlaylistTrackResponse},
+        response::{
+            PaginatedResponse, PlaylistResponse, PlaylistTrackResponse, RecentPlaylistResponse,
+        },
     },
     error::{AppError, AppResult},
-    repositories::{PlaylistRepository, PlaylistSortKey},
+    repositories::{PlaylistRepository, PlaylistSortKey, TrackPlayRepository},
     state::AppState,
 };
+
+use std::collections::HashMap;
 
 const INITIAL_POSITION: f64 = 1000.0;
 const POSITION_STEP: f64 = 1000.0;
@@ -53,12 +57,63 @@ pub async fn list_playlists(
     )
     .await?;
 
+    let ids: Vec<Uuid> = playlists.iter().map(|p| p.playlist.id).collect();
+    let plays =
+        TrackPlayRepository::play_counts_for_playlists(&state.db, auth_user.user.id, &ids).await?;
+    let plays_by_id: HashMap<Uuid, i64> = plays.into_iter().collect();
+
     Ok(Json(PaginatedResponse {
-        data: playlists.into_iter().map(Into::into).collect(),
+        data: playlists
+            .into_iter()
+            .map(|stats| {
+                let pc = plays_by_id.get(&stats.playlist.id).copied().unwrap_or(0);
+                PlaylistResponse::from_stats(stats, pc)
+            })
+            .collect(),
         total,
         limit: params.limit,
         offset: params.offset,
     }))
+}
+
+async fn playlist_play_count(
+    pool: &sqlx::PgPool,
+    user_id: Uuid,
+    playlist_id: Uuid,
+) -> AppResult<i64> {
+    Ok(
+        TrackPlayRepository::play_counts_for_playlists(pool, user_id, &[playlist_id])
+            .await?
+            .into_iter()
+            .next()
+            .map(|(_, c)| c)
+            .unwrap_or(0),
+    )
+}
+
+#[derive(serde::Deserialize)]
+pub struct RecentQuery {
+    #[serde(default = "default_recent_limit")]
+    pub limit: i64,
+}
+
+fn default_recent_limit() -> i64 {
+    10
+}
+
+pub async fn recent_playlists(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Query(params): Query<RecentQuery>,
+) -> AppResult<Json<Vec<RecentPlaylistResponse>>> {
+    let limit = params.limit.clamp(1, 50);
+    let rows =
+        TrackPlayRepository::recent_playlists_for_user(&state.db, auth_user.user.id, limit).await?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|(id, name)| RecentPlaylistResponse { id, name })
+            .collect(),
+    ))
 }
 
 pub async fn create_playlist(
@@ -78,7 +133,11 @@ pub async fn create_playlist(
         .await?
         .ok_or(AppError::NotFound)?;
 
-    Ok((StatusCode::CREATED, Json(stats.into())))
+    let pc = playlist_play_count(&state.db, auth_user.user.id, stats.playlist.id).await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(PlaylistResponse::from_stats(stats, pc)),
+    ))
 }
 
 pub async fn get_playlist(
@@ -90,7 +149,8 @@ pub async fn get_playlist(
         .await?
         .ok_or(AppError::NotFound)?;
 
-    Ok(Json(stats.into()))
+    let pc = playlist_play_count(&state.db, auth_user.user.id, stats.playlist.id).await?;
+    Ok(Json(PlaylistResponse::from_stats(stats, pc)))
 }
 
 pub async fn rename_playlist(
@@ -107,7 +167,8 @@ pub async fn rename_playlist(
         .await?
         .ok_or(AppError::NotFound)?;
 
-    Ok(Json(stats.into()))
+    let pc = playlist_play_count(&state.db, auth_user.user.id, stats.playlist.id).await?;
+    Ok(Json(PlaylistResponse::from_stats(stats, pc)))
 }
 
 pub async fn delete_playlist(
@@ -161,7 +222,8 @@ pub async fn update_playlist_filter(
         .await?
         .ok_or(AppError::NotFound)?;
 
-    Ok(Json(stats.into()))
+    let pc = playlist_play_count(&state.db, auth_user.user.id, stats.playlist.id).await?;
+    Ok(Json(PlaylistResponse::from_stats(stats, pc)))
 }
 
 pub async fn add_tracks(
@@ -186,6 +248,7 @@ pub async fn add_tracks(
         PlaylistRepository::insert_track(&state.db, id, track_id, next_pos).await?;
         next_pos += POSITION_STEP;
     }
+    PlaylistRepository::touch(&state.db, id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -198,6 +261,7 @@ pub async fn remove_track(
     let deleted = PlaylistRepository::remove_track(&state.db, id, auth_user.user.id, tid).await?;
 
     if deleted {
+        PlaylistRepository::touch(&state.db, id).await?;
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound)
@@ -241,6 +305,10 @@ pub async fn reorder_track(
 
     let updated =
         PlaylistRepository::update_track_position(&mut *tx, id, tid, new_position).await?;
+
+    if updated {
+        PlaylistRepository::touch(&mut *tx, id).await?;
+    }
 
     tx.commit().await?;
 

@@ -17,4 +17,5 @@ export type TrackResponse = {
 	originalTitle: string | null;
 	originalArtist: string | null;
 	originalAlbum: string | null;
+	playCount: bigint;
 };

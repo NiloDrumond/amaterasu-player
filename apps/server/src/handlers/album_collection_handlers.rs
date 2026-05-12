@@ -116,7 +116,7 @@ pub async fn list_collection_albums(
         .as_deref()
         .map(AlbumSortKey::from_str)
         .transpose()?;
-    let service = LibraryService::new(state.db.clone());
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
     let (albums, total) = service
         .get_albums(
             Some(&collection.filter_definition.0),

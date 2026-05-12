@@ -9,7 +9,11 @@
 </script>
 
 <Sidebar.Provider>
-	<AppSidebar class={player.currentTrack ? 'pb-20' : undefined} user={data.user} />
+	<AppSidebar
+		class={player.currentTrack ? 'pb-20' : undefined}
+		user={data.user}
+		recentPlaylists={data.recentPlaylists}
+	/>
 	<Sidebar.Inset class={player.currentTrack ? 'pb-20' : undefined}>
 		{@render children()}
 	</Sidebar.Inset>

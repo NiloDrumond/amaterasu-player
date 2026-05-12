@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
+    auth::AuthUser,
     dto::{
         request::{FilteredPaginationParams, SearchQuery},
         response::{
@@ -21,6 +22,7 @@ use uuid::Uuid;
 
 pub async fn get_albums(
     State(state): State<AppState>,
+    auth_user: AuthUser,
     Query(params): Query<FilteredPaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<AlbumResponse>>> {
     let filter = params.decode_filter()?;
@@ -29,7 +31,7 @@ pub async fn get_albums(
         .as_deref()
         .map(AlbumSortKey::from_str)
         .transpose()?;
-    let service = LibraryService::new(state.db.clone());
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
     let (albums, total) = service
         .get_albums(
             filter.as_ref(),
@@ -52,9 +54,10 @@ pub async fn get_albums(
 
 pub async fn get_album(
     State(state): State<AppState>,
+    auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<AlbumResponse>> {
-    let service = LibraryService::new(state.db.clone());
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
     let album = service
         .get_album_by_id(id)
         .await?
@@ -74,9 +77,10 @@ pub async fn search_albums(
 
 pub async fn get_album_tracks(
     State(state): State<AppState>,
+    auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Vec<TrackResponse>>> {
-    let service = LibraryService::new(state.db.clone());
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
     let tracks = service.get_tracks_by_album_id(id).await?;
 
     Ok(Json(tracks.into_iter().map(Into::into).collect()))

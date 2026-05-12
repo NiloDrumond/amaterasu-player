@@ -66,6 +66,13 @@ export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 		cell: ({ row }) => String(row.original.trackCount),
 	},
 	{
+		id: 'playCount',
+		header: 'PLAYS',
+		maxSize: 80,
+		accessorFn: (row) => Number(row.playCount),
+		cell: ({ row }) => String(row.original.playCount),
+	},
+	{
 		id: 'actions',
 		size: 50,
 		meta: {

@@ -12,4 +12,5 @@ export type PlaylistResponse = {
 	 */
 	playlistType: string;
 	filterDefinition: FilterNode | null;
+	playCount: bigint;
 };

@@ -8,6 +8,7 @@ export type AdminAlbumResponse = {
 	sourceTitle: string;
 	sourceAlbumArtistId: string | null;
 	date: string | null;
+	coverPath: string | null;
 	coverUrl: string | null;
 	lockedAt: string | null;
 };

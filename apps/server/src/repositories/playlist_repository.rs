@@ -520,6 +520,18 @@ impl PlaylistRepository {
         Ok(())
     }
 
+    /// Bumps `updated_at` on a playlist so it surfaces in "recently active"
+    /// lists when tracks are added, removed, or reordered.
+    pub async fn touch(executor: impl PgExecutor<'_>, playlist_id: Uuid) -> AppResult<()> {
+        sqlx::query!(
+            r#"UPDATE playlists SET updated_at = NOW() WHERE id = $1"#,
+            playlist_id
+        )
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
     pub async fn remove_track(
         executor: impl PgExecutor<'_>,
         playlist_id: Uuid,

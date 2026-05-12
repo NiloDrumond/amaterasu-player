@@ -48,6 +48,7 @@
 			bind:volume={player.volume}
 			onplay={() => (player.isPlaying = true)}
 			onpause={() => (player.isPlaying = false)}
+			ontimeupdate={() => player.maybeScrobble()}
 			onended={() => player.onEnded()}
 			preload="metadata"
 		></audio>

@@ -9,4 +9,5 @@ export type AlbumResponse = {
 	coverUrl: string | null;
 	trackCount: bigint;
 	totalDurationMs: bigint;
+	playCount: bigint;
 };

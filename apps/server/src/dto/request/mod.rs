@@ -6,6 +6,7 @@ pub mod cover_request;
 pub mod playlist_request;
 pub mod tag_category_request;
 pub mod tag_request;
+pub mod track_request;
 
 pub use admin_request::*;
 pub use album_collection_request::*;
@@ -15,3 +16,4 @@ pub use cover_request::*;
 pub use playlist_request::*;
 pub use tag_category_request::*;
 pub use tag_request::*;
+pub use track_request::*;

@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { CurrentUserResponse } from '$lib/bindings/response/auth/current-user-response';
+	import type { RecentPlaylistResponse } from '$lib/bindings/response/playlist/recent-playlist-response';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { Separator } from '$lib/components/ui/separator';
 	import { resetMode, setMode } from 'mode-watcher';
 	import type { ComponentProps } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -11,9 +13,13 @@
 
 	let {
 		user,
+		recentPlaylists = [],
 		ref = $bindable(null),
 		...restProps
-	}: ComponentProps<typeof Sidebar.Root> & { user: CurrentUserResponse } = $props();
+	}: ComponentProps<typeof Sidebar.Root> & {
+		user: CurrentUserResponse;
+		recentPlaylists?: RecentPlaylistResponse[];
+	} = $props();
 
 	const isAdmin = $derived(user.role === 'admin');
 
@@ -75,13 +81,6 @@
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}
-							<a href="/playlists" {...props}>Playlists</a>
-						{/snippet}
-					</Sidebar.MenuButton>
-				</Sidebar.MenuItem>
-				<Sidebar.MenuItem>
-					<Sidebar.MenuButton>
-						{#snippet child({ props })}
 							<a href="/collections" {...props}>Collections</a>
 						{/snippet}
 					</Sidebar.MenuButton>
@@ -93,6 +92,34 @@
 						{/snippet}
 					</Sidebar.MenuButton>
 				</Sidebar.MenuItem>
+			</Sidebar.Menu>
+		</Sidebar.Group>
+		<Separator class="mx-2 w-auto" />
+		<Sidebar.Group>
+			<Sidebar.Menu>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
+							<a href="/playlists" {...props}>Playlists</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+				{#each recentPlaylists as p (p.id)}
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton>
+							{#snippet child({ props })}
+								<a
+									href="/playlists/{p.id}"
+									{...props}
+									class={(props.class ?? '') + ' pl-6 text-muted-foreground'}
+									title={p.name}
+								>
+									<span class="truncate">{p.name}</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+				{/each}
 			</Sidebar.Menu>
 		</Sidebar.Group>
 	</Sidebar.Content>

@@ -49,7 +49,7 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 	{
 		id: 'artist',
 		header: 'ARTIST',
-    size: 150,
+		size: 150,
 		maxSize: 150,
 		accessorFn: (row) => row.artist?.name ?? '',
 		cell: ({ row }) => {
@@ -85,9 +85,17 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 		cell: ({ row }) => String(row.original.trackCount),
 	},
 	{
+		id: 'playCount',
+		header: 'PLAYS',
+		size: 60,
+		maxSize: 60,
+		accessorFn: (row) => Number(row.playCount),
+		cell: ({ row }) => String(row.original.playCount),
+	},
+	{
 		id: 'time',
 		header: 'TIME',
-    size: 80,
+		size: 80,
 		maxSize: 80,
 		accessorFn: (row) => Number(row.totalDurationMs),
 		cell: ({ row }) => formatMilliseconds(Number(row.original.totalDurationMs)),

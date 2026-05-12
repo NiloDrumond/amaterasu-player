@@ -6,6 +6,7 @@ pub mod playlist_repository;
 pub mod session_repository;
 pub mod tag_category_repository;
 pub mod tag_repository;
+pub mod track_play_repository;
 pub mod track_repository;
 pub mod user_repository;
 
@@ -17,5 +18,6 @@ pub use playlist_repository::{PlaylistRepository, PlaylistSortKey};
 pub use session_repository::SessionRepository;
 pub use tag_category_repository::TagCategoryRepository;
 pub use tag_repository::TagRepository;
+pub use track_play_repository::TrackPlayRepository;
 pub use track_repository::{TrackRepository, TrackSortKey};
 pub use user_repository::UserRepository;

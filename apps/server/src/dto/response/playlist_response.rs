@@ -18,10 +18,11 @@ pub struct PlaylistResponse {
     /// 'manual' or 'dynamic'.
     pub playlist_type: String,
     pub filter_definition: Option<FilterNode>,
+    pub play_count: i64,
 }
 
-impl From<PlaylistStats> for PlaylistResponse {
-    fn from(value: PlaylistStats) -> Self {
+impl PlaylistResponse {
+    pub fn from_stats(value: PlaylistStats, play_count: i64) -> Self {
         Self {
             id: value.playlist.id,
             name: value.playlist.name,
@@ -30,8 +31,16 @@ impl From<PlaylistStats> for PlaylistResponse {
             created_at: value.playlist.created_at,
             playlist_type: value.playlist.playlist_type,
             filter_definition: value.playlist.filter_definition.map(|j| j.0),
+            play_count,
         }
     }
+}
+
+#[api_type("response/playlist")]
+#[derive(Debug, Serialize)]
+pub struct RecentPlaylistResponse {
+    pub id: Uuid,
+    pub name: String,
 }
 
 #[api_type("response/playlist")]

@@ -27,11 +27,11 @@
 	const albumColumns = tracksColumns.filter((col) => col.id !== 'album');
 
 	function play() {
-		player.playQueue(data.tracks, 0);
+		player.playQueue(data.tracks, 0, { albumId: data.album.id });
 	}
 
 	function shufflePlay() {
-		player.playQueue(shuffle(data.tracks), 0);
+		player.playQueue(shuffle(data.tracks), 0, { albumId: data.album.id });
 	}
 
 	function playNext() {
@@ -126,6 +126,6 @@
 	<DataTable
 		data={data.tracks}
 		columns={albumColumns}
-		onRowClick={(_, index) => player.playQueue(data.tracks, index)}
+		onRowClick={(_, index) => player.playQueue(data.tracks, index, { albumId: data.album.id })}
 	/>
 </div>

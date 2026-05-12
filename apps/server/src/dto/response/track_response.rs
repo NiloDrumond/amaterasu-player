@@ -59,6 +59,7 @@ pub struct TrackResponse {
     pub original_title: Option<String>,
     pub original_artist: Option<String>,
     pub original_album: Option<String>,
+    pub play_count: i64,
 }
 
 impl From<TrackWithRefs> for TrackResponse {
@@ -67,6 +68,7 @@ impl From<TrackWithRefs> for TrackResponse {
             track,
             album,
             artist,
+            play_count,
         } = value;
 
         Self {
@@ -84,6 +86,7 @@ impl From<TrackWithRefs> for TrackResponse {
             original_title: track.original_title,
             original_artist: track.original_artist,
             original_album: track.original_album,
+            play_count,
         }
     }
 }

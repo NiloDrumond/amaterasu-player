@@ -1,7 +1,17 @@
 import type { TrackResponse } from '$lib/bindings/response/track/track-response';
+import { scrobbleTrack } from '$lib/services/track-service';
 import { getContext, setContext } from 'svelte';
 
 const PLAYER_KEY = Symbol.for('amaterasu-player');
+
+export interface PlaybackContext {
+	albumId?: string | null;
+	playlistId?: string | null;
+}
+
+// Scrobble threshold: >50% of track duration OR >4 minutes, whichever comes first.
+const SCROBBLE_MIN_FRACTION = 0.5;
+const SCROBBLE_MIN_SECONDS = 240;
 
 export class PlayerState {
 	queue = $state<TrackResponse[]>([]);
@@ -12,6 +22,9 @@ export class PlayerState {
 	volume = $state(1);
 	previousVolume = $state(1);
 	queueOpen = $state(false);
+	context = $state<PlaybackContext>({});
+
+	private scrobbledTrackKey: string | null = null;
 
 	currentTrack = $derived<TrackResponse | null>(this.queue[this.index] ?? null);
 	streamUrl = $derived<string | null>(
@@ -20,12 +33,14 @@ export class PlayerState {
 	hasNext = $derived(this.index < this.queue.length - 1);
 	hasPrev = $derived(this.index > 0);
 
-	playQueue(tracks: TrackResponse[], startIndex: number) {
+	playQueue(tracks: TrackResponse[], startIndex: number, context: PlaybackContext = {}) {
 		if (tracks.length === 0) return;
 		this.queue = tracks;
 		this.index = Math.max(0, Math.min(startIndex, tracks.length - 1));
 		this.currentTime = 0;
 		this.isPlaying = true;
+		this.context = context;
+		this.resetScrobble();
 	}
 
 	toggle() {
@@ -38,6 +53,7 @@ export class PlayerState {
 			this.index += 1;
 			this.currentTime = 0;
 			this.isPlaying = true;
+			this.resetScrobble();
 		} else {
 			this.isPlaying = false;
 		}
@@ -48,6 +64,7 @@ export class PlayerState {
 			this.index -= 1;
 			this.currentTime = 0;
 			this.isPlaying = true;
+			this.resetScrobble();
 		}
 	}
 
@@ -73,6 +90,7 @@ export class PlayerState {
 		this.index = i;
 		this.currentTime = 0;
 		this.isPlaying = true;
+		this.resetScrobble();
 	}
 
 	removeAt(i: number) {
@@ -89,6 +107,7 @@ export class PlayerState {
 				this.isPlaying = false;
 			}
 			this.currentTime = 0;
+			this.resetScrobble();
 		}
 	}
 
@@ -115,6 +134,32 @@ export class PlayerState {
 	playLater(tracks: TrackResponse[]) {
 		if (tracks.length === 0) return;
 		this.queue = [...this.queue, ...tracks];
+	}
+
+	/**
+	 * Called on each timeupdate while playing. Scrobbles once per track play when
+	 * the listener has crossed >50% of duration or >4 minutes.
+	 */
+	maybeScrobble() {
+		const track = this.currentTrack;
+		if (!track) return;
+		const playKey = `${track.id}:${this.index}`;
+		if (this.scrobbledTrackKey === playKey) return;
+
+		const durationSec = track.durationMs / 1000;
+		const halfway = durationSec > 0 && this.currentTime >= durationSec * SCROBBLE_MIN_FRACTION;
+		const longEnough = this.currentTime >= SCROBBLE_MIN_SECONDS;
+		if (!halfway && !longEnough) return;
+
+		this.scrobbledTrackKey = playKey;
+		void scrobbleTrack(fetch, track.id, {
+			contextAlbumId: this.context.albumId ?? null,
+			contextPlaylistId: this.context.playlistId ?? null,
+		});
+	}
+
+	private resetScrobble() {
+		this.scrobbledTrackKey = null;
 	}
 }
 

@@ -69,11 +69,13 @@
 	}
 
 	function play() {
-		player.playQueue(tracks.map(asTrackResponse), 0);
+		player.playQueue(tracks.map(asTrackResponse), 0, { playlistId: data.playlist.id });
 	}
 
 	function shufflePlay() {
-		player.playQueue(shuffle(tracks.map(asTrackResponse)), 0);
+		player.playQueue(shuffle(tracks.map(asTrackResponse)), 0, {
+			playlistId: data.playlist.id,
+		});
 	}
 
 	function playNext() {
@@ -203,7 +205,8 @@
 		<DataTable
 			data={tracksAsResponse}
 			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}
-			onRowClick={(_row, index) => player.playQueue(tracksAsResponse, index)}
+			onRowClick={(_row, index) =>
+				player.playQueue(tracksAsResponse, index, { playlistId: data.playlist.id })}
 		>
 			{#snippet rowContextMenu({ row, trigger })}
 				<TrackRowContextMenu track={row} {trigger} />
@@ -254,7 +257,9 @@
 								class="min-w-0 truncate text-left text-sm font-semibold"
 								onclick={() => {
 									const i = tracks.findIndex((t) => t.playlistTrackId === track.playlistTrackId);
-									player.playQueue(tracks.map(asTrackResponse), i);
+									player.playQueue(tracks.map(asTrackResponse), i, {
+										playlistId: data.playlist.id,
+									});
 								}}
 							>
 								{track.title}

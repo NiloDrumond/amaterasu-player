@@ -55,8 +55,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		accessorKey: 'artist',
 		header: 'ARTIST',
-		size: 150,
-		maxSize: 150,
+		size: 120,
+		maxSize: 120,
 		cell: ({ row }) => {
 			if (!row.original.artist) return null;
 			const anchorSnippet = createRawSnippet<[{ content: string; href: string }]>((getData) => {
@@ -85,6 +85,14 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 		},
 	},
 	{
+		id: 'playCount',
+		header: 'PLAYS',
+		size: 60,
+		maxSize: 60,
+		accessorFn: (row) => Number(row.playCount),
+		cell: ({ row }) => String(row.original.playCount),
+	},
+	{
 		accessorKey: 'durationMs',
 		header: 'TIME',
 		size: 80,
@@ -96,7 +104,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		id: 'actions',
 		size: 50,
-    maxSize: 50,
+		maxSize: 50,
 		meta: {
 			class: cn('text-right pr-2'),
 		},

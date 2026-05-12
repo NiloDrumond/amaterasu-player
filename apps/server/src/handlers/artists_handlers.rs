@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
+    auth::AuthUser,
     dto::{
         request::{SearchPaginationParams, SearchQuery},
         response::{
@@ -20,6 +21,7 @@ use uuid::Uuid;
 
 pub async fn get_artists(
     State(state): State<AppState>,
+    auth_user: AuthUser,
     Query(params): Query<SearchPaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<ArtistResponse>>> {
     let sort = params
@@ -27,7 +29,7 @@ pub async fn get_artists(
         .as_deref()
         .map(ArtistSortKey::from_str)
         .transpose()?;
-    let service = LibraryService::new(state.db.clone());
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
     let (artists, total) = service
         .get_artists_with_query(
             params.q.as_deref(),
@@ -50,9 +52,10 @@ pub async fn get_artists(
 
 pub async fn get_artist(
     State(state): State<AppState>,
+    auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<ArtistResponse>> {
-    let service = LibraryService::new(state.db.clone());
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
     let artist = service
         .get_artist_by_id(id)
         .await?
@@ -72,9 +75,10 @@ pub async fn search_artists(
 
 pub async fn get_artist_albums(
     State(state): State<AppState>,
+    auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Vec<AlbumResponse>>> {
-    let service = LibraryService::new(state.db.clone());
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
     let albums = service.get_albums_by_artist_id(id).await?;
 
     Ok(Json(albums.into_iter().map(Into::into).collect()))
@@ -82,9 +86,10 @@ pub async fn get_artist_albums(
 
 pub async fn get_artist_tracks(
     State(state): State<AppState>,
+    auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Vec<TrackResponse>>> {
-    let service = LibraryService::new(state.db.clone());
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
     let tracks = service.get_tracks_by_artist_id(id).await?;
 
     Ok(Json(tracks.into_iter().map(Into::into).collect()))

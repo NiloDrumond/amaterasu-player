@@ -8,6 +8,10 @@ pub fn playlist_routes() -> Router<AppState> {
     Router::new()
         .route("/playlists", get(playlist_handlers::list_playlists))
         .route("/playlists", post(playlist_handlers::create_playlist))
+        .route(
+            "/playlists/recent",
+            get(playlist_handlers::recent_playlists),
+        )
         .route("/playlists/{id}", get(playlist_handlers::get_playlist))
         .route("/playlists/{id}", patch(playlist_handlers::rename_playlist))
         .route(

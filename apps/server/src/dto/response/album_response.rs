@@ -34,6 +34,7 @@ pub struct AlbumResponse {
     pub cover_url: Option<String>,
     pub track_count: i64,
     pub total_duration_ms: i64,
+    pub play_count: i64,
 }
 
 impl From<AlbumWithRefs> for AlbumResponse {
@@ -43,6 +44,7 @@ impl From<AlbumWithRefs> for AlbumResponse {
             artist,
             track_count,
             total_duration_ms,
+            play_count,
         } = value;
 
         Self {
@@ -53,6 +55,7 @@ impl From<AlbumWithRefs> for AlbumResponse {
             cover_url: album.cover_path.map(|p| format!("/api/covers/{p}")),
             track_count,
             total_duration_ms,
+            play_count,
         }
     }
 }

@@ -1,5 +1,6 @@
 import type { GetPlaylistsResponse } from '$lib/bindings/response/playlist/get-playlists-response';
 import type { PlaylistResponse } from '$lib/bindings/response/playlist/playlist-response';
+import type { RecentPlaylistResponse } from '$lib/bindings/response/playlist/recent-playlist-response';
 import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
 import type { CreatePlaylistParams } from '$lib/bindings/request/playlist/create-playlist-params';
 import type { RenamePlaylistParams } from '$lib/bindings/request/playlist/rename-playlist-params';
@@ -103,4 +104,11 @@ export function reorderPlaylistTrack(
 		method: 'PATCH',
 		body: params,
 	});
+}
+
+export function getRecentPlaylists(
+	fetch: Fetch,
+	limit = 10,
+): Promise<Result<RecentPlaylistResponse[]>> {
+	return api<RecentPlaylistResponse[]>(fetch, `/api/playlists/recent?limit=${limit}`);
 }
