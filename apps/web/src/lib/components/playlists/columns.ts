@@ -11,6 +11,7 @@ export function playlistsColumns(onDeleted: () => void): ColumnDef<PlaylistRespo
 			id: 'name',
 			header: 'NAME',
 			size: 99999,
+			enableHiding: false,
 			accessorFn: (row) => row.name,
 			meta: {
 				mainColumn: true,
@@ -60,6 +61,8 @@ export function playlistsColumns(onDeleted: () => void): ColumnDef<PlaylistRespo
 		{
 			id: 'actions',
 			size: 50,
+			enableHiding: false,
+			enableSorting: false,
 			meta: {
 				class: cn('text-right pr-2'),
 			},

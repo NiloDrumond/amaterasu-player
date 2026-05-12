@@ -33,6 +33,7 @@ export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 		id: 'name',
 		header: 'NAME',
 		size: 99999,
+		enableHiding: false,
 		accessorFn: (row) => row.name,
 		meta: {
 			mainColumn: true,
@@ -75,6 +76,8 @@ export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 	{
 		id: 'actions',
 		size: 50,
+		enableHiding: false,
+		enableSorting: false,
 		meta: {
 			class: cn('text-right pr-2'),
 		},

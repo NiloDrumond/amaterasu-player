@@ -107,6 +107,7 @@
 			<p class="text-sm text-muted-foreground">No albums. You can hard-delete this artist.</p>
 		{:else}
 			<DataTable
+				storageKey="admin:artist:albums"
 				data={data.albums}
 				columns={albumsColumns.filter((col) => col.id !== 'artist')}
 				onRowClick={(row) => goto(`/admin/albums/${row.id}`)}

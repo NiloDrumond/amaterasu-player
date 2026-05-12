@@ -38,6 +38,7 @@
 			placeholder="Search artists…"
 		/>
 		<DataTable
+			storageKey="artists"
 			data={data.artists.data}
 			columns={artistsColumns}
 			pagination={{

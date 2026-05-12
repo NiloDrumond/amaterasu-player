@@ -122,6 +122,7 @@
 		</div>
 
 		<DataTable
+			storageKey="playlists"
 			data={data.playlists?.data ?? []}
 			{columns}
 			pagination={data.playlists

@@ -17,6 +17,30 @@
 	import { cn } from 'tailwind-variants';
 	import type { Snippet } from 'svelte';
 	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
+	import ColumnToggle from './column-toggle.svelte';
+
+	const COLUMN_VISIBILITY_STORAGE_PREFIX = 'data-table:cols:';
+
+	function readVisibility(key: string | undefined): VisibilityState {
+		if (!key || typeof localStorage === 'undefined') return {};
+		try {
+			const raw = localStorage.getItem(COLUMN_VISIBILITY_STORAGE_PREFIX + key);
+			if (!raw) return {};
+			const parsed = JSON.parse(raw);
+			return parsed && typeof parsed === 'object' ? (parsed as VisibilityState) : {};
+		} catch {
+			return {};
+		}
+	}
+
+	function writeVisibility(key: string | undefined, value: VisibilityState) {
+		if (!key || typeof localStorage === 'undefined') return;
+		try {
+			localStorage.setItem(COLUMN_VISIBILITY_STORAGE_PREFIX + key, JSON.stringify(value));
+		} catch {
+			// ignore: quota/private mode
+		}
+	}
 
 	type RowTrigger = Snippet<[{ props: Record<string, unknown> }]>;
 
@@ -39,6 +63,7 @@
 		rowContextMenu?: Snippet<[{ row: TData; trigger: RowTrigger }]>;
 		rowSelection?: RowSelectionState;
 		onSelectionChange?: (rows: TData[]) => void;
+		storageKey?: string;
 	};
 
 	let {
@@ -50,6 +75,7 @@
 		rowContextMenu,
 		rowSelection = $bindable<RowSelectionState>({}),
 		onSelectionChange,
+		storageKey,
 	}: DataTableProps<TData, TValue> = $props();
 
 	function handleRowClick(event: MouseEvent, row: TData, index: number) {
@@ -60,7 +86,8 @@
 	}
 
 	let columnFilters = $state<ColumnFiltersState>([]);
-	let columnVisibility = $state<VisibilityState>({});
+	// svelte-ignore state_referenced_locally
+	let columnVisibility = $state<VisibilityState>(readVisibility(storageKey));
 
 	const sorting = $derived<SortingState>(
 		serverSort?.sort ? [{ id: serverSort.sort, desc: serverSort.dir === 'desc' }] : [],
@@ -110,6 +137,7 @@
 			} else {
 				columnVisibility = updater;
 			}
+			writeVisibility(storageKey, columnVisibility);
 		},
 		onRowSelectionChange: (updater) => {
 			if (typeof updater === 'function') {
@@ -159,7 +187,9 @@
 							class={header.column.columnDef.meta?.class}
 						>
 							{#if !header.isPlaceholder}
-								{#if header.column.getCanSort()}
+								{#if header.column.id === 'actions'}
+									<ColumnToggle {table} />
+								{:else if header.column.getCanSort()}
 									{@const sorted = header.column.getIsSorted()}
 									<button
 										type="button"

@@ -124,6 +124,7 @@
 	<TagPickerDialog entity="album" entityId={data.album.id} bind:open={tagsOpen} />
 
 	<DataTable
+		storageKey="album:tracks"
 		data={data.tracks}
 		columns={albumColumns}
 		onRowClick={(_, index) => player.playQueue(data.tracks, index, { albumId: data.album.id })}

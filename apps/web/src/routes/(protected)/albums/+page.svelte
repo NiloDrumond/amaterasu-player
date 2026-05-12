@@ -69,6 +69,7 @@
 			{/snippet}
 		</FilterBar>
 		<DataTable
+			storageKey="albums"
 			data={data.albums.data}
 			columns={albumsColumns}
 			pagination={{

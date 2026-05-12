@@ -35,6 +35,7 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 		id: 'title',
 		header: 'TITLE',
 		size: 99999,
+		enableHiding: false,
 		accessorFn: (row) => row.title,
 		meta: {
 			mainColumn: true,
@@ -103,6 +104,8 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 	{
 		id: 'actions',
 		size: 50,
+		enableHiding: false,
+		enableSorting: false,
 		meta: {
 			class: cn('text-right pr-2'),
 		},

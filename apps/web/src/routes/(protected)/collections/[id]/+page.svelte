@@ -70,6 +70,7 @@
 	</div>
 
 	<DataTable
+		storageKey="collection:albums"
 		data={data.albums.data}
 		columns={albumsColumns}
 		pagination={{

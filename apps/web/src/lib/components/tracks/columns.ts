@@ -36,6 +36,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		accessorKey: 'title',
 		header: 'TITLE',
+		enableHiding: false,
 		meta: {
 			mainColumn: true,
 			class: cn('font-semibold'),
@@ -105,6 +106,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 		id: 'actions',
 		size: 50,
 		maxSize: 50,
+		enableHiding: false,
+		enableSorting: false,
 		meta: {
 			class: cn('text-right pr-2'),
 		},

@@ -21,6 +21,7 @@
 	<div class="flex flex-col gap-2 p-4">
 		<h1 class="tracking-widest uppercase">Tracks</h1>
 		<DataTable
+			storageKey="admin:tracks"
 			data={data.tracks.data}
 			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}
 			pagination={{

@@ -50,12 +50,14 @@
 	{/if}
 
 	<DataTable
+		storageKey="artist:albums"
 		data={data.albums}
 		columns={artistAlbumColumns}
 		onRowClick={(row) => goto(`/albums/${row.id}`)}
 	/>
 
 	<DataTable
+		storageKey="artist:tracks"
 		data={data.tracks}
 		columns={artistTrackColumns}
 		onRowClick={(_, index) => player.playQueue(data.tracks, index)}

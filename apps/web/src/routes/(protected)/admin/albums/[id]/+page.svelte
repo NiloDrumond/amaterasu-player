@@ -255,6 +255,7 @@
 				</div>
 			{/if}
 			<DataTable
+				storageKey="admin:album:tracks"
 				data={data.tracks}
 				columns={tracksColumns.filter((col) => col.id !== 'album')}
 				bind:rowSelection={trackSelection}

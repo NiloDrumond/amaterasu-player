@@ -21,6 +21,7 @@
 	<div class="flex flex-col gap-2 p-4">
 		<h1 class="tracking-widest uppercase">Artists</h1>
 		<DataTable
+			storageKey="admin:artists"
 			data={data.artists.data}
 			columns={artistsColumns}
 			pagination={{

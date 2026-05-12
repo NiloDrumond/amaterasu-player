@@ -203,6 +203,7 @@
 	{:else if isDynamic}
 		{@const tracksAsResponse = tracks.map(asTrackResponse)}
 		<DataTable
+			storageKey="playlist:tracks"
 			data={tracksAsResponse}
 			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}
 			onRowClick={(_row, index) =>

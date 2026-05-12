@@ -73,6 +73,7 @@
 			{/snippet}
 		</FilterBar>
 		<DataTable
+			storageKey="tracks"
 			data={data.tracks.data}
 			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}
 			pagination={{
