@@ -69,7 +69,7 @@ export const artistsColumns: ColumnDef<ArtistResponse>[] = [
 		id: 'actions',
 		size: 50,
 		meta: {
-			class: cn('flex justify-end pr-2'),
+			class: cn('text-right pr-2'),
 		},
 		cell: ({ row }) => renderComponent(ArtistActions, { id: row.original.id }),
 	},

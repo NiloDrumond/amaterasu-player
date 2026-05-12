@@ -36,8 +36,6 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		accessorKey: 'title',
 		header: 'TITLE',
-		size: 350,
-		maxSize: 350,
 		meta: {
 			mainColumn: true,
 			class: cn('font-semibold'),
@@ -46,7 +44,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		id: 'album',
 		header: 'ALBUM',
-		maxSize: 200,
+		size: 220,
+		maxSize: 220,
 		accessorFn: (row) => row.album?.title ?? '',
 		cell: ({ row }) => {
 			if (!row.original.album) return null;
@@ -56,6 +55,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		accessorKey: 'artist',
 		header: 'ARTIST',
+		size: 150,
 		maxSize: 150,
 		cell: ({ row }) => {
 			if (!row.original.artist) return null;
@@ -77,7 +77,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		id: 'quality',
 		header: 'QUALITY',
-		maxSize: 120,
+		size: 80,
+		maxSize: 80,
 		enableSorting: false,
 		cell: ({ row }) => {
 			return renderComponent(TrackQuality, { track: row.original });
@@ -86,6 +87,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		accessorKey: 'durationMs',
 		header: 'TIME',
+		size: 80,
+		maxSize: 80,
 		cell: ({ row }) => {
 			return formatMilliseconds(row.original.durationMs);
 		},
@@ -93,8 +96,9 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		id: 'actions',
 		size: 50,
+    maxSize: 50,
 		meta: {
-			class: cn('flex justify-end pr-2'),
+			class: cn('text-right pr-2'),
 		},
 		cell: ({ row }) => {
 			return renderComponent(TrackActions, { track: row.original });

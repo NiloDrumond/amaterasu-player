@@ -143,16 +143,19 @@
 </script>
 
 <div class="rounded-md border">
-	<Table.Root>
+	<Table.Root class="table-fixed">
 		<Table.Header>
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 				<Table.Row>
 					{#each headerGroup.headers as header (header.id)}
-						{@const maxSize = header.column.columnDef.maxSize}
+						{@const isMain = header.column.columnDef.meta?.mainColumn}
+						{@const maxSize = isMain ? undefined : header.column.columnDef.maxSize}
 						{@const wrapStyle = maxSize ? `max-width: ${maxSize}px;` : undefined}
 						<Table.Head
 							colspan={header.colSpan}
-							style={`width: ${header.getSize()}px;${maxSize ? ` max-width: ${maxSize}px;` : ''}`}
+							style={isMain
+								? 'width: 100%;'
+								: `width: ${header.getSize()}px;${maxSize ? ` max-width: ${maxSize}px;` : ''}`}
 							class={header.column.columnDef.meta?.class}
 						>
 							{#if !header.isPlaceholder}
@@ -219,7 +222,10 @@
 							: undefined}
 					>
 						{#each row.getVisibleCells() as cell (cell.id)}
-							{@const cellMax = cell.column.columnDef.maxSize}
+							{@const cellMax = cell.column.columnDef.meta?.mainColumn
+								? undefined
+								: cell.column.columnDef.maxSize}
+							{@const isMainCell = cell.column.columnDef.meta?.mainColumn}
 							<Table.Cell
 								class={cell.column.columnDef.meta?.class}
 								style={cellMax ? `max-width: ${cellMax}px;` : undefined}
@@ -229,6 +235,10 @@
 										class="overflow-hidden text-ellipsis whitespace-nowrap"
 										style={`max-width: ${cellMax}px;`}
 									>
+										<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+									</div>
+								{:else if isMainCell}
+									<div class="overflow-hidden text-ellipsis whitespace-nowrap">
 										<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
 									</div>
 								{:else}

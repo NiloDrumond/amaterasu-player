@@ -49,7 +49,8 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 	{
 		id: 'artist',
 		header: 'ARTIST',
-		maxSize: 200,
+    size: 150,
+		maxSize: 150,
 		accessorFn: (row) => row.artist?.name ?? '',
 		cell: ({ row }) => {
 			if (!row.original.artist) return null;
@@ -86,7 +87,8 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 	{
 		id: 'time',
 		header: 'TIME',
-		maxSize: 100,
+    size: 80,
+		maxSize: 80,
 		accessorFn: (row) => Number(row.totalDurationMs),
 		cell: ({ row }) => formatMilliseconds(Number(row.original.totalDurationMs)),
 	},
@@ -94,7 +96,7 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 		id: 'actions',
 		size: 50,
 		meta: {
-			class: cn('flex justify-end pr-2'),
+			class: cn('text-right pr-2'),
 		},
 		cell: ({ row }) => renderComponent(AlbumActions, { id: row.original.id }),
 	},
