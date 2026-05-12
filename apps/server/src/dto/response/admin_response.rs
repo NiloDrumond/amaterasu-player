@@ -61,6 +61,7 @@ pub struct AdminAlbumResponse {
     pub source_title: String,
     pub source_album_artist_id: Option<Uuid>,
     pub date: Option<NaiveDate>,
+    pub cover_path: Option<String>,
     pub cover_url: Option<String>,
     pub locked_at: Option<DateTime<Utc>>,
 }
@@ -75,7 +76,8 @@ impl From<Album> for AdminAlbumResponse {
             source_title: a.source_title,
             source_album_artist_id: a.source_album_artist_id,
             date: a.date,
-            cover_url: a.cover_path.map(|p| format!("/api/covers/{p}")),
+            cover_url: a.cover_path.as_ref().map(|p| format!("/api/covers/{p}")),
+            cover_path: a.cover_path,
             locked_at: a.locked_at,
         }
     }

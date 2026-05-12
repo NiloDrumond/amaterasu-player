@@ -18,7 +18,7 @@
 	<h1>Error</h1>
 	<p>{data.error.message}</p>
 {:else}
-	<div class="flex flex-col p-4">
+	<div class="flex flex-col gap-2 p-4">
 		<h1 class="tracking-widest uppercase">Tracks</h1>
 		<DataTable
 			data={data.tracks.data}

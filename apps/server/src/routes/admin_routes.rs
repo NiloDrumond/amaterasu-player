@@ -40,6 +40,10 @@ pub fn admin_routes() -> Router<AppState> {
             "/admin/albums/{id}/force-rescan",
             post(admin_handlers::force_rescan_album),
         )
+        .route(
+            "/admin/albums/{id}/merge",
+            post(admin_handlers::merge_album),
+        )
         // Artists
         .route("/admin/artists", post(admin_handlers::create_artist))
         .route("/admin/artists/{id}", get(admin_handlers::get_artist))
@@ -48,5 +52,9 @@ pub fn admin_routes() -> Router<AppState> {
         .route(
             "/admin/artists/{id}/force-rescan",
             post(admin_handlers::force_rescan_artist),
+        )
+        .route(
+            "/admin/artists/{id}/merge",
+            post(admin_handlers::merge_artist),
         )
 }

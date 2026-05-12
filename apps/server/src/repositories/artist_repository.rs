@@ -288,6 +288,72 @@ WHERE
         Ok(())
     }
 
+    /// Repoint `albums.artist_id` and `albums.source_album_artist_id` from
+    /// `from_id` to `to_id`.
+    ///
+    /// `source_album_artist_id` is part of the scanner-unique key
+    /// `(source_album_artist_id, lower(source_title))`. If `to_id` already has
+    /// an album with the same `source_title` as one of `from_id`'s albums, this
+    /// statement violates the unique index — callers should pre-check collisions
+    /// via [`find_album_source_title_collisions`].
+    pub async fn reassign_albums_artist(
+        executor: impl PgExecutor<'_>,
+        from_id: Uuid,
+        to_id: Uuid,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            r#"
+            UPDATE albums
+            SET
+                artist_id = CASE WHEN artist_id = $1 THEN $2 ELSE artist_id END,
+                source_album_artist_id = CASE WHEN source_album_artist_id = $1 THEN $2 ELSE source_album_artist_id END,
+                updated_at = NOW()
+            WHERE artist_id = $1 OR source_album_artist_id = $1
+            "#,
+            from_id,
+            to_id,
+        )
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
+    /// Returns the `source_title`s shared between two artists' albums (matched
+    /// case-insensitively). These would collide on the
+    /// `(source_album_artist_id, lower(source_title))` unique index if
+    /// `from_id`'s albums were re-pointed to `to_id` directly.
+    pub async fn find_album_source_title_collisions(
+        executor: impl PgExecutor<'_>,
+        from_id: Uuid,
+        to_id: Uuid,
+    ) -> Result<Vec<String>, AppError> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT a.source_title
+            FROM albums a
+            WHERE a.source_album_artist_id = $1
+                AND EXISTS (
+                    SELECT 1 FROM albums b
+                    WHERE b.source_album_artist_id = $2
+                        AND LOWER(b.source_title) = LOWER(a.source_title)
+                )
+            "#,
+            from_id,
+            to_id,
+        )
+        .fetch_all(executor)
+        .await?;
+        Ok(rows.into_iter().map(|r| r.source_title).collect())
+    }
+
+    /// Unconditional hard-delete. Caller must ensure no FK referrers remain.
+    pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid) -> Result<(), AppError> {
+        sqlx::query!(r#"DELETE FROM artists WHERE id = $1"#, id)
+            .execute(executor)
+            .await?;
+        Ok(())
+    }
+
     /// Hard-deletes the artist only if no album references it (as `artist_id` or
     /// `source_album_artist_id`) and no track references it. Returns `true` if
     /// deleted, `false` if a reference still exists.

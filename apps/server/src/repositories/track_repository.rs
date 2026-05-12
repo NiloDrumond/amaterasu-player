@@ -230,6 +230,40 @@ impl TrackRepository {
         Ok(updated)
     }
 
+    /// Re-points every track currently on `from_artist_id` to `to_artist_id`.
+    /// Returns the number of rows updated. Used by the admin merge flow.
+    pub async fn reassign_artist(
+        executor: impl PgExecutor<'_>,
+        from_artist_id: Uuid,
+        to_artist_id: Uuid,
+    ) -> AppResult<u64> {
+        let result = sqlx::query!(
+            r#"UPDATE tracks SET artist_id = $2 WHERE artist_id = $1"#,
+            from_artist_id,
+            to_artist_id,
+        )
+        .execute(executor)
+        .await?;
+        Ok(result.rows_affected())
+    }
+
+    /// Re-points every track currently on `from_album_id` to `to_album_id`.
+    /// Returns the number of rows updated. Used by the admin merge flow.
+    pub async fn reassign_album(
+        executor: impl PgExecutor<'_>,
+        from_album_id: Uuid,
+        to_album_id: Uuid,
+    ) -> AppResult<u64> {
+        let result = sqlx::query!(
+            r#"UPDATE tracks SET album_id = $2 WHERE album_id = $1"#,
+            from_album_id,
+            to_album_id,
+        )
+        .execute(executor)
+        .await?;
+        Ok(result.rows_affected())
+    }
+
     /// Refreshes only `file_path` (used by scanner when a locked or
     /// soft-deleted track has been moved on disk).
     pub async fn update_file_path(

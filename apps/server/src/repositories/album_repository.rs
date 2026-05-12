@@ -356,6 +356,23 @@ impl AlbumRepository {
         Ok(())
     }
 
+    /// Overwrite `cover_path` unconditionally. Used by the admin merge flow
+    /// when the admin picks which side's cover to keep.
+    pub async fn set_cover_path(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+        cover_path: Option<&str>,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            r#"UPDATE albums SET cover_path = $2, updated_at = NOW() WHERE id = $1"#,
+            id,
+            cover_path,
+        )
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
     pub async fn update(
         executor: impl PgExecutor<'_>,
         id: Uuid,
@@ -408,7 +425,13 @@ WHERE
         Ok(())
     }
 
-    /// Hard-deletes the album only if it has no live tracks. Returns true if deleted.
+    pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid) -> Result<(), AppError> {
+        sqlx::query!(r#"DELETE FROM albums WHERE id = $1"#, id)
+            .execute(executor)
+            .await?;
+        Ok(())
+    }
+
     pub async fn delete_if_empty(
         executor: impl PgExecutor<'_>,
         id: Uuid,

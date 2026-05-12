@@ -3,6 +3,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field';
 	import EntityPicker from '$lib/components/admin/entity-picker.svelte';
+	import MergeDialog from '$lib/components/admin/merge-dialog.svelte';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import { tracksColumns } from '$lib/components/tracks/columns.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -33,6 +34,7 @@
 	let artist = $state<AdminArtistResponse | null>(initial.artist);
 
 	let saving = $state(false);
+	let mergeOpen = $state(false);
 
 	async function searchArtist(q: string) {
 		const { data } = await searchArtists(fetch, q);
@@ -210,6 +212,7 @@
 		<footer class="flex flex-wrap gap-2 border-t pt-4">
 			<Button onclick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
 			<Button variant="outline" onclick={forceRescan}>Force rescan</Button>
+			<Button variant="outline" onclick={() => (mergeOpen = true)}>Merge…</Button>
 			<div class="grow"></div>
 			<Button variant="destructive" onclick={hardDelete} disabled={data.tracks.length > 0}>
 				Hard delete
@@ -261,6 +264,8 @@
 		{/if}
 	</section>
 </div>
+
+<MergeDialog kind="album" bind:open={mergeOpen} target={data.album} targetArtist={data.artist} />
 
 <Dialog.Root bind:open={changeArtistOpen}>
 	<Dialog.Content>

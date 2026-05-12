@@ -36,8 +36,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		accessorKey: 'title',
 		header: 'TITLE',
-		size: 400,
-		maxSize: 400,
+		size: 350,
+		maxSize: 350,
 		meta: {
 			mainColumn: true,
 			class: cn('font-semibold'),
@@ -56,7 +56,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		accessorKey: 'artist',
 		header: 'ARTIST',
-		maxSize: 200,
+		maxSize: 150,
 		cell: ({ row }) => {
 			if (!row.original.artist) return null;
 			const anchorSnippet = createRawSnippet<[{ content: string; href: string }]>((getData) => {

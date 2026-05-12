@@ -172,6 +172,43 @@ export function forceRescanArtist(fetch: Fetch, id: string): Promise<Result<void
 	return api<void>(fetch, `/api/admin/artists/${id}/force-rescan`, { method: 'POST' });
 }
 
+export type MergeArtistBody = {
+	sourceId: string;
+	name: string;
+	sortName: string;
+};
+
+export function mergeAdminArtist(
+	fetch: Fetch,
+	targetId: string,
+	body: MergeArtistBody,
+): Promise<Result<AdminArtistResponse>> {
+	return api<AdminArtistResponse>(fetch, `/api/admin/artists/${targetId}/merge`, {
+		method: 'POST',
+		body,
+	});
+}
+
+export type MergeAlbumBody = {
+	sourceId: string;
+	title: string;
+	sortTitle: string;
+	artistId: string | null;
+	date: string | null;
+	coverPath?: string | null;
+};
+
+export function mergeAdminAlbum(
+	fetch: Fetch,
+	targetId: string,
+	body: MergeAlbumBody,
+): Promise<Result<AdminAlbumResponse>> {
+	return api<AdminAlbumResponse>(fetch, `/api/admin/albums/${targetId}/merge`, {
+		method: 'POST',
+		body,
+	});
+}
+
 // ============================================================
 // Picker search
 // ============================================================

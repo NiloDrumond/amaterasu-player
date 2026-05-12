@@ -141,6 +141,41 @@ pub struct CreateArtistParams {
     pub sort_name: Option<String>,
 }
 
+/// Resolved field values produced by the side-by-side conflict picker.
+/// The client merges the two entities and submits the final field values.
+#[derive(Debug, Serialize, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct MergeArtistParams {
+    #[garde(skip)]
+    pub source_id: Uuid,
+    #[garde(length(min = 1, max = 1024))]
+    pub name: String,
+    #[garde(length(min = 0, max = 1024))]
+    pub sort_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct MergeAlbumParams {
+    #[garde(skip)]
+    pub source_id: Uuid,
+    #[garde(length(min = 1, max = 1024))]
+    pub title: String,
+    #[garde(length(min = 0, max = 1024))]
+    pub sort_title: String,
+    #[garde(skip)]
+    pub artist_id: Option<Uuid>,
+    #[garde(skip)]
+    pub date: Option<NaiveDate>,
+    /// `None` keeps the target's existing cover, `Some("")`/empty would be
+    /// nonsensical, so omit to leave unchanged; otherwise the filename to set
+    /// (must already exist on disk — typically the target's or source's
+    /// existing `cover_path`).
+    #[garde(skip)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover_path: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HardDeleteQuery {

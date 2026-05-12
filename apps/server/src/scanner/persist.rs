@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::db::entities::{Album, Artist, Track};
 use crate::error::AppError;
-use crate::repositories::{AlbumRepository, ArtistRepository, TrackRepository};
+use crate::repositories::{AlbumRepository, AliasRepository, ArtistRepository, TrackRepository};
 
 use super::scan_artist::ScannedArtistMetadata;
 use super::scan_cover::ScannedCover;
@@ -107,6 +107,13 @@ async fn find_or_create_artist(
         return Ok(Some(artist));
     }
 
+    // Then check whether this source_name was merged away into another artist.
+    if let Some(target_id) = AliasRepository::find_artist_id_by_source_name(&mut *tx, name).await? {
+        if let Some(artist) = ArtistRepository::find_by_id(&mut *tx, target_id).await? {
+            return Ok(Some(artist));
+        }
+    }
+
     let sort_name = metadata.sort_name.as_deref().unwrap_or(name.as_str());
     let artist = Artist {
         id: Uuid::new_v4(),
@@ -131,6 +138,13 @@ async fn find_or_create_album(
         AlbumRepository::find_by_source_keys(&mut *tx, title, album_artist_id).await?
     {
         return Ok(album);
+    }
+
+    // Check the alias table — covers the case where this album was merged away.
+    if let Some(target_id) =
+        AliasRepository::find_album_id_by_source_keys(&mut *tx, title, album_artist_id).await?
+    {
+        return AlbumRepository::find_by_id(&mut *tx, target_id).await;
     }
 
     let sort_title = scanned

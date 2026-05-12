@@ -1,5 +1,6 @@
 pub mod album_collection_repository;
 pub mod album_repository;
+pub mod alias_repository;
 pub mod artist_repository;
 pub mod playlist_repository;
 pub mod session_repository;
@@ -10,6 +11,7 @@ pub mod user_repository;
 
 pub use album_collection_repository::AlbumCollectionRepository;
 pub use album_repository::{AlbumRepository, AlbumSortKey};
+pub use alias_repository::AliasRepository;
 pub use artist_repository::{ArtistRepository, ArtistSortKey};
 pub use playlist_repository::{PlaylistRepository, PlaylistSortKey};
 pub use session_repository::SessionRepository;

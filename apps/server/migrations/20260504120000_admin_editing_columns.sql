@@ -7,7 +7,8 @@ ADD COLUMN locked_at timestamptz;
 CREATE UNIQUE INDEX idx_artists_source_name ON artists (LOWER(source_name));
 
 -- Albums: add source_title + source_album_artist_id (FK), and locked_at.
--- Scanner matches by (source_album_artist_id, source_title); admin edits leave both untouched.
+-- Scanner matches by (source_album_artist_id, source_title);
+-- admin edits leave both untouched.
 ALTER TABLE albums
 ADD COLUMN source_title text NOT NULL,
 ADD COLUMN source_album_artist_id uuid REFERENCES artists (

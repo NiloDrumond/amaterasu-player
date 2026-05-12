@@ -7,6 +7,7 @@
 		deleteAdminArtist,
 		forceRescanArtist,
 	} from '$lib/services/admin-service';
+	import MergeDialog from '$lib/components/admin/merge-dialog.svelte';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import { albumsColumns } from '$lib/components/albums/columns.js';
 	import { toast } from 'svelte-sonner';
@@ -20,6 +21,7 @@
 	let sortName = $state(initial.artist.sortName);
 
 	let saving = $state(false);
+	let mergeOpen = $state(false);
 
 	async function save() {
 		saving = true;
@@ -89,12 +91,15 @@
 		<footer class="flex flex-wrap gap-2 border-t pt-4">
 			<Button onclick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
 			<Button variant="outline" onclick={forceRescan}>Force rescan</Button>
+			<Button variant="outline" onclick={() => (mergeOpen = true)}>Merge…</Button>
 			<div class="grow"></div>
 			<Button variant="destructive" onclick={hardDelete} disabled={data.albums.length > 0}>
 				Hard delete
 			</Button>
 		</footer>
 	</div>
+
+	<MergeDialog kind="artist" bind:open={mergeOpen} target={data.artist} />
 
 	<section class="space-y-2">
 		<h2>Albums ({data.albums.length})</h2>
