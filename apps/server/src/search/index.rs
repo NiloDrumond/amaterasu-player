@@ -38,7 +38,7 @@ impl SearchSchema {
         // TEXT field gets the default tokenizer (lowercase + simple split). Tantivy's
         // FuzzyTermQuery operates per-term over this tokenization.
         let text = builder.add_text_field("text", TEXT);
-        let user_id = builder.add_text_field("user_id", STRING);
+        let user_id = builder.add_text_field("user_id", STRING | STORED);
         let title = builder.add_text_field("title", STORED);
         let subtitle = builder.add_text_field("subtitle", STORED);
         SearchSchema {

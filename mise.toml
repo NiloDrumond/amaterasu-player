@@ -66,9 +66,16 @@ description = "Revert database migration"
 run = "sqlx migrate revert"
 dir = "apps/server"
 
+[tasks."search:clean"]
+description = "Remove the on-disk Tantivy search index"
+dir = "apps/server"
+run = """
+set -a && . ./.env && set +a && rm -rf "$DATA_DIR/search-index"
+"""
+
 [tasks.clean]
-description = "Clean everything (docker volumes + cargo)"
-depends = ["db:drop"]
+description = "Clean everything (docker volumes + cargo + search index)"
+depends = ["db:drop", "search:clean"]
 run = """
 cd apps/server && cargo clean
 """
