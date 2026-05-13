@@ -17,10 +17,12 @@ use crate::{
         },
         response::{
             PaginatedResponse, PlaylistResponse, PlaylistTrackResponse, RecentPlaylistResponse,
+            SearchEntityType,
         },
     },
     error::{AppError, AppResult},
     repositories::{PlaylistRepository, PlaylistSortKey, TrackPlayRepository},
+    search::indexers,
     state::AppState,
 };
 
@@ -128,6 +130,7 @@ pub async fn create_playlist(
         body.filter_definition.as_ref(),
     )
     .await?;
+    indexers::index_playlist(&state.search, &playlist);
 
     let stats = PlaylistRepository::find_by_id_and_user(&state.db, playlist.id, auth_user.user.id)
         .await?
@@ -166,6 +169,7 @@ pub async fn rename_playlist(
     let stats = PlaylistRepository::find_by_id_and_user(&state.db, id, auth_user.user.id)
         .await?
         .ok_or(AppError::NotFound)?;
+    indexers::index_playlist(&state.search, &stats.playlist);
 
     let pc = playlist_play_count(&state.db, auth_user.user.id, stats.playlist.id).await?;
     Ok(Json(PlaylistResponse::from_stats(stats, pc)))
@@ -179,6 +183,7 @@ pub async fn delete_playlist(
     let deleted = PlaylistRepository::delete(&state.db, id, auth_user.user.id).await?;
 
     if deleted {
+        indexers::remove(&state.search, SearchEntityType::Playlist, id);
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound)

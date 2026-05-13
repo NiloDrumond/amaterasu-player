@@ -4,6 +4,7 @@
 	import type { RecentPlaylistResponse } from '$lib/bindings/response/playlist/recent-playlist-response';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import * as Kbd from '$lib/components/ui/kbd/index';
 	import { Separator } from '$lib/components/ui/separator';
 	import { resetMode, setMode } from 'mode-watcher';
 	import type { ComponentProps } from 'svelte';
@@ -57,6 +58,20 @@
 	<Sidebar.Content>
 		<Sidebar.Group>
 			<Sidebar.Menu>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
+							<a href="/search" {...props}
+								>Search
+								<Kbd.Group>
+									<Kbd.Root>Ctrl</Kbd.Root>
+									<span>+</span>
+									<Kbd.Root>K</Kbd.Root>
+								</Kbd.Group>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}

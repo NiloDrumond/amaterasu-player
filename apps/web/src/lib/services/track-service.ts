@@ -1,4 +1,5 @@
 import type { GetTracksResponse } from '$lib/bindings/response/track/get-tracks-response';
+import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 import type { PaginationParams } from '$lib/bindings/request/common/pagination-params';
 import type { ScrobbleParams } from '$lib/bindings/request/track/scrobble-params';
 import type { SortDir } from '$lib/bindings/request/common/sort-dir';
@@ -27,6 +28,10 @@ export function getTracks(
 		search.set('dir', params.dir ?? 'asc');
 	}
 	return api<GetTracksResponse>(fetch, `/api/tracks?${search.toString()}`);
+}
+
+export function getTrack(fetch: Fetch, id: string): Promise<Result<TrackResponse>> {
+	return api<TrackResponse>(fetch, `/api/tracks/${id}`);
 }
 
 export function scrobbleTrack(

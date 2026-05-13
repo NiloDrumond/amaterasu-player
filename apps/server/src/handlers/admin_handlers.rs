@@ -16,11 +16,13 @@ use crate::{
         },
         response::{
             AdminAlbumResponse, AdminArtistResponse, AdminDeletedTrackResponse, AdminTrackResponse,
+            SearchEntityType,
         },
     },
     error::{AppError, AppResult},
     repositories::track_repository::TrackUpdate,
     repositories::{AlbumRepository, AliasRepository, ArtistRepository, TrackRepository},
+    search::indexers,
     state::AppState,
 };
 
@@ -29,9 +31,14 @@ pub async fn scan_library(State(state): State<AppState>) -> StatusCode {
         return StatusCode::CONFLICT;
     };
     let scanner = state.library_scanner.clone();
+    let pool = state.db.clone();
+    let search = state.search.clone();
     tokio::spawn(async move {
         if let Err(e) = scanner.run_scan(permit).await {
             tracing::warn!("Admin-triggered library scan failed: {}", e);
+        }
+        if let Err(e) = crate::search::sync::rebuild_from_postgres(&pool, &search).await {
+            tracing::warn!("search: post-scan rebuild failed: {}", e);
         }
     });
     StatusCode::ACCEPTED
@@ -74,6 +81,25 @@ pub async fn update_track(
     }
 
     let updated = TrackRepository::admin_update(&state.db, id, &patch).await?;
+    let artist_name = match updated.artist_id {
+        Some(aid) => ArtistRepository::find_by_id(&state.db, aid)
+            .await?
+            .map(|a| a.name),
+        None => None,
+    };
+    let album_title = match updated.album_id {
+        Some(aid) => AlbumRepository::find_by_id(&state.db, aid)
+            .await
+            .ok()
+            .map(|a| a.title),
+        None => None,
+    };
+    indexers::index_track(
+        &state.search,
+        &updated,
+        artist_name.as_deref(),
+        album_title.as_deref(),
+    );
     Ok(Json(updated.into()))
 }
 
@@ -94,6 +120,31 @@ pub async fn batch_update_tracks(
     };
 
     let updated = TrackRepository::admin_update_many(&state.db, &body.ids, &patch).await?;
+    for tid in &body.ids {
+        if let Ok(Some(t)) = TrackRepository::find_by_id(&state.db, *tid).await {
+            let artist_name = match t.artist_id {
+                Some(aid) => ArtistRepository::find_by_id(&state.db, aid)
+                    .await
+                    .ok()
+                    .flatten()
+                    .map(|a| a.name),
+                None => None,
+            };
+            let album_title = match t.album_id {
+                Some(aid) => AlbumRepository::find_by_id(&state.db, aid)
+                    .await
+                    .ok()
+                    .map(|a| a.title),
+                None => None,
+            };
+            indexers::index_track(
+                &state.search,
+                &t,
+                artist_name.as_deref(),
+                album_title.as_deref(),
+            );
+        }
+    }
     Ok(Json(BatchUpdateTracksResponse {
         updated: updated as i64,
     }))
@@ -107,6 +158,7 @@ pub async fn soft_delete_track(
     if q.hard {
         let deleted = TrackRepository::hard_delete_if_soft_deleted(&state.db, id).await?;
         if deleted {
+            indexers::remove(&state.search, SearchEntityType::Track, id);
             Ok(StatusCode::NO_CONTENT)
         } else {
             // Either not found or not soft-deleted yet.
@@ -117,6 +169,7 @@ pub async fn soft_delete_track(
             return Err(AppError::NotFound);
         }
         TrackRepository::soft_delete(&state.db, id).await?;
+        indexers::remove(&state.search, SearchEntityType::Track, id);
         Ok(StatusCode::NO_CONTENT)
     }
 }
@@ -125,10 +178,29 @@ pub async fn restore_track(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    if TrackRepository::find_by_id(&state.db, id).await?.is_none() {
-        return Err(AppError::NotFound);
-    }
+    let track = TrackRepository::find_by_id(&state.db, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
     TrackRepository::restore(&state.db, id).await?;
+    let artist_name = match track.artist_id {
+        Some(aid) => ArtistRepository::find_by_id(&state.db, aid)
+            .await?
+            .map(|a| a.name),
+        None => None,
+    };
+    let album_title = match track.album_id {
+        Some(aid) => AlbumRepository::find_by_id(&state.db, aid)
+            .await
+            .ok()
+            .map(|a| a.title),
+        None => None,
+    };
+    indexers::index_track(
+        &state.search,
+        &track,
+        artist_name.as_deref(),
+        album_title.as_deref(),
+    );
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -185,6 +257,13 @@ pub async fn update_album(
         body.date,
     )
     .await?;
+    let artist_name = match updated.artist_id {
+        Some(aid) => ArtistRepository::find_by_id(&state.db, aid)
+            .await?
+            .map(|a| a.name),
+        None => None,
+    };
+    indexers::index_album(&state.search, &updated, artist_name.as_deref());
     Ok(Json(updated.into()))
 }
 
@@ -202,6 +281,13 @@ pub async fn create_album(
         None,
     );
     let created = AlbumRepository::create(&state.db, &album).await?;
+    let artist_name = match created.artist_id {
+        Some(aid) => ArtistRepository::find_by_id(&state.db, aid)
+            .await?
+            .map(|a| a.name),
+        None => None,
+    };
+    indexers::index_album(&state.search, &created, artist_name.as_deref());
     Ok((StatusCode::CREATED, Json(created.into())))
 }
 
@@ -211,6 +297,7 @@ pub async fn delete_album(
 ) -> AppResult<StatusCode> {
     let deleted = AlbumRepository::delete_if_empty(&state.db, id).await?;
     if deleted {
+        indexers::remove(&state.search, SearchEntityType::Album, id);
         Ok(StatusCode::NO_CONTENT)
     } else {
         // Either album not found, or it still has live tracks. Distinguish:
@@ -250,6 +337,7 @@ pub async fn update_artist(
     Garde(Json(body)): Garde<Json<UpdateArtistParams>>,
 ) -> AppResult<Json<AdminArtistResponse>> {
     let updated = ArtistRepository::update(&state.db, id, &body.name, &body.sort_name).await?;
+    indexers::index_artist(&state.search, &updated);
     Ok(Json(updated.into()))
 }
 
@@ -260,6 +348,7 @@ pub async fn create_artist(
     let sort_name = body.sort_name.unwrap_or_else(|| body.name.clone());
     let artist = Artist::new(body.name, sort_name);
     let created = ArtistRepository::create(&state.db, &artist).await?;
+    indexers::index_artist(&state.search, &created);
     Ok((StatusCode::CREATED, Json(created.into())))
 }
 
@@ -269,6 +358,7 @@ pub async fn delete_artist(
 ) -> AppResult<StatusCode> {
     let deleted = ArtistRepository::delete_if_empty(&state.db, id).await?;
     if deleted {
+        indexers::remove(&state.search, SearchEntityType::Artist, id);
         Ok(StatusCode::NO_CONTENT)
     } else if ArtistRepository::find_by_id(&state.db, id).await?.is_none() {
         Err(AppError::NotFound)
@@ -340,6 +430,17 @@ pub async fn merge_artist(
     ArtistRepository::delete(&mut *tx, body.source_id).await?;
 
     tx.commit().await?;
+    indexers::remove(&state.search, SearchEntityType::Artist, body.source_id);
+    indexers::index_artist(&state.search, &updated);
+    // Tracks/albums that were re-pointed need their subtitles refreshed; queue
+    // a full rebuild in the background to absorb that drift.
+    let pool = state.db.clone();
+    let search = state.search.clone();
+    tokio::spawn(async move {
+        if let Err(e) = crate::search::sync::rebuild_from_postgres(&pool, &search).await {
+            tracing::warn!("search: post-merge rebuild failed: {}", e);
+        }
+    });
     Ok(Json(updated.into()))
 }
 
@@ -396,5 +497,20 @@ pub async fn merge_album(
 
     let updated = AlbumRepository::find_by_id(&mut *tx, target_id).await?;
     tx.commit().await?;
+    indexers::remove(&state.search, SearchEntityType::Album, body.source_id);
+    let artist_name = match updated.artist_id {
+        Some(aid) => ArtistRepository::find_by_id(&state.db, aid)
+            .await?
+            .map(|a| a.name),
+        None => None,
+    };
+    indexers::index_album(&state.search, &updated, artist_name.as_deref());
+    let pool = state.db.clone();
+    let search = state.search.clone();
+    tokio::spawn(async move {
+        if let Err(e) = crate::search::sync::rebuild_from_postgres(&pool, &search).await {
+            tracing::warn!("search: post-merge rebuild failed: {}", e);
+        }
+    });
     Ok(Json(updated.into()))
 }

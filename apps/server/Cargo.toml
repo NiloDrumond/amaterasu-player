@@ -67,6 +67,9 @@ infer = "0.19.0"
 ffmpeg-next = "8.1"
 walkdir = "2"
 
+# Search
+tantivy = "0.26"
+
 # Macros
 amaterasu-macros = { path = "../../libs/macros" }
 ron = "0.12.0"

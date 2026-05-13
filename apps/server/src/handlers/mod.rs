@@ -5,6 +5,7 @@ pub mod artists_handlers;
 pub mod auth_handlers;
 pub mod covers_handlers;
 pub mod playlist_handlers;
+pub mod search_handlers;
 pub mod stream_handlers;
 pub mod tag_category_handlers;
 pub mod tag_handlers;

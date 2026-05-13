@@ -15,10 +15,11 @@ use crate::{
             CreateAlbumCollectionParams, FilteredPaginationParams, RenameAlbumCollectionParams,
             UpdateAlbumCollectionFilterParams,
         },
-        response::{AlbumCollectionResponse, AlbumResponse, PaginatedResponse},
+        response::{AlbumCollectionResponse, AlbumResponse, PaginatedResponse, SearchEntityType},
     },
     error::{AppError, AppResult},
     repositories::{AlbumCollectionRepository, AlbumSortKey},
+    search::indexers,
     services::LibraryService,
     state::AppState,
 };
@@ -43,6 +44,7 @@ pub async fn create_collection(
         &body.filter_definition,
     )
     .await?;
+    indexers::index_collection(&state.search, &row);
     Ok((StatusCode::CREATED, Json(row.into())))
 }
 
@@ -66,6 +68,7 @@ pub async fn rename_collection(
     let row = AlbumCollectionRepository::rename(&state.db, id, auth_user.user.id, &body.name)
         .await?
         .ok_or(AppError::NotFound)?;
+    indexers::index_collection(&state.search, &row);
     Ok(Json(row.into()))
 }
 
@@ -93,6 +96,7 @@ pub async fn delete_collection(
 ) -> AppResult<StatusCode> {
     let deleted = AlbumCollectionRepository::delete(&state.db, id, auth_user.user.id).await?;
     if deleted {
+        indexers::remove(&state.search, SearchEntityType::Collection, id);
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(AppError::NotFound)

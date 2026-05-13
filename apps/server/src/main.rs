@@ -15,6 +15,7 @@ mod handlers;
 mod repositories;
 mod routes;
 mod scanner;
+mod search;
 mod services;
 mod state;
 mod streaming;
@@ -60,18 +61,45 @@ async fn main() -> anyhow::Result<()> {
     let covers_dir = std::path::PathBuf::from(&config.data_dir).join("covers");
     std::fs::create_dir_all(&covers_dir)?;
 
+    let search_dir = std::path::PathBuf::from(&config.data_dir).join("search-index");
+    let search_index = std::sync::Arc::new(search::SearchIndex::open(&search_dir)?);
+    match search::sync::rebuild_from_postgres(&db_pool, &search_index).await {
+        Ok(counts) => tracing::info!(
+            "search: rebuilt index (tracks={}, albums={}, artists={}, playlists={}, collections={})",
+            counts.tracks,
+            counts.albums,
+            counts.artists,
+            counts.playlists,
+            counts.collections
+        ),
+        Err(e) => tracing::warn!("search: initial rebuild failed: {}", e),
+    }
+
     let library_scanner =
         scanner::LibraryScanner::new(config.library_path, covers_dir.clone(), db_pool.clone());
 
     let library_scanner_clone = library_scanner.clone();
+    let post_scan_pool = db_pool.clone();
+    let post_scan_search = search_index.clone();
     tokio::spawn(async move {
         if let Err(e) = library_scanner_clone.scan_library().await {
             tracing::warn!("Failed to scan music library: {}", e);
             tracing::warn!("Server will continue running, but library may not be fully indexed");
         }
+        // Scanner mutations bypass write-through; rebuild the search index from
+        // Postgres so newly scanned tracks/albums/artists become searchable.
+        match search::sync::rebuild_from_postgres(&post_scan_pool, &post_scan_search).await {
+            Ok(c) => tracing::info!(
+                "search: rebuilt after scan (tracks={}, albums={}, artists={})",
+                c.tracks,
+                c.albums,
+                c.artists
+            ),
+            Err(e) => tracing::warn!("search: post-scan rebuild failed: {}", e),
+        }
     });
 
-    let app_state = AppState::new(db_pool, library_scanner, covers_dir);
+    let app_state = AppState::new(db_pool, library_scanner, covers_dir, search_index);
 
     let tasks_state = app_state.clone();
     tokio::spawn(async {

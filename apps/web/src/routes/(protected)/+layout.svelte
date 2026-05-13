@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AppSidebar from '$lib/components/app-sidebar.svelte';
 	import PlayerBar from '$lib/components/player/player-bar.svelte';
+	import CommandPalette from '$lib/components/search/command-palette.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import { setPlayer } from '$lib/player/player.svelte';
 	import { initUserPreferences } from '$lib/state/user-preferences.svelte';
@@ -22,3 +23,4 @@
 	</Sidebar.Inset>
 </Sidebar.Provider>
 <PlayerBar />
+<CommandPalette />
