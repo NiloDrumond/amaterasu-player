@@ -3,9 +3,12 @@
 	import PlayerBar from '$lib/components/player/player-bar.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import { setPlayer } from '$lib/player/player.svelte';
+	import { initUserPreferences } from '$lib/state/user-preferences.svelte';
 
 	let { data, children } = $props();
 	const player = setPlayer();
+	// svelte-ignore state_referenced_locally
+	initUserPreferences(data.user.preferences);
 </script>
 
 <Sidebar.Provider>

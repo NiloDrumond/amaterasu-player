@@ -12,10 +12,11 @@ use axum_valid::Garde;
 use crate::{
     auth::{AuthUser, ExtractedSession, SESSION_COOKIE_NAME, SESSION_DURATION_HOURS},
     dto::{
-        request::{RegisterEmailParams, SignInEmailParams},
+        request::{RegisterEmailParams, SignInEmailParams, UpdatePreferencesParams},
         response::CurrentUserResponse,
     },
     error::AppResult,
+    repositories::UserRepository,
     services::auth_service::AuthService,
     state::AppState,
 };
@@ -76,4 +77,15 @@ pub async fn sign_out(
 
 pub async fn get_current_user(auth_user: AuthUser) -> Json<CurrentUserResponse> {
     Json(auth_user.user.into())
+}
+
+pub async fn update_preferences(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Garde(Json(body)): Garde<Json<UpdatePreferencesParams>>,
+) -> AppResult<StatusCode> {
+    let prefs =
+        serde_json::to_value(body.preferences).expect("UserPreferences is always serializable");
+    UserRepository::update_preferences(&state.db, auth_user.user.id, &prefs).await?;
+    Ok(StatusCode::NO_CONTENT)
 }

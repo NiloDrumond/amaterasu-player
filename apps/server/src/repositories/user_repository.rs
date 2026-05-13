@@ -10,8 +10,8 @@ impl UserRepository {
         let created = sqlx::query_as!(
             User,
             r#"
-        INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO users (id, name, email, password_hash, role, preferences, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING
             *
         "#,
@@ -20,6 +20,7 @@ impl UserRepository {
             user.email,
             user.password_hash,
             user.role,
+            user.preferences,
             user.created_at,
             user.updated_at
         )
@@ -77,5 +78,21 @@ impl UserRepository {
                 .await?;
 
         Ok(count)
+    }
+
+    pub async fn update_preferences(
+        executor: impl PgExecutor<'_>,
+        user_id: Uuid,
+        preferences: &serde_json::Value,
+    ) -> AppResult<()> {
+        sqlx::query!(
+            r#"UPDATE users SET preferences = $1 WHERE id = $2"#,
+            preferences,
+            user_id
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
     }
 }

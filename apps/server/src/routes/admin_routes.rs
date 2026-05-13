@@ -8,7 +8,6 @@ use crate::{handlers::admin_handlers, state::AppState};
 pub fn admin_routes() -> Router<AppState> {
     Router::new()
         .route("/admin/scan-library", post(admin_handlers::scan_library))
-        // Tracks
         .route(
             "/admin/tracks/deleted",
             get(admin_handlers::list_deleted_tracks),
@@ -31,7 +30,6 @@ pub fn admin_routes() -> Router<AppState> {
             "/admin/tracks/{id}/force-rescan",
             post(admin_handlers::force_rescan_track),
         )
-        // Albums
         .route("/admin/albums", post(admin_handlers::create_album))
         .route("/admin/albums/{id}", get(admin_handlers::get_album))
         .route("/admin/albums/{id}", patch(admin_handlers::update_album))
@@ -44,7 +42,6 @@ pub fn admin_routes() -> Router<AppState> {
             "/admin/albums/{id}/merge",
             post(admin_handlers::merge_album),
         )
-        // Artists
         .route("/admin/artists", post(admin_handlers::create_artist))
         .route("/admin/artists/{id}", get(admin_handlers::get_artist))
         .route("/admin/artists/{id}", patch(admin_handlers::update_artist))

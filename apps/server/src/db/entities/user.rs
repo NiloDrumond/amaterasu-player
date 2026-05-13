@@ -14,6 +14,8 @@ pub struct User {
 
     pub role: String,
 
+    pub preferences: serde_json::Value,
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -34,6 +36,7 @@ impl User {
             email,
             password_hash,
             role,
+            preferences: serde_json::json!({}),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

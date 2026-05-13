@@ -8,6 +8,7 @@ pub mod playlist_response;
 pub mod tag_category_response;
 pub mod tag_response;
 pub mod track_response;
+pub mod user_preferences;
 
 pub use admin_response::*;
 pub use album_collection_response::*;
@@ -19,3 +20,4 @@ pub use playlist_response::*;
 pub use tag_category_response::*;
 pub use tag_response::*;
 pub use track_response::*;
+pub use user_preferences::*;

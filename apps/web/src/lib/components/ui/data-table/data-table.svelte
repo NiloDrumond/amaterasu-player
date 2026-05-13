@@ -18,29 +18,7 @@
 	import type { Snippet } from 'svelte';
 	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 	import ColumnToggle from './column-toggle.svelte';
-
-	const COLUMN_VISIBILITY_STORAGE_PREFIX = 'data-table:cols:';
-
-	function readVisibility(key: string | undefined): VisibilityState {
-		if (!key || typeof localStorage === 'undefined') return {};
-		try {
-			const raw = localStorage.getItem(COLUMN_VISIBILITY_STORAGE_PREFIX + key);
-			if (!raw) return {};
-			const parsed = JSON.parse(raw);
-			return parsed && typeof parsed === 'object' ? (parsed as VisibilityState) : {};
-		} catch {
-			return {};
-		}
-	}
-
-	function writeVisibility(key: string | undefined, value: VisibilityState) {
-		if (!key || typeof localStorage === 'undefined') return;
-		try {
-			localStorage.setItem(COLUMN_VISIBILITY_STORAGE_PREFIX + key, JSON.stringify(value));
-		} catch {
-			// ignore: quota/private mode
-		}
-	}
+	import { getColumnVisibility, setColumnVisibility } from '$lib/state/user-preferences.svelte';
 
 	type RowTrigger = Snippet<[{ props: Record<string, unknown> }]>;
 
@@ -87,7 +65,7 @@
 
 	let columnFilters = $state<ColumnFiltersState>([]);
 	// svelte-ignore state_referenced_locally
-	let columnVisibility = $state<VisibilityState>(readVisibility(storageKey));
+	let columnVisibility = $state<VisibilityState>(storageKey ? getColumnVisibility(storageKey) : {});
 
 	const sorting = $derived<SortingState>(
 		serverSort?.sort ? [{ id: serverSort.sort, desc: serverSort.dir === 'desc' }] : [],
@@ -137,7 +115,7 @@
 			} else {
 				columnVisibility = updater;
 			}
-			writeVisibility(storageKey, columnVisibility);
+			if (storageKey) setColumnVisibility(storageKey, columnVisibility);
 		},
 		onRowSelectionChange: (updater) => {
 			if (typeof updater === 'function') {

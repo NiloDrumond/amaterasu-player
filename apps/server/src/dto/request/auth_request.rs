@@ -2,6 +2,8 @@ use amaterasu_macros::api_type;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 
+use crate::dto::response::UserPreferences;
+
 #[api_type("request/auth")]
 #[derive(Serialize, Deserialize, Validate)]
 pub struct RegisterEmailParams {
@@ -20,4 +22,11 @@ pub struct SignInEmailParams {
     pub email: String,
     #[garde(length(min = 6, max = 100))]
     pub password: String,
+}
+
+#[api_type("request/auth")]
+#[derive(Serialize, Deserialize, Validate)]
+pub struct UpdatePreferencesParams {
+    #[garde(skip)]
+    pub preferences: UserPreferences,
 }
