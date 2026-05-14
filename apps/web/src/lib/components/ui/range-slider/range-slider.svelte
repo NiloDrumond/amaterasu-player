@@ -15,12 +15,12 @@
 
 <input
 	type="range"
-	{value}
 	{min}
 	{max}
+	{...rest}
+	{value}
 	class={cn('range-slider', className)}
 	style="--progress: {progress}%"
-	{...rest}
 />
 
 <style>

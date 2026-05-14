@@ -11,7 +11,7 @@ export const Icons = {
 	GoRight: CaretRightIcon,
 	SortAsc: CaretUpIcon,
 	SortDesc: CaretDownIcon,
-  Shuffle: ShuffleIcon,
-  Repeat: RepeatIcon,
-  RepeatOne: RepeatOnceIcon,
+	Shuffle: ShuffleIcon,
+	Repeat: RepeatIcon,
+	RepeatOne: RepeatOnceIcon,
 };

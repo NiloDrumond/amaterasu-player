@@ -4,12 +4,13 @@ import { updatePreferences } from '$lib/services/auth-service';
 
 const SAVE_DEBOUNCE_MS = 400;
 
-let preferences = $state<UserPreferences>({ tableColumns: {} });
+let preferences = $state<UserPreferences>({ tableColumns: {}, volume: null });
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function initUserPreferences(initial: UserPreferences) {
 	preferences = {
 		tableColumns: { ...(initial.tableColumns ?? {}) },
+		volume: initial.volume ?? null,
 	};
 }
 
@@ -25,6 +26,15 @@ export function setColumnVisibility(storageKey: string, value: VisibilityState) 
 	schedulePersist();
 }
 
+export function getVolume(): number | null {
+	return preferences.volume;
+}
+
+export function setVolume(value: number) {
+	preferences.volume = value;
+	schedulePersist();
+}
+
 function schedulePersist() {
 	if (typeof window === 'undefined') return;
 	if (saveTimer !== null) clearTimeout(saveTimer);
@@ -32,6 +42,7 @@ function schedulePersist() {
 		saveTimer = null;
 		const snapshot: UserPreferences = {
 			tableColumns: { ...preferences.tableColumns },
+			volume: preferences.volume,
 		};
 		void updatePreferences(fetch, snapshot);
 	}, SAVE_DEBOUNCE_MS);

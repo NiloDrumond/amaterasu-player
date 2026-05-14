@@ -4,12 +4,21 @@
 	import CommandPalette from '$lib/components/search/command-palette.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import { setPlayer } from '$lib/player/player.svelte';
-	import { initUserPreferences } from '$lib/state/user-preferences.svelte';
+	import { getVolume, initUserPreferences, setVolume } from '$lib/state/user-preferences.svelte';
 
 	let { data, children } = $props();
 	const player = setPlayer();
 	// svelte-ignore state_referenced_locally
 	initUserPreferences(data.user.preferences);
+	const initialVolume = getVolume();
+	if (initialVolume !== null) {
+		player.volume = initialVolume;
+		player.previousVolume = initialVolume > 0 ? initialVolume : 1;
+	}
+	$effect(() => {
+		const v = player.volume;
+		if (v !== getVolume()) setVolume(v);
+	});
 </script>
 
 <Sidebar.Provider>
