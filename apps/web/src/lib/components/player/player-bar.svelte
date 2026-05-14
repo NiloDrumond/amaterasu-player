@@ -3,9 +3,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import QueueDrawer from './queue-drawer.svelte';
+	import PlayerFocused from './player-focused.svelte';
+	import PlayerControls from './player-controls.svelte';
+	import PlayerVolume from './player-volume.svelte';
+	import PlayerSeek from './player-seek.svelte';
 	import TrackActions from '$lib/components/tracks/track-actions.svelte';
-	import { RangeSlider } from '$lib/components/ui/range-slider';
-	import { cn } from '$lib/utils';
 	import { Icons } from '$lib/components/ui/icons';
 
 	const player = getPlayer();
@@ -26,15 +28,19 @@
 		}
 	});
 
-	function onSeekInput(value: number) {
-		player.currentTime = value;
-		if (audioEl) audioEl.currentTime = value;
+	function onBarClick(e: MouseEvent) {
+		const target = e.target as HTMLElement | null;
+		if (!target) return;
+		if (target.closest('button, input, a, [role="menuitem"], [data-no-focus]')) return;
+		player.openFocused();
 	}
 </script>
 
 {#if player.currentTrack}
 	<footer
-		class="fixed inset-x-0 bottom-0 z-50 flex h-20 items-center gap-4 border-t bg-background px-4"
+		class="fixed inset-x-0 bottom-0 z-50 flex h-20 cursor-pointer items-center gap-4 border-t bg-background px-4"
+		onclick={onBarClick}
+		role="presentation"
 	>
 		<audio
 			bind:this={audioEl}
@@ -51,7 +57,7 @@
 
 		<div class="flex min-w-0 flex-1 items-center gap-3">
 			{#if player.currentTrack.album?.coverUrl && player.currentTrack.album}
-				<a href="/albums/{player.currentTrack.album.id}" class="shrink-0">
+				<a href="/albums/{player.currentTrack.album.id}" class="shrink-0" data-no-focus>
 					<img src={player.currentTrack.album.coverUrl} class="size-12 rounded" alt="" />
 				</a>
 			{/if}
@@ -61,6 +67,7 @@
 					<a
 						href="/artists/{player.currentTrack.artist.id}"
 						class="w-fit truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+						data-no-focus
 					>
 						{player.currentTrack.artist.name}
 					</a>
@@ -69,64 +76,7 @@
 		</div>
 
 		<div class="flex items-center gap-1">
-			<Button
-				size="icon"
-				variant="ghost"
-				class={cn(player.shuffleEnabled ? 'text-foreground' : 'text-muted-foreground')}
-				onclick={() => player.toggleShuffle()}
-				aria-label="Shuffle"
-				aria-pressed={player.shuffleEnabled}
-			>
-				<Icons.Shuffle weight={player.shuffleEnabled ? 'bold' : 'regular'} />
-			</Button>
-			<Button
-				size="icon"
-				variant="ghost"
-				onclick={() => player.prev()}
-				disabled={!player.hasPrev}
-				aria-label="Previous track"
-			>
-				<Icons.SkipBack />
-			</Button>
-			<Button
-				size="icon"
-				variant="ghost"
-				onclick={() => player.toggle()}
-				aria-label={player.isPlaying ? 'Pause' : 'Play'}
-			>
-				{#if player.isPlaying}
-					<Icons.Pause />
-				{:else}
-					<Icons.Play />
-				{/if}
-			</Button>
-			<Button
-				size="icon"
-				variant="ghost"
-				onclick={() => player.next()}
-				disabled={!player.hasNext}
-				aria-label="Next track"
-			>
-				<Icons.SkipForward />
-			</Button>
-			<Button
-				size="icon"
-				variant={player.repeatMode === 'off' ? 'ghost' : 'secondary'}
-				onclick={() => player.cycleRepeatMode()}
-				aria-label={player.repeatMode === 'one'
-					? 'Repeat one'
-					: player.repeatMode === 'all'
-						? 'Repeat all'
-						: 'Repeat off'}
-			>
-				{#if player.repeatMode === 'one'}
-					<Icons.RepeatOne weight="bold" />
-				{:else if player.repeatMode === 'all'}
-					<Icons.Repeat weight="bold" />
-				{:else}
-					<Icons.Repeat />
-				{/if}
-			</Button>
+			<PlayerControls />
 		</div>
 
 		<div class="flex flex-1 items-center justify-end gap-2">
@@ -140,30 +90,12 @@
 				</span>
 			</p>
 
-			<Button
-				size="icon"
-				variant="ghost"
-				onclick={() => player.toggleMute()}
-				aria-label={player.volume === 0 ? 'Unmute' : 'Mute'}
-			>
-				{#if player.volume === 0}
-					<Icons.VolumeMute class="size-4" />
-				{:else}
-					<Icons.Volume class="size-4" />
-				{/if}
-			</Button>
-			<RangeSlider
-				min={0}
-				max={1}
-				step={0.01}
-				value={player.volume}
-				oninput={(e) => (player.volume = +(e.currentTarget as HTMLInputElement).value)}
-				aria-label="Volume"
-				class="w-24"
-			/>
+			<PlayerVolume />
 
 			{#if player.currentTrack}
-				<TrackActions track={player.currentTrack} />
+				<div data-no-focus>
+					<TrackActions track={player.currentTrack} />
+				</div>
 			{/if}
 
 			<Button
@@ -177,31 +109,8 @@
 			</Button>
 		</div>
 
-		<!-- full-width seek bar pinned to top edge; outer div is the hitbox, inner is visual -->
-		<div class="group absolute inset-x-0 top-0 h-4">
-			<div
-				class="absolute inset-x-0 top-0 h-px bg-muted transition-all duration-150 group-hover:h-0.75"
-			>
-				<div
-					class="h-full bg-primary"
-					style="width: {player.duration ? (player.currentTime / player.duration) * 100 : 0}%"
-				></div>
-				<div
-					class="pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-					style="left: {player.duration ? (player.currentTime / player.duration) * 100 : 0}%"
-				></div>
-			</div>
-			<input
-				type="range"
-				min="0"
-				max={player.duration || 0}
-				step="0.1"
-				value={player.currentTime}
-				oninput={(e) => onSeekInput(+e.currentTarget.value)}
-				aria-label="Seek"
-				class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-			/>
-		</div>
+		<PlayerSeek variant="bar" />
 	</footer>
 	<QueueDrawer />
+	<PlayerFocused />
 {/if}

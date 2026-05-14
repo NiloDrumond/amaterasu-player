@@ -25,6 +25,7 @@ export class PlayerState {
 	volume = $state(1);
 	previousVolume = $state(1);
 	queueOpen = $state(false);
+	focusedOpen = $state(false);
 	context = $state<PlaybackContext>({});
 	shuffleEnabled = $state(false);
 	repeatMode = $state<RepeatMode>('off');
@@ -150,6 +151,18 @@ export class PlayerState {
 
 	toggleQueue() {
 		this.queueOpen = !this.queueOpen;
+	}
+
+	openFocused() {
+		this.focusedOpen = true;
+	}
+
+	closeFocused() {
+		this.focusedOpen = false;
+	}
+
+	toggleFocused() {
+		this.focusedOpen = !this.focusedOpen;
 	}
 
 	jumpTo(i: number) {
