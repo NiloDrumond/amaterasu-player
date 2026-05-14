@@ -10,7 +10,10 @@
 	import VolumeXIcon from '@lucide/svelte/icons/volume-x';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import QueueDrawer from './queue-drawer.svelte';
+	import TrackActions from '$lib/components/tracks/track-actions.svelte';
 	import { RangeSlider } from '$lib/components/ui/range-slider';
+	import { cn } from '$lib/utils';
+	import { Icons } from '../ui/icons';
 
 	const player = getPlayer();
 	let audioEl = $state<HTMLAudioElement | null>(null);
@@ -76,6 +79,16 @@
 			<Button
 				size="icon"
 				variant="ghost"
+				class={cn(player.shuffleEnabled ? 'text-foreground' : 'text-muted-foreground')}
+				onclick={() => player.toggleShuffle()}
+				aria-label="Shuffle"
+				aria-pressed={player.shuffleEnabled}
+			>
+				<Icons.Shuffle weight={player.shuffleEnabled ? 'bold' : 'regular'} />
+			</Button>
+			<Button
+				size="icon"
+				variant="ghost"
 				onclick={() => player.prev()}
 				disabled={!player.hasPrev}
 				aria-label="Previous track"
@@ -102,6 +115,24 @@
 				aria-label="Next track"
 			>
 				<SkipForwardIcon />
+			</Button>
+			<Button
+				size="icon"
+				variant={player.repeatMode === 'off' ? 'ghost' : 'secondary'}
+				onclick={() => player.cycleRepeatMode()}
+				aria-label={player.repeatMode === 'one'
+					? 'Repeat one'
+					: player.repeatMode === 'all'
+						? 'Repeat all'
+						: 'Repeat off'}
+			>
+				{#if player.repeatMode === 'one'}
+					<Icons.RepeatOne weight="bold" />
+				{:else if player.repeatMode === 'all'}
+					<Icons.Repeat weight="bold" />
+				{:else}
+					<Icons.Repeat />
+				{/if}
 			</Button>
 		</div>
 
@@ -138,6 +169,10 @@
 				class="w-24"
 			/>
 
+			{#if player.currentTrack}
+				<TrackActions track={player.currentTrack} />
+			{/if}
+
 			<Button
 				size="icon"
 				variant="ghost"
@@ -152,7 +187,7 @@
 		<!-- full-width seek bar pinned to top edge; outer div is the hitbox, inner is visual -->
 		<div class="group absolute inset-x-0 top-0 h-4">
 			<div
-				class="absolute inset-x-0 top-0 h-px bg-muted transition-all duration-150 group-hover:h-[3px]"
+				class="absolute inset-x-0 top-0 h-px bg-muted transition-all duration-150 group-hover:h-0.75"
 			>
 				<div
 					class="h-full bg-primary"

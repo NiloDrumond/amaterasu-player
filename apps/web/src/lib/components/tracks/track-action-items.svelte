@@ -22,6 +22,11 @@
 	<DropdownMenu.Label>Actions</DropdownMenu.Label>
 	<DropdownMenu.Item onclick={() => player.playNext([track])}>Play Next</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={() => player.playLater([track])}>Play Later</DropdownMenu.Item>
+	{#if player.currentTrack?.id === track.id}
+		<DropdownMenu.Item onclick={() => player.toggleStopAfterCurrent()}>
+			{player.stopAfterCurrent ? 'Cancel stop after this track' : 'Stop after this track'}
+		</DropdownMenu.Item>
+	{/if}
 	<DropdownMenu.Item onclick={onAddToPlaylist}>Add to Playlist</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={onEditTags}>Edit Tags</DropdownMenu.Item>
 	{#if isAdmin}

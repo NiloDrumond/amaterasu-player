@@ -1,6 +1,9 @@
 import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 import { scrobbleTrack } from '$lib/services/track-service';
+import { shuffle } from '$lib/utils/shuffle';
 import { getContext, setContext } from 'svelte';
+
+export type RepeatMode = 'off' | 'all' | 'one';
 
 const PLAYER_KEY = Symbol.for('amaterasu-player');
 
@@ -23,23 +26,40 @@ export class PlayerState {
 	previousVolume = $state(1);
 	queueOpen = $state(false);
 	context = $state<PlaybackContext>({});
+	shuffleEnabled = $state(false);
+	repeatMode = $state<RepeatMode>('off');
+	stopAfterCurrent = $state(false);
 
 	private scrobbledTrackKey: string | null = null;
+	private originalQueue: TrackResponse[] | null = null;
 
 	currentTrack = $derived<TrackResponse | null>(this.queue[this.index] ?? null);
 	streamUrl = $derived<string | null>(
 		this.currentTrack ? `/api/tracks/${this.currentTrack.id}/stream` : null,
 	);
-	hasNext = $derived(this.index < this.queue.length - 1);
+	hasNext = $derived(
+		this.index < this.queue.length - 1 || (this.repeatMode === 'all' && this.queue.length > 0),
+	);
 	hasPrev = $derived(this.index > 0);
 
 	playQueue(tracks: TrackResponse[], startIndex: number, context: PlaybackContext = {}) {
 		if (tracks.length === 0) return;
-		this.queue = tracks;
-		this.index = Math.max(0, Math.min(startIndex, tracks.length - 1));
+		const idx = Math.max(0, Math.min(startIndex, tracks.length - 1));
+		if (this.shuffleEnabled) {
+			this.originalQueue = [...tracks];
+			const before = tracks.slice(0, idx);
+			const current = tracks[idx];
+			const after = shuffle(tracks.slice(idx + 1));
+			this.queue = [...before, current, ...after];
+		} else {
+			this.originalQueue = null;
+			this.queue = tracks;
+		}
+		this.index = idx;
 		this.currentTime = 0;
 		this.isPlaying = true;
 		this.context = context;
+		this.stopAfterCurrent = false;
 		this.resetScrobble();
 	}
 
@@ -49,8 +69,13 @@ export class PlayerState {
 	}
 
 	next() {
-		if (this.hasNext) {
+		if (this.index < this.queue.length - 1) {
 			this.index += 1;
+			this.currentTime = 0;
+			this.isPlaying = true;
+			this.resetScrobble();
+		} else if (this.repeatMode === 'all' && this.queue.length > 0) {
+			this.index = 0;
 			this.currentTime = 0;
 			this.isPlaying = true;
 			this.resetScrobble();
@@ -69,7 +94,49 @@ export class PlayerState {
 	}
 
 	onEnded() {
+		if (this.stopAfterCurrent) {
+			this.stopAfterCurrent = false;
+			this.isPlaying = false;
+			this.currentTime = 0;
+			return;
+		}
+		if (this.repeatMode === 'one') {
+			this.currentTime = 0;
+			this.isPlaying = true;
+			this.resetScrobble();
+			return;
+		}
 		this.next();
+	}
+
+	toggleShuffle() {
+		if (!this.shuffleEnabled) {
+			this.shuffleEnabled = true;
+			if (this.queue.length === 0) return;
+			this.originalQueue = [...this.queue];
+			const before = this.queue.slice(0, this.index);
+			const current = this.queue[this.index];
+			const after = shuffle(this.queue.slice(this.index + 1));
+			this.queue = [...before, current, ...after];
+		} else {
+			this.shuffleEnabled = false;
+			if (this.originalQueue && this.currentTrack) {
+				const currentId = this.currentTrack.id;
+				const restored = this.originalQueue;
+				const found = restored.findIndex((t) => t.id === currentId);
+				this.queue = restored;
+				if (found !== -1) this.index = found;
+			}
+			this.originalQueue = null;
+		}
+	}
+
+	cycleRepeatMode() {
+		this.repeatMode = this.repeatMode === 'off' ? 'all' : this.repeatMode === 'all' ? 'one' : 'off';
+	}
+
+	toggleStopAfterCurrent() {
+		this.stopAfterCurrent = !this.stopAfterCurrent;
 	}
 
 	toggleMute() {
