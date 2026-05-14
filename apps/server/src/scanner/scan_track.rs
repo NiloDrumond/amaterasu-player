@@ -4,15 +4,29 @@ use ffmpeg_next::format::context::Input;
 use crate::scanner::error::{ScannerError, ScannerResult};
 
 pub fn parse_numeric_prefix(stem: &str) -> Option<(i32, String)> {
-    let (prefix, rest) = stem.split_once('_')?;
-    if prefix.is_empty() || rest.is_empty() {
+    let digit_end = stem.find(|c: char| !c.is_ascii_digit())?;
+    if digit_end == 0 {
         return None;
     }
-    if !prefix.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
+    let (prefix, sep_and_rest) = stem.split_at(digit_end);
     let n = prefix.parse::<i32>().ok()?;
-    Some((n, rest.to_string()))
+
+    let rest = if let Some(after) = sep_and_rest.strip_prefix('_') {
+        after.to_string()
+    } else if let Some(after) = sep_and_rest.strip_prefix('.') {
+        let trimmed = after.trim_start_matches(|c: char| c == ' ' || c == '\t');
+        if trimmed.len() == after.len() {
+            return None;
+        }
+        trimmed.to_string()
+    } else {
+        return None;
+    };
+
+    if rest.is_empty() {
+        return None;
+    }
+    Some((n, rest))
 }
 
 pub struct ScannedTrackMetadata {
@@ -114,7 +128,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_numeric_prefix_basic() {
+    fn parse_numeric_prefix_underscore() {
         assert_eq!(parse_numeric_prefix("1_Hello"), Some((1, "Hello".into())));
         assert_eq!(parse_numeric_prefix("01_Hello"), Some((1, "Hello".into())));
         assert_eq!(
@@ -124,12 +138,28 @@ mod tests {
     }
 
     #[test]
+    fn parse_numeric_prefix_dot_space() {
+        assert_eq!(parse_numeric_prefix("1. Hello"), Some((1, "Hello".into())));
+        assert_eq!(
+            parse_numeric_prefix("01. Hello"),
+            Some((1, "Hello".into()))
+        );
+        assert_eq!(
+            parse_numeric_prefix("12. Foo Bar"),
+            Some((12, "Foo Bar".into()))
+        );
+    }
+
+    #[test]
     fn parse_numeric_prefix_rejects_non_matches() {
         assert_eq!(parse_numeric_prefix("Hello"), None);
         assert_eq!(parse_numeric_prefix("1-Hello"), None);
         assert_eq!(parse_numeric_prefix("_Hello"), None);
         assert_eq!(parse_numeric_prefix("1_"), None);
-        assert_eq!(parse_numeric_prefix("1a_Hello"), None);
+        assert_eq!(parse_numeric_prefix("1."), None);
+        assert_eq!(parse_numeric_prefix("1.Hello"), None);
+        assert_eq!(parse_numeric_prefix(". Hello"), None);
+        assert_eq!(parse_numeric_prefix("1. "), None);
     }
 
     fn meta(title: &str, track_no: Option<i32>) -> ScannedTrackMetadata {

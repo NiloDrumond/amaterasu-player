@@ -4,10 +4,12 @@
 	import CommandPalette from '$lib/components/search/command-palette.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import { setPlayer } from '$lib/player/player.svelte';
+	import { usePlayerShortcuts } from '$lib/shortcuts/player-shortcuts.svelte';
 	import { getVolume, initUserPreferences, setVolume } from '$lib/state/user-preferences.svelte';
 
 	let { data, children } = $props();
 	const player = setPlayer();
+	usePlayerShortcuts(player);
 	// svelte-ignore state_referenced_locally
 	initUserPreferences(data.user.preferences);
 	const initialVolume = getVolume();

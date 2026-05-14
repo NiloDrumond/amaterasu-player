@@ -3,6 +3,7 @@
 	import { fade } from 'svelte/transition';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import { cn } from '$lib/utils';
+	import { useShortcut } from '$lib/shortcuts/shortcuts.svelte';
 	import PlayerControls from './player-controls.svelte';
 	import PlayerVolume from './player-volume.svelte';
 	import PlayerSeek from './player-seek.svelte';
@@ -36,18 +37,14 @@
 			return;
 		}
 		resetIdle();
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') {
-				player.closeFocused();
-				return;
-			}
-			resetIdle();
-		};
-		window.addEventListener('keydown', onKey);
-		return () => {
-			window.removeEventListener('keydown', onKey);
-			clearIdle();
-		};
+		return () => clearIdle();
+	});
+
+	useShortcut({
+		id: 'focused.close',
+		keys: 'Escape',
+		when: () => player.focusedOpen,
+		handler: () => player.closeFocused(),
 	});
 
 	function onBackdropClick(e: MouseEvent) {

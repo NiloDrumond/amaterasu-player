@@ -9,6 +9,8 @@
 		SIDEBAR_WIDTH_ICON,
 	} from './constants.js';
 	import { setSidebar } from './context.svelte.js';
+	import { useShortcut } from '$lib/shortcuts/shortcuts.svelte';
+	import { SIDEBAR_KEYBOARD_SHORTCUT } from './constants.js';
 
 	let {
 		ref = $bindable(null),
@@ -33,9 +35,14 @@
 			document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
 		},
 	});
-</script>
 
-<svelte:window onkeydown={sidebar.handleShortcutKeydown} />
+	useShortcut({
+		id: 'sidebar.toggle',
+		keys: `mod+${SIDEBAR_KEYBOARD_SHORTCUT}`,
+		handler: () => sidebar.toggle(),
+		description: 'Toggle sidebar',
+	});
+</script>
 
 <Tooltip.Provider delayDuration={0}>
 	<div

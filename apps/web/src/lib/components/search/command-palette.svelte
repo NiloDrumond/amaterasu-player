@@ -14,6 +14,7 @@
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
 	import { Kbd } from '../ui/kbd';
+	import { useShortcut } from '$lib/shortcuts/shortcuts.svelte';
 
 	const player = getPlayer();
 
@@ -34,16 +35,12 @@
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	let inflight: AbortController | null = null;
 
-	// Global Ctrl/Cmd+K hotkey.
-	$effect(() => {
-		function onKeydown(e: KeyboardEvent) {
-			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-				e.preventDefault();
-				open = !open;
-			}
-		}
-		window.addEventListener('keydown', onKeydown);
-		return () => window.removeEventListener('keydown', onKeydown);
+	useShortcut({
+		id: 'command-palette.toggle',
+		keys: 'mod+k',
+		handler: () => (open = !open),
+		allowInInputs: true,
+		description: 'Open command palette',
 	});
 
 	// Debounced fetch on query change.
