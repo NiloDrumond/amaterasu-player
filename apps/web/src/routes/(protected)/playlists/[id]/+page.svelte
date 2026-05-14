@@ -18,13 +18,7 @@
 	import FilterBar from '$lib/components/filters/filter-bar.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
 	import { getTextSearch, setTextSearch } from '$lib/utils/filter-url';
-	import PlayIcon from '@lucide/svelte/icons/play';
-	import ShuffleIcon from '@lucide/svelte/icons/shuffle';
-	import ListStartIcon from '@lucide/svelte/icons/list-start';
-	import ListEndIcon from '@lucide/svelte/icons/list-end';
-	import ListMusicIcon from '@lucide/svelte/icons/list-music';
-	import SparklesIcon from '@lucide/svelte/icons/sparkles';
-	import GripVerticalIcon from '@lucide/svelte/icons/grip-vertical';
+	import { Icons } from '$lib/components/ui/icons';
 
 	let { data } = $props();
 	const player = getPlayer();
@@ -147,9 +141,9 @@
 			class="flex size-48 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
 		>
 			{#if isDynamic}
-				<SparklesIcon class="size-16 opacity-30" />
+				<Icons.Sparkle class="size-16 opacity-30" />
 			{:else}
-				<ListMusicIcon class="size-16 opacity-30" />
+				<Icons.Playlist class="size-16 opacity-30" />
 			{/if}
 		</div>
 		<div class="flex min-w-0 flex-col gap-1">
@@ -180,19 +174,19 @@
 	<!-- Toolbar -->
 	<div class="flex flex-row flex-wrap items-center gap-2">
 		<Button onclick={play} class="gap-2">
-			<PlayIcon class="size-4" />
+			<Icons.Play class="size-4" />
 			Play
 		</Button>
 		<Button variant="ghost" onclick={shufflePlay} class="gap-2">
-			<ShuffleIcon class="size-4" />
+			<Icons.Shuffle class="size-4" />
 			Shuffle
 		</Button>
 		<Button variant="ghost" onclick={playNext} class="gap-2">
-			<ListStartIcon class="size-4" />
+			<Icons.PlayNext class="size-4" />
 			Play Next
 		</Button>
 		<Button variant="ghost" onclick={playLater} class="gap-2">
-			<ListEndIcon class="size-4" />
+			<Icons.AddToQueue class="size-4" />
 			Play Later
 		</Button>
 	</div>
@@ -250,7 +244,7 @@
 							<div
 								class="drag-handle flex cursor-grab items-center justify-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
 							>
-								<GripVerticalIcon class="size-4" />
+								<Icons.Grip class="size-4" />
 							</div>
 
 							<!-- Title -->

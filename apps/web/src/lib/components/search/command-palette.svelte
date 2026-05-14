@@ -13,6 +13,7 @@
 	} from '$lib/services/search-service';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
+	import { Kbd } from '../ui/kbd';
 
 	const player = getPlayer();
 
@@ -266,8 +267,8 @@
 		{/if}
 	</Command.List>
 	<div class="border-t px-3 py-2 text-xs text-muted-foreground">
-		<kbd class="rounded border px-1">↵</kbd> open ·
-		<kbd class="rounded border px-1">⇧↵</kbd> play ·
-		<kbd class="rounded border px-1">esc</kbd> close
+		<Kbd>↵</Kbd> open ·
+		<Kbd>⇧ + ↵</Kbd> play ·
+		<Kbd>esc</Kbd> close
 	</div>
 </Command.Dialog>

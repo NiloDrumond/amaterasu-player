@@ -63,11 +63,7 @@
 						{#snippet child({ props })}
 							<a href="/search" {...props}
 								>Search
-								<Kbd.Group>
-									<Kbd.Root>Ctrl</Kbd.Root>
-									<span>+</span>
-									<Kbd.Root>K</Kbd.Root>
-								</Kbd.Group>
+								<Kbd.Root>Ctrl + K</Kbd.Root>
 							</a>
 						{/snippet}
 					</Sidebar.MenuButton>

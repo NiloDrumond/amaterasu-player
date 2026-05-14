@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
-	import CheckIcon from 'phosphor-svelte/lib/Check';
+	import { Icons } from '$lib/components/ui/icons';
 	import { cn, type WithoutChild } from '$lib/utils.js';
 
 	let {
@@ -26,7 +26,7 @@
 			data-slot="dropdown-menu-radio-item-indicator"
 		>
 			{#if checked}
-				<CheckIcon />
+				<Icons.Check />
 			{/if}
 		</span>
 		{@render childrenProp?.({ checked })}

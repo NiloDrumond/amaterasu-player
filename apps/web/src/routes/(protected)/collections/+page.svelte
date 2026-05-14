@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+	import { Icons } from '$lib/components/ui/icons';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
 
 	let { data } = $props();
@@ -42,7 +42,7 @@
 							class="flex items-center gap-3 border-b px-2 py-2 text-left hover:bg-muted/50"
 							onclick={() => goto(`/collections/${c.id}`)}
 						>
-							<LayoutGridIcon class="size-4 text-muted-foreground" />
+							<Icons.Collection class="size-4 text-muted-foreground" />
 							<span class="flex-1 truncate text-sm font-medium">{c.name}</span>
 							<span class="text-xs text-muted-foreground">
 								{new Date(c.createdAt).toLocaleDateString()}

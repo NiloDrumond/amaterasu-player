@@ -2,10 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
-	import PlusIcon from '@lucide/svelte/icons/plus';
-	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
-	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+	import { Icons } from '$lib/components/ui/icons';
 	import { toast } from 'svelte-sonner';
 	import { createTag } from '$lib/services/tag-service';
 	import { deleteTagCategory } from '$lib/services/tag-category-service';
@@ -102,7 +99,7 @@
 		<span class="text-xs text-muted-foreground">{tags.length}</span>
 		<div class="ml-auto flex items-center gap-1">
 			<Button variant="ghost" size="sm" class="gap-1 px-2" onclick={startAdd}>
-				<PlusIcon class="size-3.5" />
+				<Icons.Add class="size-3.5" />
 				Add tag
 			</Button>
 			{#if category && onCategoryEdit}
@@ -111,7 +108,7 @@
 						{#snippet child({ props })}
 							<Button {...props} variant="ghost" size="icon" class="size-8 p-0">
 								<span class="sr-only">Category actions</span>
-								<EllipsisIcon class="size-4" />
+								<Icons.More class="size-4" />
 							</Button>
 						{/snippet}
 					</DropdownMenu.Trigger>
@@ -121,13 +118,13 @@
 							<DropdownMenu.Item onclick={() => onCategoryEdit(category)}>Edit</DropdownMenu.Item>
 							{#if onMoveUp}
 								<DropdownMenu.Item disabled={!canMoveUp} onclick={onMoveUp}>
-									<ChevronUpIcon class="size-4" />
+									<Icons.ChevronUp class="size-4" />
 									Move up
 								</DropdownMenu.Item>
 							{/if}
 							{#if onMoveDown}
 								<DropdownMenu.Item disabled={!canMoveDown} onclick={onMoveDown}>
-									<ChevronDownIcon class="size-4" />
+									<Icons.ChevronDown class="size-4" />
 									Move down
 								</DropdownMenu.Item>
 							{/if}

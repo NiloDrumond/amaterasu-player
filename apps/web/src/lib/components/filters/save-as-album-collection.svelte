@@ -3,7 +3,7 @@
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+	import { Icons } from '$lib/components/ui/icons';
 	import { createCollection } from '$lib/services/album-collection-service';
 	import { toast } from 'svelte-sonner';
 	import type { FilterNode } from '$lib/bindings/filter/filter-node';
@@ -38,7 +38,7 @@
 		<Popover.Trigger>
 			{#snippet child({ props })}
 				<Button {...props} variant="ghost" size="sm" class="h-7 gap-1 px-2 text-xs">
-					<LayoutGridIcon class="size-3" />
+					<Icons.Collection class="size-3" />
 					Save as collection
 				</Button>
 			{/snippet}

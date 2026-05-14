@@ -3,7 +3,7 @@
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import SparklesIcon from '@lucide/svelte/icons/sparkles';
+	import { Icons } from '$lib/components/ui/icons';
 	import { createPlaylist } from '$lib/services/playlist-service';
 	import { toast } from 'svelte-sonner';
 	import type { FilterNode } from '$lib/bindings/filter/filter-node';
@@ -42,7 +42,7 @@
 		<Popover.Trigger>
 			{#snippet child({ props })}
 				<Button {...props} variant="ghost" size="sm" class="h-7 gap-1 px-2 text-xs">
-					<SparklesIcon class="size-3" />
+					<Icons.Sparkle class="size-3" />
 					Save as playlist
 				</Button>
 			{/snippet}

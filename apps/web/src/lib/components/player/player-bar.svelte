@@ -1,19 +1,12 @@
 <script lang="ts">
 	import { getPlayer } from '$lib/player/player.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import PlayIcon from '@lucide/svelte/icons/play';
-	import PauseIcon from '@lucide/svelte/icons/pause';
-	import SkipBackIcon from '@lucide/svelte/icons/skip-back';
-	import SkipForwardIcon from '@lucide/svelte/icons/skip-forward';
-	import ListMusicIcon from '@lucide/svelte/icons/list-music';
-	import Volume2Icon from '@lucide/svelte/icons/volume-2';
-	import VolumeXIcon from '@lucide/svelte/icons/volume-x';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import QueueDrawer from './queue-drawer.svelte';
 	import TrackActions from '$lib/components/tracks/track-actions.svelte';
 	import { RangeSlider } from '$lib/components/ui/range-slider';
 	import { cn } from '$lib/utils';
-	import { Icons } from '../ui/icons';
+	import { Icons } from '$lib/components/ui/icons';
 
 	const player = getPlayer();
 	let audioEl = $state<HTMLAudioElement | null>(null);
@@ -93,7 +86,7 @@
 				disabled={!player.hasPrev}
 				aria-label="Previous track"
 			>
-				<SkipBackIcon />
+				<Icons.SkipBack />
 			</Button>
 			<Button
 				size="icon"
@@ -102,9 +95,9 @@
 				aria-label={player.isPlaying ? 'Pause' : 'Play'}
 			>
 				{#if player.isPlaying}
-					<PauseIcon />
+					<Icons.Pause />
 				{:else}
-					<PlayIcon />
+					<Icons.Play />
 				{/if}
 			</Button>
 			<Button
@@ -114,7 +107,7 @@
 				disabled={!player.hasNext}
 				aria-label="Next track"
 			>
-				<SkipForwardIcon />
+				<Icons.SkipForward />
 			</Button>
 			<Button
 				size="icon"
@@ -154,9 +147,9 @@
 				aria-label={player.volume === 0 ? 'Unmute' : 'Mute'}
 			>
 				{#if player.volume === 0}
-					<VolumeXIcon class="size-4" />
+					<Icons.VolumeMute class="size-4" />
 				{:else}
-					<Volume2Icon class="size-4" />
+					<Icons.Volume class="size-4" />
 				{/if}
 			</Button>
 			<RangeSlider
@@ -180,7 +173,7 @@
 				aria-label="Toggle queue"
 				aria-pressed={player.queueOpen}
 			>
-				<ListMusicIcon />
+				<Icons.Playlist />
 			</Button>
 		</div>
 

@@ -5,14 +5,7 @@
 	import { getPlayer } from '$lib/player/player.svelte';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import { shuffle } from '$lib/utils/shuffle';
-	import PlayIcon from '@lucide/svelte/icons/play';
-	import ShuffleIcon from '@lucide/svelte/icons/shuffle';
-	import ListStartIcon from '@lucide/svelte/icons/list-start';
-	import ListEndIcon from '@lucide/svelte/icons/list-end';
-	import ListPlusIcon from '@lucide/svelte/icons/list-plus';
-	import MusicIcon from '@lucide/svelte/icons/music';
-	import TagIcon from '@lucide/svelte/icons/tag';
-	import PencilIcon from '@lucide/svelte/icons/pencil';
+	import { Icons } from '$lib/components/ui/icons';
 	import AddToPlaylistDialog from '$lib/components/playlists/add-to-playlist-dialog.svelte';
 	import TagPickerDialog from '$lib/components/tags/tag-picker-dialog.svelte';
 	import { page } from '$app/state';
@@ -58,7 +51,7 @@
 			<div
 				class="flex size-48 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
 			>
-				<MusicIcon class="size-16 opacity-30" />
+				<Icons.Music class="size-16 opacity-30" />
 			</div>
 		{/if}
 		<div class="flex min-w-0 flex-col gap-1">
@@ -80,27 +73,27 @@
 
 	<div class="flex flex-row flex-wrap items-center gap-2">
 		<Button onclick={play} class="gap-2">
-			<PlayIcon class="size-4" />
+			<Icons.Play class="size-4" />
 			Play
 		</Button>
 		<Button variant="ghost" onclick={shufflePlay} class="gap-2">
-			<ShuffleIcon class="size-4" />
+			<Icons.Shuffle class="size-4" />
 			Shuffle
 		</Button>
 		<Button variant="ghost" onclick={playNext} class="gap-2">
-			<ListStartIcon class="size-4" />
+			<Icons.PlayNext class="size-4" />
 			Play Next
 		</Button>
 		<Button variant="ghost" onclick={playLater} class="gap-2">
-			<ListEndIcon class="size-4" />
+			<Icons.AddToQueue class="size-4" />
 			Play Later
 		</Button>
 		<Button variant="ghost" onclick={() => (addToPlaylistOpen = true)} class="gap-2">
-			<ListPlusIcon class="size-4" />
+			<Icons.AddToList class="size-4" />
 			Add to Playlist
 		</Button>
 		<Button variant="ghost" onclick={() => (tagsOpen = true)} class="gap-2">
-			<TagIcon class="size-4" />
+			<Icons.Tag class="size-4" />
 			Edit Tags
 		</Button>
 		{#if isAdmin}
@@ -109,7 +102,7 @@
 				onclick={() => window.open(`/admin/albums/${data.album.id}`, '_blank', 'noopener')}
 				class="gap-2"
 			>
-				<PencilIcon class="size-4" />
+				<Icons.Edit class="size-4" />
 				Edit (admin)
 			</Button>
 		{/if}

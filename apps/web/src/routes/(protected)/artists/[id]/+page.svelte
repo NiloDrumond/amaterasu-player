@@ -6,8 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { getPlayer } from '$lib/player/player.svelte';
-	import MicVocalIcon from '@lucide/svelte/icons/mic-vocal';
-	import PencilIcon from '@lucide/svelte/icons/pencil';
+	import { Icons } from '$lib/components/ui/icons';
 
 	let { data } = $props();
 	const player = getPlayer();
@@ -24,7 +23,7 @@
 		<div
 			class="flex size-48 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
 		>
-			<MicVocalIcon class="size-16 opacity-30" />
+			<Icons.Artist class="size-16 opacity-30" />
 		</div>
 		<div class="flex min-w-0 flex-col gap-1">
 			<p class="text-xs font-medium tracking-widest text-muted-foreground uppercase">Artist</p>
@@ -43,7 +42,7 @@
 				onclick={() => window.open(`/admin/artists/${data.artist.id}`, '_blank', 'noopener')}
 				class="gap-2"
 			>
-				<PencilIcon class="size-4" />
+				<Icons.Edit class="size-4" />
 				Edit (admin)
 			</Button>
 		</div>

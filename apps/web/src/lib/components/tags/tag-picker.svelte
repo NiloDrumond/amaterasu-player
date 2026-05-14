@@ -2,8 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Badge } from '$lib/components/ui/badge';
-	import XIcon from '@lucide/svelte/icons/x';
-	import PlusIcon from '@lucide/svelte/icons/plus';
+	import { Icons } from '$lib/components/ui/icons';
 	import { toast } from 'svelte-sonner';
 	import {
 		getTags,
@@ -120,7 +119,7 @@
 					aria-label="Remove tag {tag.name}"
 					onclick={() => detachTag(tag.id)}
 				>
-					<XIcon class="size-3" />
+					<Icons.Close class="size-3" />
 				</button>
 			</Badge>
 		{/each}
@@ -173,7 +172,7 @@
 						class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
 						onclick={createAndAttach}
 					>
-						<PlusIcon class="size-3" />
+						<Icons.Add class="size-3" />
 						<span>Create "{query.trim()}"</span>
 					</button>
 				{/if}

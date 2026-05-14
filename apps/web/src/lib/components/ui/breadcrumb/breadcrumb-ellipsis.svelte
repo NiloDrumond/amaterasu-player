@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { cn, type WithElementRef, type WithoutChildren } from '$lib/utils.js';
-	import DotsThreeIcon from 'phosphor-svelte/lib/DotsThree';
+	import { Icons } from '$lib/components/ui/icons';
 
 	let {
 		ref = $bindable(null),
@@ -18,6 +18,6 @@
 	class={cn('flex size-5 items-center justify-center [&>svg]:size-4', className)}
 	{...restProps}
 >
-	<DotsThreeIcon />
+	<Icons.More />
 	<span class="sr-only">More</span>
 </span>

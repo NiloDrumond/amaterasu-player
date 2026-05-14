@@ -4,7 +4,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
 	import { toast } from 'svelte-sonner';
-	import ListPlusIcon from '@lucide/svelte/icons/list-plus';
+	import { Icons } from '$lib/components/ui/icons';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 	import type { PlaylistResponse } from '$lib/bindings/response/playlist/playlist-response';
 	import {
@@ -132,7 +132,7 @@
 					class="w-full justify-start gap-3 border-dashed font-normal text-muted-foreground"
 					onclick={() => (showNewPlaylistInput = true)}
 				>
-					<ListPlusIcon class="size-4 shrink-0" />
+					<Icons.AddToList class="size-4 shrink-0" />
 					Create new playlist
 				</Button>
 			{/if}

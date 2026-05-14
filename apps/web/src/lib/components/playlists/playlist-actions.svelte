@@ -1,5 +1,5 @@
 <script lang="ts">
-	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
+	import { Icons } from '$lib/components/ui/icons';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import PlaylistActionItems from './playlist-action-items.svelte';
@@ -12,7 +12,7 @@
 		{#snippet child({ props })}
 			<Button {...props} variant="ghost" size="icon" class="relative size-8 p-0">
 				<span class="sr-only">Open menu</span>
-				<EllipsisIcon />
+				<Icons.More />
 			</Button>
 		{/snippet}
 	</DropdownMenu.Trigger>

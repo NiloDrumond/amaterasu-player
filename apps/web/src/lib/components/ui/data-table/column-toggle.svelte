@@ -1,6 +1,6 @@
 <script lang="ts" generics="TData">
 	import type { Column, Table } from '@tanstack/table-core';
-	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
+	import { Icons } from '$lib/components/ui/icons';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 
@@ -19,7 +19,7 @@
 		{#snippet child({ props })}
 			<Button {...props} variant="ghost" size="icon" class="relative size-8 p-0">
 				<span class="sr-only">Toggle columns</span>
-				<EllipsisIcon />
+				<Icons.More />
 			</Button>
 		{/snippet}
 	</DropdownMenu.Trigger>

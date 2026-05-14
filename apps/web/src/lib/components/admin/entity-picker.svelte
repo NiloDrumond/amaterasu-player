@@ -3,7 +3,7 @@
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Field, FieldLabel } from '$lib/components/ui/field/index.js';
-	import CaretDown from 'phosphor-svelte/lib/CaretDown';
+	import { Icons } from '$lib/components/ui/icons';
 	import { onDestroy } from 'svelte';
 
 	let {
@@ -117,7 +117,7 @@
 					<span class={value ? '' : 'text-muted-foreground'}>
 						{value ? formatLabel(value) : placeholder}
 					</span>
-					<CaretDown class="size-4 opacity-50" />
+					<Icons.ChevronDown class="size-4 opacity-50" />
 				</Button>
 			{/snippet}
 		</Popover.Trigger>

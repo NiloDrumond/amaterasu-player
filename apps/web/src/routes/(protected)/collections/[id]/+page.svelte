@@ -8,7 +8,7 @@
 	import SearchInput from '$lib/components/filters/search-input.svelte';
 	import { getTextSearch, setTextSearch } from '$lib/utils/filter-url';
 	import { updateCollectionFilter } from '$lib/services/album-collection-service';
-	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+	import { Icons } from '$lib/components/ui/icons';
 	import { toast } from 'svelte-sonner';
 	import type { FilterNode } from '$lib/bindings/filter/filter-node';
 
@@ -44,7 +44,7 @@
 		<div
 			class="flex size-48 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
 		>
-			<LayoutGridIcon class="size-16 opacity-30" />
+			<Icons.Collection class="size-16 opacity-30" />
 		</div>
 		<div class="flex min-w-0 flex-col gap-1">
 			<p class="text-xs font-medium tracking-widest text-muted-foreground uppercase">

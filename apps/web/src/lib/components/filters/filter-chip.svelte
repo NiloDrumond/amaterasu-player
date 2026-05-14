@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Entity, LeafNode } from './filter-types';
 	import { findFieldSpec } from './filter-types';
-	import XIcon from '@lucide/svelte/icons/x';
+	import { Icons } from '$lib/components/ui/icons';
 	import { Badge } from '$lib/components/ui/badge';
 
 	let {
@@ -62,6 +62,6 @@
 		aria-label="Remove filter"
 		onclick={onRemove}
 	>
-		<XIcon class="size-3" />
+		<Icons.Close class="size-3" />
 	</button>
 </Badge>

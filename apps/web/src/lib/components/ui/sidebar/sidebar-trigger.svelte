@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button/index.js';
-	import SidebarIcon from 'phosphor-svelte/lib/Sidebar';
+	import { Icons } from '$lib/components/ui/icons';
 	import { cn } from '$lib/utils.js';
 	import type { ComponentProps } from 'svelte';
 	import { useSidebar } from './context.svelte.js';
@@ -31,6 +31,6 @@
 	}}
 	{...restProps}
 >
-	<SidebarIcon />
+	<Icons.Sidebar />
 	<span class="sr-only">Toggle Sidebar</span>
 </Button>

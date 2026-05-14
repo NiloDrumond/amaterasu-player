@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { Checkbox as CheckboxPrimitive } from 'bits-ui';
 	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
-	import CheckIcon from 'phosphor-svelte/lib/Check';
-	import MinusIcon from 'phosphor-svelte/lib/Minus';
+	import { Icons } from '$lib/components/ui/icons';
 
 	let {
 		ref = $bindable(null),
@@ -30,9 +29,9 @@
 			class="grid place-content-center text-current transition-none [&>svg]:size-3.5"
 		>
 			{#if checked}
-				<CheckIcon />
+				<Icons.Check />
 			{:else if indeterminate}
-				<MinusIcon />
+				<Icons.Minus />
 			{/if}
 		</div>
 	{/snippet}

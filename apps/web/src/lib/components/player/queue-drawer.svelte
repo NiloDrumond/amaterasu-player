@@ -4,8 +4,7 @@
 	import { draggable, droppable, type DragDropState } from '@thisux/sveltednd';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 	import { fly } from 'svelte/transition';
-	import XIcon from '@lucide/svelte/icons/x';
-	import GripVerticalIcon from '@lucide/svelte/icons/grip-vertical';
+	import { Icons } from '$lib/components/ui/icons';
 
 	const player = getPlayer();
 
@@ -48,7 +47,7 @@
 				onclick={() => player.toggleQueue()}
 				aria-label="Close queue"
 			>
-				<XIcon />
+				<Icons.Close />
 			</Button>
 		</header>
 
@@ -71,7 +70,7 @@
 						onclick={(e) => onRowClick(e, i)}
 						onkeydown={(e) => onRowKeydown(e, i)}
 					>
-						<GripVerticalIcon class="size-4 shrink-0 text-muted-foreground" />
+						<Icons.Grip class="size-4 shrink-0 text-muted-foreground" />
 						{#if track.album?.coverUrl}
 							<img src={track.album.coverUrl} alt="" class="size-10 shrink-0 rounded" />
 						{:else}
@@ -87,7 +86,7 @@
 							onclick={() => player.removeAt(i)}
 							aria-label="Remove"
 						>
-							<XIcon />
+							<Icons.Close />
 						</Button>
 					</div>
 				{/each}

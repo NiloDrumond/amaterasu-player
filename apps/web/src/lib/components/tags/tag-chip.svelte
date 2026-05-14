@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Badge } from '$lib/components/ui/badge';
-	import XIcon from '@lucide/svelte/icons/x';
+	import { Icons } from '$lib/components/ui/icons';
 	import { resolveTagColor, tagForegroundColor } from './tag-color';
 	import type { Snippet } from 'svelte';
 
@@ -47,7 +47,7 @@
 						onRemove?.();
 					}}
 				>
-					<XIcon class="size-3" />
+					<Icons.Close class="size-3" />
 				</button>
 			{/if}
 		</Badge>
@@ -67,7 +67,7 @@
 				aria-label={removeAriaLabel ?? `Remove ${name}`}
 				onclick={onRemove}
 			>
-				<XIcon class="size-3" />
+				<Icons.Close class="size-3" />
 			</button>
 		{/if}
 	</Badge>

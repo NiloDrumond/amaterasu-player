@@ -8,7 +8,7 @@
 	import SheetPortal from './sheet-portal.svelte';
 	import SheetOverlay from './sheet-overlay.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import XIcon from 'phosphor-svelte/lib/X';
+	import { Icons } from '$lib/components/ui/icons';
 	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
 	import type { ComponentProps } from 'svelte';
 
@@ -45,7 +45,7 @@
 			<SheetPrimitive.Close data-slot="sheet-close">
 				{#snippet child({ props })}
 					<Button variant="ghost" class="absolute top-3 right-3" size="icon-sm" {...props}>
-						<XIcon />
+						<Icons.Close />
 						<span class="sr-only">Close</span>
 					</Button>
 				{/snippet}

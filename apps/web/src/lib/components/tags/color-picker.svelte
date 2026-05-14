@@ -1,8 +1,7 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button';
-	import CheckIcon from '@lucide/svelte/icons/check';
-	import XIcon from '@lucide/svelte/icons/x';
+	import { Icons } from '$lib/components/ui/icons';
 	import {
 		TAG_COLOR_NAMES,
 		TAG_COLOR_TONES,
@@ -65,7 +64,7 @@
 					open = false;
 				}}
 			>
-				<XIcon class="size-3" />
+				<Icons.Close class="size-3" />
 				Clear color
 			</button>
 			<div class="flex justify-center gap-4">
@@ -85,7 +84,7 @@
 										onclick={() => pick(token)}
 									>
 										{#if selected}
-											<CheckIcon class="size-3.5" color={tone <= 400 ? 'black' : 'white'} />
+											<Icons.Check class="size-3.5" color={tone <= 400 ? 'black' : 'white'} />
 										{/if}
 									</button>
 								{/each}

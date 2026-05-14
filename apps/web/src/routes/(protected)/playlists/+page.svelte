@@ -12,7 +12,7 @@
 	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { toast } from 'svelte-sonner';
-	import PlusIcon from '@lucide/svelte/icons/plus';
+	import { Icons } from '$lib/components/ui/icons';
 
 	let { data } = $props();
 
@@ -83,7 +83,7 @@
 				<Dialog.Trigger>
 					{#snippet child({ props })}
 						<Button {...props} class="gap-2">
-							<PlusIcon class="size-4" />
+							<Icons.Add class="size-4" />
 							New Playlist
 						</Button>
 					{/snippet}

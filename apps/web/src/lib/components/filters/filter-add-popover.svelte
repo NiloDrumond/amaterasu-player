@@ -2,7 +2,7 @@
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import PlusIcon from '@lucide/svelte/icons/plus';
+	import { Icons } from '$lib/components/ui/icons';
 	import {
 		fieldSpecsFor,
 		defaultLeafForField,
@@ -141,7 +141,7 @@
 	<Popover.Trigger>
 		{#snippet child({ props })}
 			<Button {...props} variant="outline" size="sm" class="h-7 gap-1 px-2 text-xs">
-				<PlusIcon class="size-3" />
+				<Icons.Add class="size-3" />
 				Add filter
 			</Button>
 		{/snippet}

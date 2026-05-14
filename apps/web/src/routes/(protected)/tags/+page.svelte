@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
-	import PlusIcon from '@lucide/svelte/icons/plus';
-	import FolderPlusIcon from '@lucide/svelte/icons/folder-plus';
+	import { Icons } from '$lib/components/ui/icons';
 	import TagDialog from '$lib/components/tags/tag-dialog.svelte';
 	import TagCategoryDialog from '$lib/components/tags/tag-category-dialog.svelte';
 	import TagCategorySection from '$lib/components/tags/tag-category-section.svelte';
@@ -84,11 +83,11 @@
 			<h1 class="tracking-widest uppercase">Tags</h1>
 			<div class="flex gap-2">
 				<Button variant="outline" class="gap-2" onclick={openCreateCategory}>
-					<FolderPlusIcon class="size-4" />
+					<Icons.AddFolder class="size-4" />
 					New Category
 				</Button>
 				<Button class="gap-2" onclick={openCreateTag}>
-					<PlusIcon class="size-4" />
+					<Icons.Add class="size-4" />
 					New Tag
 				</Button>
 			</div>

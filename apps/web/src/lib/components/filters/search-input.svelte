@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import SearchIcon from '@lucide/svelte/icons/search';
-	import XIcon from '@lucide/svelte/icons/x';
+	import { Icons } from '$lib/components/ui/icons';
 
 	let {
 		value,
@@ -58,7 +57,7 @@
 </script>
 
 <div class="relative w-72">
-	<SearchIcon
+	<Icons.Search
 		class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
 	/>
 	<Input
@@ -75,7 +74,7 @@
 			aria-label="Clear search"
 			onclick={clear}
 		>
-			<XIcon class="size-3.5" />
+			<Icons.Close class="size-3.5" />
 		</button>
 	{/if}
 </div>
