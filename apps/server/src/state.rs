@@ -13,6 +13,7 @@ pub struct AppState {
     pub library_scanner: LibraryScanner,
     pub covers_dir: PathBuf,
     pub search: Arc<SearchIndex>,
+    pub grafana_proxy: Option<crate::handlers::grafana_proxy_handlers::GrafanaProxy>,
 }
 
 impl FromRef<AppState> for () {
@@ -25,12 +26,14 @@ impl AppState {
         library_scanner: LibraryScanner,
         covers_dir: PathBuf,
         search: Arc<SearchIndex>,
+        grafana_proxy: Option<crate::handlers::grafana_proxy_handlers::GrafanaProxy>,
     ) -> Self {
         Self {
             db,
             library_scanner,
             covers_dir,
             search,
+            grafana_proxy,
         }
     }
 }

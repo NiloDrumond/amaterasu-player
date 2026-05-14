@@ -11,7 +11,7 @@ mod db;
 mod dto;
 mod error;
 mod filters;
-mod handlers;
+pub mod handlers;
 mod repositories;
 mod routes;
 mod scanner;
@@ -35,6 +35,20 @@ async fn main() -> anyhow::Result<()> {
     let file_appender = tracing_appender::rolling::daily(&config.log_dir, "amaterasu-server");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
+    let loki_layer = if let Some(url) = &config.loki_url {
+        let (layer, task) = tracing_loki::builder()
+            .label("service", "amaterasu-server")?
+            .label(
+                "env",
+                std::env::var("APP_ENV").unwrap_or_else(|_| "dev".into()),
+            )?
+            .build_url(url.parse()?)?;
+        tokio::spawn(task);
+        Some(layer)
+    } else {
+        None
+    };
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -46,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
                 .with_writer(non_blocking)
                 .with_ansi(false),
         )
+        .with(loki_layer)
         .init();
     tracing::info!(
         "Starting server on {}:{}",
@@ -78,28 +93,43 @@ async fn main() -> anyhow::Result<()> {
     let library_scanner =
         scanner::LibraryScanner::new(config.library_path, covers_dir.clone(), db_pool.clone());
 
-    let library_scanner_clone = library_scanner.clone();
-    let post_scan_pool = db_pool.clone();
-    let post_scan_search = search_index.clone();
-    tokio::spawn(async move {
-        if let Err(e) = library_scanner_clone.scan_library().await {
-            tracing::warn!("Failed to scan music library: {}", e);
-            tracing::warn!("Server will continue running, but library may not be fully indexed");
-        }
-        // Scanner mutations bypass write-through; rebuild the search index from
-        // Postgres so newly scanned tracks/albums/artists become searchable.
-        match search::sync::rebuild_from_postgres(&post_scan_pool, &post_scan_search).await {
-            Ok(c) => tracing::info!(
-                "search: rebuilt after scan (tracks={}, albums={}, artists={})",
-                c.tracks,
-                c.albums,
-                c.artists
-            ),
-            Err(e) => tracing::warn!("search: post-scan rebuild failed: {}", e),
-        }
-    });
+    if !config.skip_initial_scan {
+        let library_scanner_clone = library_scanner.clone();
+        let post_scan_pool = db_pool.clone();
+        let post_scan_search = search_index.clone();
+        tokio::spawn(async move {
+            if let Err(e) = library_scanner_clone.scan_library().await {
+                tracing::warn!("Failed to scan music library: {}", e);
+                tracing::warn!(
+                    "Server will continue running, but library may not be fully indexed"
+                );
+            }
+            // Scanner mutations bypass write-through; rebuild the search index from
+            // Postgres so newly scanned tracks/albums/artists become searchable.
+            match search::sync::rebuild_from_postgres(&post_scan_pool, &post_scan_search).await {
+                Ok(c) => tracing::info!(
+                    "search: rebuilt after scan (tracks={}, albums={}, artists={})",
+                    c.tracks,
+                    c.albums,
+                    c.artists
+                ),
+                Err(e) => tracing::warn!("search: post-scan rebuild failed: {}", e),
+            }
+        });
+    }
 
-    let app_state = AppState::new(db_pool, library_scanner, covers_dir, search_index);
+    let grafana_proxy = config
+        .grafana_url
+        .as_ref()
+        .map(|url| handlers::grafana_proxy_handlers::GrafanaProxy::new(url.clone()));
+
+    let app_state = AppState::new(
+        db_pool,
+        library_scanner,
+        covers_dir,
+        search_index,
+        grafana_proxy,
+    );
 
     let tasks_state = app_state.clone();
     tokio::spawn(async {

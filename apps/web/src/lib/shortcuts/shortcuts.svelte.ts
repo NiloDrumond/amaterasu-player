@@ -28,8 +28,7 @@ interface RegisteredShortcut extends ShortcutDefinition {
 	normalized: string[];
 }
 
-const isMac =
-	typeof navigator !== 'undefined' && /mac|ipad|iphone|ipod/i.test(navigator.userAgent);
+const isMac = typeof navigator !== 'undefined' && /mac|ipad|iphone|ipod/i.test(navigator.userAgent);
 
 function normalizeKey(spec: string): string {
 	const parts = spec

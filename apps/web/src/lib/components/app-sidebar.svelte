@@ -11,6 +11,7 @@
 	import { toast } from 'svelte-sonner';
 	import { signOut } from '$lib/services/auth-service';
 	import { scanLibrary } from '$lib/services/admin-service';
+	import { Icons } from './ui/icons';
 
 	let {
 		user,
@@ -161,7 +162,7 @@
 									<DropdownMenu.Group>
 										<DropdownMenu.Label>Admin</DropdownMenu.Label>
 										<DropdownMenu.Item onclick={() => window.open('/admin', '_blank', 'noopener')}>
-											Admin home ↗
+											Admin home <Icons.ExternalLink />
 										</DropdownMenu.Item>
 										<DropdownMenu.Item onclick={handleScanLibrary}>Scan library</DropdownMenu.Item>
 										<DropdownMenu.Sub>

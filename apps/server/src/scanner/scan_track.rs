@@ -140,10 +140,7 @@ mod tests {
     #[test]
     fn parse_numeric_prefix_dot_space() {
         assert_eq!(parse_numeric_prefix("1. Hello"), Some((1, "Hello".into())));
-        assert_eq!(
-            parse_numeric_prefix("01. Hello"),
-            Some((1, "Hello".into()))
-        );
+        assert_eq!(parse_numeric_prefix("01. Hello"), Some((1, "Hello".into())));
         assert_eq!(
             parse_numeric_prefix("12. Foo Bar"),
             Some((12, "Foo Bar".into()))

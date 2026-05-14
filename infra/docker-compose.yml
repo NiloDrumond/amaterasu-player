@@ -55,9 +55,64 @@ services:
   #   networks:
   #     - amaterasu-network
 
+  loki:
+    image: grafana/loki:3.0.0
+    command: -config.file=/etc/loki/loki-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki_data:/loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - amaterasu-network
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      # Served behind amaterasu server at <app>/admin/logs/.
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:8080/admin/logs/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # Trust X-WEBAUTH-USER from the amaterasu server (which has already authenticated
+      # the admin via its own session cookie). DO NOT expose this port directly in
+      # production — anyone who can reach it could forge the header.
+      GF_AUTH_PROXY_ENABLED: "true"
+      GF_AUTH_PROXY_HEADER_NAME: X-WEBAUTH-USER
+      GF_AUTH_PROXY_HEADER_PROPERTY: username
+      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+      GF_AUTH_PROXY_HEADERS: "Email:X-WEBAUTH-EMAIL Name:X-WEBAUTH-NAME"
+      GF_AUTH_PROXY_SYNC_TTL: "60"
+      # Don't issue a Grafana session cookie — re-authenticate from the header
+      # on every request. Stops the retry storm that happens when a stale
+      # browser cookie outlives a Grafana volume reset.
+      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN: "false"
+    ports:
+      # Dev convenience: direct access at :3001 keeps the login form usable.
+      # In production, remove this port mapping so Grafana is only reachable
+      # via the amaterasu server's /admin/logs reverse proxy.
+      - "3001:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - amaterasu-network
+
 volumes:
   db_data:
   server_cache:
+  loki_data:
+  grafana_data:
 
 networks:
   amaterasu-network:

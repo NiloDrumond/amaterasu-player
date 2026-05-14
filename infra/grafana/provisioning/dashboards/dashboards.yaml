@@ -1,0 +1,15 @@
+apiVersion: 1
+
+providers:
+  - name: amaterasu
+    orgId: 1
+    folder: Amaterasu
+    type: file
+    disableDeletion: false
+    # Allow users to edit/save tweaks in the UI; provisioning still re-applies
+    # the on-disk version on restart, so distributed dashboards stay canonical.
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

@@ -1,4 +1,5 @@
 use crate::auth::{admin_guard, auth_guard, session_extractor};
+use crate::handlers::grafana_proxy_handlers;
 use crate::routes::admin_routes::admin_routes;
 use crate::routes::album_collection_routes::album_collection_routes;
 use crate::routes::album_routes::albums_routes;
@@ -11,7 +12,10 @@ use crate::routes::tag_routes::tag_routes;
 use crate::routes::track_routes::tracks_routes;
 use crate::state::AppState;
 use axum::middleware;
-use axum::{routing::get, Router};
+use axum::{
+    routing::{any, get},
+    Router,
+};
 use governor::clock::QuantaInstant;
 use governor::middleware::NoOpMiddleware;
 use tower_governor::governor::GovernorConfig;
@@ -68,7 +72,19 @@ pub fn create_api_router(
             session_extractor,
         ));
 
-    Router::new().nest("/api", api_routes).with_state(state)
+    let grafana_proxy_routes: Router<AppState> = Router::new()
+        .route("/admin/logs", any(grafana_proxy_handlers::proxy))
+        .route("/admin/logs/", any(grafana_proxy_handlers::proxy))
+        .route("/admin/logs/{*path}", any(grafana_proxy_handlers::proxy))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            session_extractor,
+        ));
+
+    Router::new()
+        .nest("/api", api_routes)
+        .merge(grafana_proxy_routes)
+        .with_state(state)
 }
 
 async fn health_check() -> &'static str {

@@ -8,9 +8,12 @@ pub struct Config {
     pub library_path: String,
     pub log_dir: String,
     pub data_dir: String,
+    pub loki_url: Option<String>,
+    pub grafana_url: Option<String>,
     pub admin_email: Option<String>,
     pub admin_password: Option<String>,
     pub admin_name: Option<String>,
+    pub skip_initial_scan: bool,
 }
 
 impl Config {
@@ -24,9 +27,12 @@ impl Config {
             library_path: env::var("LIBRARY_PATH")?,
             data_dir: env::var("DATA_DIR")?,
             log_dir: env::var("LOG_DIR").unwrap_or_else(|_| "./logs".to_string()),
+            loki_url: optional_env("LOKI_URL"),
+            grafana_url: optional_env("GRAFANA_URL"),
             admin_email: optional_env("ADMIN_EMAIL"),
             admin_password: optional_env("ADMIN_PASSWORD"),
             admin_name: optional_env("ADMIN_NAME"),
+            skip_initial_scan: optional_env("SKIP_INITIAL_SCAN").unwrap_or_default() == "true",
         })
     }
 }

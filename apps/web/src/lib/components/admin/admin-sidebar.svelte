@@ -8,6 +8,7 @@
 	import { toast } from 'svelte-sonner';
 	import { signOut } from '$lib/services/auth-service';
 	import { scanLibrary } from '$lib/services/admin-service';
+	import { Icons } from '../ui/icons';
 
 	let {
 		user,
@@ -82,7 +83,9 @@
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}
-							<a href="/" target="_blank" rel="noopener" {...props}>Open player ↗</a>
+							<a href="/" target="_blank" rel="noopener" {...props}
+								>Open player <Icons.ExternalLink /></a
+							>
 						{/snippet}
 					</Sidebar.MenuButton>
 				</Sidebar.MenuItem>

@@ -28,6 +28,7 @@ import SquaresFourIcon from 'phosphor-svelte/lib/SquaresFourIcon';
 import SparkleIcon from 'phosphor-svelte/lib/SparkleIcon';
 import ListPlusIcon from 'phosphor-svelte/lib/ListPlusIcon';
 import FolderPlusIcon from 'phosphor-svelte/lib/FolderPlusIcon';
+import ArrowSquareOutIcon from 'phosphor-svelte/lib/ArrowSquareOutIcon';
 
 // Lucide fallbacks (no clean phosphor equivalent)
 import ListStartIcon from '@lucide/svelte/icons/list-start';
@@ -41,6 +42,7 @@ export const Icons = {
 	ChevronDown: CaretDownIcon,
 	SortAsc: CaretUpIcon,
 	SortDesc: CaretDownIcon,
+	ExternalLink: ArrowSquareOutIcon,
 
 	// Common UI
 	Close: XIcon,

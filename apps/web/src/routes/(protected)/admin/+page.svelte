@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { Icons } from '$lib/components/ui/icons';
 	import { scanLibrary } from '$lib/services/admin-service';
 	import { toast } from 'svelte-sonner';
 
@@ -19,6 +20,17 @@
 			rescans.
 		</p>
 	</header>
+
+	<section class="space-y-2">
+		<h2>Logs</h2>
+		<p class="text-sm text-muted-foreground">View the logs for the server.</p>
+		<Button
+			variant="outline"
+			onclick={() => {
+				window.open('/admin/logs', '_blank', 'noopener');
+			}}>View logs <Icons.ExternalLink /></Button
+		>
+	</section>
 
 	<section class="space-y-2">
 		<h2>Library</h2>

@@ -14,6 +14,12 @@ run = """
 cd apps/server && cargo run
 """
 
+[tasks."dev:server-scan"]
+description = "Start server development environment"
+run = """
+cd apps/server && SKIP_INITIAL_SCAN=false cargo run
+"""
+
 # The format after the test is to format the ts-rs generated bindings
 [tasks."test"]
 description = "Run backend tests and generate type bindings"
@@ -56,6 +62,10 @@ run = "docker compose -f infra/docker-compose.yml down"
 description = "Stop services and remove volumes"
 run = "docker compose -f infra/docker-compose.yml down -v"
 
+[tasks."infra:logs"]
+description = "Tail logs of all infra services"
+run = "docker compose -f infra/docker-compose.yml logs -f"
+
 [tasks."db:migrate"]
 description = "Run database migrations"
 run = "sqlx migrate run"
@@ -71,6 +81,20 @@ description = "Remove the on-disk Tantivy search index"
 dir = "apps/server"
 run = """
 set -a && . ./.env && set +a && rm -rf "$DATA_DIR/search-index"
+"""
+
+[tasks."loki:clean"]
+description = "Stop loki and wipe its data volume (drops ingested logs only)"
+run = """
+docker compose -f infra/docker-compose.yml rm -fsv loki
+docker volume rm -f infra_loki_data
+"""
+
+[tasks."grafana:clean"]
+description = "Stop grafana and wipe its data volume (provisioned datasources/dashboards re-apply on next start)"
+run = """
+docker compose -f infra/docker-compose.yml rm -fsv grafana
+docker volume rm -f infra_grafana_data
 """
 
 [tasks.clean]

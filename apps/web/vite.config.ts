@@ -14,6 +14,7 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/api': 'http://localhost:8080',
+			'/admin/logs': 'http://localhost:8080',
 		},
 	},
 });
