@@ -15,6 +15,11 @@
 
 	$effect(() => {
 		if (!audioEl) return;
+		player.attachAudio(audioEl);
+	});
+
+	$effect(() => {
+		if (!audioEl) return;
 		// Depend on streamUrl so track switches re-issue play() against the new src;
 		// changing `src` silently pauses the element without firing a pause event.
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -48,7 +53,10 @@
 			bind:currentTime={player.currentTime}
 			bind:duration={player.duration}
 			bind:volume={player.volume}
-			onplay={() => (player.isPlaying = true)}
+			onplay={() => {
+				player.isPlaying = true;
+				player.resumeAudioContext();
+			}}
 			onpause={() => (player.isPlaying = false)}
 			ontimeupdate={() => player.maybeScrobble()}
 			onended={() => player.onEnded()}

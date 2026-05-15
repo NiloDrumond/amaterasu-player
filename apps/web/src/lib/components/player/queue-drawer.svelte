@@ -2,13 +2,13 @@
 	import { getPlayer } from '$lib/player/player.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { draggable, droppable, type DragDropState } from '@thisux/sveltednd';
-	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
+	import type { QueueItem } from '$lib/player/player.svelte';
 	import { fly } from 'svelte/transition';
 	import { Icons } from '$lib/components/ui/icons';
 
 	const player = getPlayer();
 
-	function onDrop(state: DragDropState<TrackResponse>) {
+	function onDrop(state: DragDropState<QueueItem>) {
 		const from = parseInt(state.sourceContainer);
 		const targetRaw = state.targetContainer;
 		if (targetRaw === null || Number.isNaN(from)) return;
@@ -57,9 +57,10 @@
 			</div>
 		{:else}
 			<div class="flex-1 overflow-y-auto" role="list">
-				{#each player.queue as track, i (track.id + '-' + i)}
+				{#each player.queue as item, i (item.track.id + '-' + i)}
+					{@const track = item.track}
 					<div
-						use:draggable={{ container: i.toString(), dragData: track }}
+						use:draggable={{ container: i.toString(), dragData: item }}
 						use:droppable={{ container: i.toString(), callbacks: { onDrop } }}
 						class={[
 							'flex cursor-pointer items-center gap-2 px-2 py-2 hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',

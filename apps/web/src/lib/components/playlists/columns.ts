@@ -1,6 +1,7 @@
 import type { PlaylistResponse } from '$lib/bindings/response/playlist/playlist-response';
 import type { ColumnDef } from '@tanstack/table-core';
 import PlaylistActions from './playlist-actions.svelte';
+import PlaylistNameCell from './playlist-name-cell.svelte';
 import { renderComponent } from '../ui/data-table';
 import { cn } from 'tailwind-variants';
 import { formatMilliseconds } from '$lib/utils/date';
@@ -17,7 +18,7 @@ export function playlistsColumns(onDeleted: () => void): ColumnDef<PlaylistRespo
 				mainColumn: true,
 				class: cn('font-semibold'),
 			},
-			cell: ({ row }) => row.original.name,
+			cell: ({ row }) => renderComponent(PlaylistNameCell, { playlist: row.original }),
 		},
 		{
 			id: 'type',

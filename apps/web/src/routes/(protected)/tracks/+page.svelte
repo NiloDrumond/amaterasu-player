@@ -91,6 +91,7 @@
 				},
 			}}
 			onRowClick={(_row, index) => player.playQueue(data.tracks.data, index)}
+			isRowPlaying={(row) => row.id === player.currentTrack?.id}
 		>
 			{#snippet rowContextMenu({ row, trigger })}
 				<TrackRowContextMenu track={row} {trigger} />

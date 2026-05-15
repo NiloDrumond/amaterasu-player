@@ -15,6 +15,8 @@
 	import TrackRowContextMenu from '$lib/components/tracks/track-row-context-menu.svelte';
 	import { tracksColumns } from '$lib/components/tracks/columns.js';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
+	import AudioVisualizer from '$lib/components/player/audio-visualizer.svelte';
+	import AlbumCell from '$lib/components/tracks/album-cell.svelte';
 	import FilterBar from '$lib/components/filters/filter-bar.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
 	import { getTextSearch, setTextSearch } from '$lib/utils/filter-url';
@@ -73,11 +75,11 @@
 	}
 
 	function playNext() {
-		player.playNext(tracks.map(asTrackResponse));
+		player.playNext(tracks.map(asTrackResponse), { playlistId: data.playlist.id });
 	}
 
 	function playLater() {
-		player.playLater(tracks.map(asTrackResponse));
+		player.playLater(tracks.map(asTrackResponse), { playlistId: data.playlist.id });
 	}
 
 	// For dynamic playlists, the server returns 0 for these aggregates (they're
@@ -202,25 +204,28 @@
 			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}
 			onRowClick={(_row, index) =>
 				player.playQueue(tracksAsResponse, index, { playlistId: data.playlist.id })}
+			isRowPlaying={(row) => row.id === player.currentTrack?.id}
 		>
 			{#snippet rowContextMenu({ row, trigger })}
 				<TrackRowContextMenu track={row} {trigger} />
 			{/snippet}
 		</DataTable>
 	{:else}
-		<div class="flex flex-col">
+		<div class="overflow-hidden rounded-md border">
 			<!-- Table header -->
 			<div
-				class="grid grid-cols-[40px_1fr_180px_80px_50px] border-b px-2 pb-2 text-xs font-medium tracking-wider text-muted-foreground uppercase"
+				class="grid h-10 grid-cols-[40px_1fr_220px_180px_60px_50px] items-center gap-x-4 border-b bg-background px-2 text-xs font-medium text-foreground"
 			>
 				<span></span>
 				<span>TITLE</span>
+				<span>ALBUM</span>
 				<span>ARTIST</span>
-				<span class="text-right">TIME</span>
+				<span>TIME</span>
 				<span></span>
 			</div>
 
 			{#each tracks as track (track.playlistTrackId)}
+				{@const isPlaying = player.currentTrack?.id === track.id}
 				<PlaylistTrackRowContextMenu
 					playlistId={data.playlist.id}
 					playlistTrackId={track.playlistTrackId}
@@ -229,7 +234,8 @@
 					{#snippet trigger({ props })}
 						<div
 							{...props}
-							class="group grid grid-cols-[40px_1fr_180px_80px_50px] items-center border-b px-2 py-1 transition-colors hover:bg-muted/50"
+							data-state={isPlaying ? 'playing' : undefined}
+							class="group grid grid-cols-[40px_1fr_220px_180px_60px_50px] items-center gap-x-4 border-b px-2 py-1 transition-colors last:border-b-0 hover:bg-muted/50 data-[state=playing]:bg-accent/40"
 							use:draggable={{
 								container: track.playlistTrackId,
 								dragData: track,
@@ -249,7 +255,8 @@
 
 							<!-- Title -->
 							<button
-								class="min-w-0 truncate text-left text-sm font-semibold"
+								class="flex min-w-0 items-center gap-2 text-left text-sm font-semibold data-[playing=true]:text-primary"
+								data-playing={isPlaying}
 								onclick={() => {
 									const i = tracks.findIndex((t) => t.playlistTrackId === track.playlistTrackId);
 									player.playQueue(tracks.map(asTrackResponse), i, {
@@ -257,8 +264,18 @@
 									});
 								}}
 							>
-								{track.title}
+								{#if isPlaying}
+									<AudioVisualizer />
+								{/if}
+								<span class="truncate">{track.title}</span>
 							</button>
+
+							<!-- Album -->
+							<span class="min-w-0 truncate text-sm text-muted-foreground">
+								{#if track.album}
+									<AlbumCell album={track.album} />
+								{/if}
+							</span>
 
 							<!-- Artist -->
 							<span class="min-w-0 truncate text-sm text-muted-foreground">
@@ -274,7 +291,7 @@
 							</span>
 
 							<!-- Duration -->
-							<span class="text-right text-sm text-muted-foreground">
+							<span class="text-sm text-muted-foreground">
 								{formatMilliseconds(track.durationMs)}
 							</span>
 

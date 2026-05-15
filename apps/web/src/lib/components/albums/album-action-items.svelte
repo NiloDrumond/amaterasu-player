@@ -17,13 +17,22 @@
 
 	const player = getPlayer();
 
+	async function play() {
+		const { data } = await getAlbumTracks(fetch, id);
+		if (!data) {
+			toast.error('Failed to load tracks');
+			return;
+		}
+		player.playQueue(data, 0, { albumId: id });
+	}
+
 	async function playNext() {
 		const { data } = await getAlbumTracks(fetch, id);
 		if (!data) {
 			toast.error('Failed to load tracks');
 			return;
 		}
-		player.playNext(data);
+		player.playNext(data, { albumId: id });
 	}
 
 	async function playLater() {
@@ -32,12 +41,13 @@
 			toast.error('Failed to load tracks');
 			return;
 		}
-		player.playLater(data);
+		player.playLater(data, { albumId: id });
 	}
 </script>
 
 <DropdownMenu.Group>
 	<DropdownMenu.Label>Actions</DropdownMenu.Label>
+	<DropdownMenu.Item onclick={play}>Play</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={playNext}>Play Next</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={playLater}>Play Later</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={onEditTags}>Edit Tags</DropdownMenu.Item>

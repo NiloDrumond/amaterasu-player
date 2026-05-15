@@ -6,6 +6,7 @@ import { renderComponent, renderSnippet } from '../ui/data-table';
 import { Checkbox } from '../ui/checkbox';
 import { cn } from 'tailwind-variants';
 import AlbumCell from './album-cell.svelte';
+import TrackTitleCell from './track-title-cell.svelte';
 import { createRawSnippet } from 'svelte';
 import { formatMilliseconds } from '$lib/utils/date';
 import { page } from '$app/state';
@@ -41,6 +42,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 			mainColumn: true,
 			class: cn('font-semibold'),
 		},
+		cell: ({ row }) => renderComponent(TrackTitleCell, { track: row.original }),
 	},
 	{
 		id: 'album',

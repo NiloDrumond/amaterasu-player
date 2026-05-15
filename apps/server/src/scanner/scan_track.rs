@@ -14,7 +14,7 @@ pub fn parse_numeric_prefix(stem: &str) -> Option<(i32, String)> {
     let rest = if let Some(after) = sep_and_rest.strip_prefix('_') {
         after.to_string()
     } else if let Some(after) = sep_and_rest.strip_prefix('.') {
-        let trimmed = after.trim_start_matches(|c: char| c == ' ' || c == '\t');
+        let trimmed = after.trim_start_matches([' ', '\t']);
         if trimmed.len() == after.len() {
             return None;
         }

@@ -20,6 +20,7 @@
 
 <DropdownMenu.Group>
 	<DropdownMenu.Label>Actions</DropdownMenu.Label>
+	<DropdownMenu.Item onclick={() => player.playQueue([track], 0)}>Play</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={() => player.playNext([track])}>Play Next</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={() => player.playLater([track])}>Play Later</DropdownMenu.Item>
 	{#if player.currentTrack?.id === track.id}

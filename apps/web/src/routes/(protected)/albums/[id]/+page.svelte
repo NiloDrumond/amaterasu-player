@@ -28,11 +28,11 @@
 	}
 
 	function playNext() {
-		player.playNext(data.tracks);
+		player.playNext(data.tracks, { albumId: data.album.id });
 	}
 
 	function playLater() {
-		player.playLater(data.tracks);
+		player.playLater(data.tracks, { albumId: data.album.id });
 	}
 
 	const year = $derived(data.album.date ? data.album.date.slice(0, 4) : null);
@@ -121,5 +121,6 @@
 		data={data.tracks}
 		columns={albumColumns}
 		onRowClick={(_, index) => player.playQueue(data.tracks, index, { albumId: data.album.id })}
+		isRowPlaying={(row) => row.id === player.currentTrack?.id}
 	/>
 </div>

@@ -42,6 +42,7 @@
 		rowSelection?: RowSelectionState;
 		onSelectionChange?: (rows: TData[]) => void;
 		storageKey?: string;
+		isRowPlaying?: (row: TData) => boolean;
 	};
 
 	let {
@@ -54,6 +55,7 @@
 		rowSelection = $bindable<RowSelectionState>({}),
 		onSelectionChange,
 		storageKey,
+		isRowPlaying,
 	}: DataTableProps<TData, TValue> = $props();
 
 	function handleRowClick(event: MouseEvent, row: TData, index: number) {
@@ -223,7 +225,11 @@
 				{#snippet rowTrigger({ props: triggerProps }: { props: Record<string, unknown> })}
 					<Table.Row
 						{...triggerProps}
-						data-state={row.getIsSelected() ? 'selected' : undefined}
+						data-state={isRowPlaying?.(row.original)
+							? 'playing'
+							: row.getIsSelected()
+								? 'selected'
+								: undefined}
 						class={onRowClick ? 'cursor-pointer' : undefined}
 						onclick={onRowClick
 							? (e: MouseEvent) => handleRowClick(e, row.original, row.index)
@@ -246,7 +252,9 @@
 										<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
 									</div>
 								{:else if isMainCell}
-									<div class="overflow-hidden text-ellipsis whitespace-nowrap">
+									<div
+										class="overflow-hidden text-ellipsis whitespace-nowrap group-data-[state=playing]/row:font-medium group-data-[state=playing]/row:text-primary"
+									>
 										<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
 									</div>
 								{:else}

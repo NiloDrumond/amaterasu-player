@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
+	import { getPlayer } from '$lib/player/player.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
@@ -15,6 +16,7 @@
 	import { Icons } from '$lib/components/ui/icons';
 
 	let { data } = $props();
+	const player = getPlayer();
 
 	let dialogOpen = $state(false);
 	let newPlaylistName = $state('');
@@ -142,6 +144,7 @@
 				},
 			}}
 			onRowClick={(row) => goto(`/playlists/${row.id}`)}
+			isRowPlaying={(row) => row.id === player.currentOrigin.playlistId}
 		>
 			{#snippet rowContextMenu({ row, trigger })}
 				<PlaylistRowContextMenu id={row.id} onDeleted={() => invalidateAll()} {trigger} />

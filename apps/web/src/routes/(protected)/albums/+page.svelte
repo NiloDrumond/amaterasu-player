@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { albumsColumns } from '$lib/components/albums/columns.js';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
+	import { getPlayer } from '$lib/player/player.svelte';
 	import AlbumRowContextMenu from '$lib/components/albums/album-row-context-menu.svelte';
 	import FilterBar from '$lib/components/filters/filter-bar.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
@@ -14,6 +15,7 @@
 	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 
 	let { data } = $props();
+	const player = getPlayer();
 
 	let filter = $state<FilterNode | null>(decodeFilter(page.url.searchParams.get('f')));
 	let lastSyncedF = $state(page.url.searchParams.get('f') ?? '');
@@ -87,6 +89,7 @@
 				},
 			}}
 			onRowClick={(row) => goto(`/albums/${row.id}`)}
+			isRowPlaying={(row) => row.id === player.currentOrigin.albumId}
 		>
 			{#snippet rowContextMenu({ row, trigger })}
 				<AlbumRowContextMenu id={row.id} {trigger} />
