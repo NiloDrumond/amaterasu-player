@@ -54,4 +54,34 @@ pub fn admin_routes() -> Router<AppState> {
             "/admin/artists/{id}/merge",
             post(admin_handlers::merge_artist),
         )
+        .route("/admin/review/queue", get(admin_handlers::get_review_queue))
+        .route("/admin/review/counts", get(admin_handlers::get_review_counts))
+        .route(
+            "/admin/tracks/{id}/approve",
+            post(admin_handlers::approve_track),
+        )
+        .route(
+            "/admin/tracks/{id}/unapprove",
+            post(admin_handlers::unapprove_track),
+        )
+        .route(
+            "/admin/albums/{id}/approve",
+            post(admin_handlers::approve_album),
+        )
+        .route(
+            "/admin/albums/{id}/unapprove",
+            post(admin_handlers::unapprove_album),
+        )
+        .route(
+            "/admin/albums/{id}/approve-cascade",
+            post(admin_handlers::approve_album_cascade),
+        )
+        .route(
+            "/admin/artists/{id}/approve",
+            post(admin_handlers::approve_artist),
+        )
+        .route(
+            "/admin/artists/{id}/unapprove",
+            post(admin_handlers::unapprove_artist),
+        )
 }

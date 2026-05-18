@@ -455,4 +455,62 @@ WHERE
         .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    pub async fn set_approved(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+        approved: bool,
+    ) -> Result<Option<Album>, AppError> {
+        let updated = sqlx::query_as!(
+            Album,
+            r#"
+            UPDATE albums
+            SET approved = $2, updated_at = NOW()
+            WHERE id = $1
+            RETURNING *
+            "#,
+            id,
+            approved
+        )
+        .fetch_optional(executor)
+        .await?;
+        Ok(updated)
+    }
+
+    pub async fn count_pending(executor: impl PgExecutor<'_>) -> Result<i64, AppError> {
+        let row = sqlx::query!(r#"SELECT COUNT(*) AS "n!" FROM albums WHERE approved = FALSE"#)
+            .fetch_one(executor)
+            .await?;
+        Ok(row.n)
+    }
+
+    /// IDs of albums that either are pending themselves OR have at least one
+    /// pending non-deleted track. Newest-album-first. Used by the review queue.
+    pub async fn find_pending_affected_ids(
+        executor: impl PgExecutor<'_>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Uuid>, AppError> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT a.id AS "id!"
+            FROM albums a
+            WHERE a.approved = FALSE
+               OR EXISTS (
+                    SELECT 1 FROM tracks t
+                    WHERE t.album_id = a.id
+                      AND t.approved = FALSE
+                      AND t.deleted_at IS NULL
+               )
+            ORDER BY a.created_at DESC
+            LIMIT $1 OFFSET $2
+            "#,
+            limit,
+            offset,
+        )
+        .fetch_all(executor)
+        .await?;
+        Ok(rows.into_iter().map(|r| r.id).collect())
+    }
+
 }

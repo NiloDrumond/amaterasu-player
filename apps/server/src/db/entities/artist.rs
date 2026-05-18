@@ -11,6 +11,7 @@ pub struct Artist {
     pub mbid: Option<String>, // MusicBrainz ID
     pub source_name: String,
     pub locked_at: Option<DateTime<Utc>>,
+    pub approved: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -25,6 +26,7 @@ impl Artist {
             // TODO: mbid
             mbid: None,
             locked_at: None,
+            approved: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

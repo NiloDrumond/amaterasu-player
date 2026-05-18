@@ -15,6 +15,7 @@ pub struct Album {
     pub source_title: String,
     pub source_album_artist_id: Option<Uuid>,
     pub locked_at: Option<DateTime<Utc>>,
+    pub approved: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 
@@ -43,6 +44,7 @@ impl Album {
             mbid: None,
             cover_path: None,
             locked_at: None,
+            approved: false,
             replaygain_album_gain,
             replaygain_album_peak,
             created_at: Utc::now(),

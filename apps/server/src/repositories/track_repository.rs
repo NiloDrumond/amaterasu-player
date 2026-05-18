@@ -681,4 +681,52 @@ WHERE id = $1
         let row: (i64,) = qb.build_query_as().fetch_one(pool).await?;
         Ok(row.0)
     }
+
+    pub async fn set_approved(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+        approved: bool,
+    ) -> AppResult<Option<Track>> {
+        let updated = sqlx::query_as!(
+            Track,
+            r#"
+            UPDATE tracks
+            SET approved = $2, updated_at = NOW()
+            WHERE id = $1
+            RETURNING *
+            "#,
+            id,
+            approved
+        )
+        .fetch_optional(executor)
+        .await?;
+        Ok(updated)
+    }
+
+    /// Approves every non-deleted track on the given album. Returns rows affected.
+    pub async fn approve_all_for_album(
+        executor: impl PgExecutor<'_>,
+        album_id: Uuid,
+    ) -> AppResult<u64> {
+        let result = sqlx::query!(
+            r#"
+            UPDATE tracks
+            SET approved = TRUE, updated_at = NOW()
+            WHERE album_id = $1 AND deleted_at IS NULL AND approved = FALSE
+            "#,
+            album_id
+        )
+        .execute(executor)
+        .await?;
+        Ok(result.rows_affected())
+    }
+
+    pub async fn count_pending(executor: impl PgExecutor<'_>) -> AppResult<i64> {
+        let row = sqlx::query!(
+            r#"SELECT COUNT(*) AS "n!" FROM tracks WHERE approved = FALSE AND deleted_at IS NULL"#
+        )
+        .fetch_one(executor)
+        .await?;
+        Ok(row.n)
+    }
 }

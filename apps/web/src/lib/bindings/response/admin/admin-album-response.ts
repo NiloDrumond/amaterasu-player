@@ -11,4 +11,5 @@ export type AdminAlbumResponse = {
 	coverPath: string | null;
 	coverUrl: string | null;
 	lockedAt: string | null;
+	approved: boolean;
 };

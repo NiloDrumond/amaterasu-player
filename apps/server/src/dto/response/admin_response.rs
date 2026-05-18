@@ -25,6 +25,7 @@ pub struct AdminTrackResponse {
     pub duration_ms: i32,
     pub locked_at: Option<DateTime<Utc>>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub approved: bool,
 }
 
 impl From<Track> for AdminTrackResponse {
@@ -47,6 +48,7 @@ impl From<Track> for AdminTrackResponse {
             duration_ms: t.duration_ms,
             locked_at: t.locked_at,
             deleted_at: t.deleted_at,
+            approved: t.approved,
         }
     }
 }
@@ -64,6 +66,7 @@ pub struct AdminAlbumResponse {
     pub cover_path: Option<String>,
     pub cover_url: Option<String>,
     pub locked_at: Option<DateTime<Utc>>,
+    pub approved: bool,
 }
 
 impl From<Album> for AdminAlbumResponse {
@@ -79,6 +82,7 @@ impl From<Album> for AdminAlbumResponse {
             cover_url: a.cover_path.as_ref().map(|p| format!("/api/covers/{p}")),
             cover_path: a.cover_path,
             locked_at: a.locked_at,
+            approved: a.approved,
         }
     }
 }
@@ -91,6 +95,7 @@ pub struct AdminArtistResponse {
     pub sort_name: String,
     pub source_name: String,
     pub locked_at: Option<DateTime<Utc>>,
+    pub approved: bool,
 }
 
 impl From<Artist> for AdminArtistResponse {
@@ -101,6 +106,7 @@ impl From<Artist> for AdminArtistResponse {
             sort_name: a.sort_name,
             source_name: a.source_name,
             locked_at: a.locked_at,
+            approved: a.approved,
         }
     }
 }
@@ -111,4 +117,28 @@ pub struct AdminDeletedTrackResponse {
     #[serde(flatten)]
     pub track: AdminTrackResponse,
     pub file_missing: bool,
+}
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct ReviewQueueAlbumGroup {
+    pub album: AdminAlbumResponse,
+    pub artist: Option<AdminArtistResponse>,
+    pub tracks: Vec<AdminTrackResponse>,
+}
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct ReviewQueueCounts {
+    pub pending_albums: i64,
+    pub pending_tracks: i64,
+    pub pending_artists: i64,
+}
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct ReviewQueueResponse {
+    pub albums: Vec<ReviewQueueAlbumGroup>,
+    pub standalone_artists: Vec<AdminArtistResponse>,
+    pub counts: ReviewQueueCounts,
 }

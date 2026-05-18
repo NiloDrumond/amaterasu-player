@@ -258,6 +258,7 @@ mod tests {
             metadata_modified_at: None,
             deleted_at: None,
             locked_at: None,
+            approved: false,
             created_at: now,
             updated_at: now,
         }

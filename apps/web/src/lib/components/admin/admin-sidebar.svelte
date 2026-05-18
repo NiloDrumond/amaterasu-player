@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { CurrentUserResponse } from '$lib/bindings/response/auth/current-user-response';
+	import type { ReviewQueueCounts } from '$lib/bindings/response/admin/review-queue-counts';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { resetMode, setMode } from 'mode-watcher';
@@ -9,12 +10,23 @@
 	import { signOut } from '$lib/services/auth-service';
 	import { scanLibrary } from '$lib/services/admin-service';
 	import { Icons } from '../ui/icons';
+	import Badge from '../ui/badge/badge.svelte';
 
 	let {
 		user,
+		reviewCounts = null,
 		ref = $bindable(null),
 		...restProps
-	}: ComponentProps<typeof Sidebar.Root> & { user: CurrentUserResponse } = $props();
+	}: ComponentProps<typeof Sidebar.Root> & {
+		user: CurrentUserResponse;
+		reviewCounts?: ReviewQueueCounts | null;
+	} = $props();
+
+	let pendingTotal = $derived(
+		reviewCounts
+			? reviewCounts.pendingAlbums + reviewCounts.pendingTracks + reviewCounts.pendingArtists
+			: 0n,
+	);
 
 	async function handleSignOut() {
 		await signOut(fetch);
@@ -72,6 +84,18 @@
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}
 							<a href="/admin/tracks/deleted" {...props}>Deleted tracks</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
+							<a href="/admin/review" {...props}>
+								<span>Review</span>
+								{#if pendingTotal > 0n}
+									<Badge variant="warning">{pendingTotal}</Badge>
+								{/if}
+							</a>
 						{/snippet}
 					</Sidebar.MenuButton>
 				</Sidebar.MenuItem>

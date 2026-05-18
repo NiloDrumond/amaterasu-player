@@ -1,16 +1,11 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field';
 	import EntityPicker from '$lib/components/admin/entity-picker.svelte';
-	import MergeDialog from '$lib/components/admin/merge-dialog.svelte';
+	import AlbumEditForm from '$lib/components/admin/album-edit-form.svelte';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import { tracksColumns } from '$lib/components/tracks/columns.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import {
-		updateAdminAlbum,
-		deleteAdminAlbum,
-		forceRescanAlbum,
 		searchArtists,
 		searchAlbums,
 		createAdminArtist,
@@ -24,54 +19,7 @@
 	import { toast } from 'svelte-sonner';
 	import { goto, invalidateAll } from '$app/navigation';
 
-	import { untrack } from 'svelte';
 	let { data } = $props();
-	const initial = untrack(() => data);
-
-	let title = $state(initial.album.title);
-	let sortTitle = $state(initial.album.sortTitle);
-	let date = $state(initial.album.date ?? '');
-	let artist = $state<AdminArtistResponse | null>(initial.artist);
-
-	let saving = $state(false);
-	let mergeOpen = $state(false);
-
-	async function searchArtist(q: string) {
-		const { data } = await searchArtists(fetch, q);
-		return data ?? [];
-	}
-	async function createArtistInline(name: string) {
-		const { data, error } = await createAdminArtist(fetch, { name });
-		if (error) toast.error('Failed to create artist', { description: error });
-		return data;
-	}
-
-	async function save() {
-		saving = true;
-		const { error } = await updateAdminAlbum(fetch, data.album.id, {
-			title,
-			sortTitle,
-			artistId: artist?.id ?? null,
-			date: date || null,
-		});
-		saving = false;
-		if (error) toast.error('Save failed', { description: error });
-		else {
-			toast.success('Saved');
-			await invalidateAll();
-		}
-	}
-
-	async function hardDelete() {
-		if (!confirm('Hard-delete this album? Only allowed if it has no tracks.')) return;
-		const { error, status } = await deleteAdminAlbum(fetch, data.album.id);
-		if (status === 409) toast.error('Album still has tracks');
-		else if (error) toast.error('Delete failed', { description: error });
-		else {
-			toast.success('Album deleted');
-			goto('/admin');
-		}
-	}
 
 	let selectedTracks = $state<TrackResponse[]>([]);
 	let trackSelection = $state<RowSelectionState>({});
@@ -142,82 +90,40 @@
 		clearSelection();
 		await invalidateAll();
 	}
-
-	async function forceRescan() {
-		if (!confirm('Force-rescan? Local edits will be replaced on the next scan.')) return;
-		const { error } = await forceRescanAlbum(fetch, data.album.id);
-		if (error) toast.error('Failed', { description: error });
-		else {
-			toast.success('Lock cleared');
-			await invalidateAll();
-		}
-	}
 </script>
 
 <div class="space-y-6 p-6">
 	<div class="mx-auto max-w-2xl min-w-md space-y-6">
-		<header class="flex items-baseline justify-between">
+		<header class="flex items-baseline justify-between gap-2">
 			<div>
 				<h1>Edit album</h1>
 				<p class="text-xs text-muted-foreground">{data.album.id}</p>
 			</div>
-			{#if data.album.lockedAt}
-				<span
-					class="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground"
-				>
-					Locked
-				</span>
-			{/if}
+			<div class="flex items-center gap-1">
+				{#if !data.album.approved}
+					<span
+						class="rounded-md bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-600 dark:text-amber-400"
+					>
+						Pending
+					</span>
+				{/if}
+				{#if data.album.lockedAt}
+					<span
+						class="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground"
+					>
+						Locked
+					</span>
+				{/if}
+			</div>
 		</header>
 
-		<FieldGroup>
-			<Field>
-				<FieldLabel for="title">Title</FieldLabel>
-				<Input id="title" bind:value={title} />
-			</Field>
-			<Field>
-				<FieldLabel for="sort-title">Sort title</FieldLabel>
-				<Input id="sort-title" bind:value={sortTitle} />
-			</Field>
-
-			<EntityPicker
-				label="Album artist"
-				placeholder="Pick an artist…"
-				bind:value={artist}
-				formatLabel={(a) => a.name}
-				search={searchArtist}
-				onCreate={createArtistInline}
-			/>
-			{#if artist}
-				<Button
-					variant="link"
-					size="sm"
-					class="-mt-2 self-start px-0"
-					href="/admin/artists/{artist.id}"
-				>
-					Edit artist →
-				</Button>
-			{/if}
-
-			<Field>
-				<FieldLabel for="date">Date (YYYY-MM-DD)</FieldLabel>
-				<Input id="date" bind:value={date} placeholder="2024-01-15" />
-			</Field>
-
-			<div class="border-t pt-3 text-xs text-muted-foreground">
-				<div>source_title: <span class="font-mono">{data.album.sourceTitle}</span></div>
-			</div>
-		</FieldGroup>
-
-		<footer class="flex flex-wrap gap-2 border-t pt-4">
-			<Button onclick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
-			<Button variant="outline" onclick={forceRescan}>Force rescan</Button>
-			<Button variant="outline" onclick={() => (mergeOpen = true)}>Merge…</Button>
-			<div class="grow"></div>
-			<Button variant="destructive" onclick={hardDelete} disabled={data.tracks.length > 0}>
-				Hard delete
-			</Button>
-		</footer>
+		<AlbumEditForm
+			album={data.album}
+			artist={data.artist}
+			canDelete={data.tracks.length === 0}
+			onAfterChange={() => invalidateAll()}
+			onAfterDelete={() => goto('/admin')}
+		/>
 	</div>
 
 	<section class="space-y-2">
@@ -265,8 +171,6 @@
 		{/if}
 	</section>
 </div>
-
-<MergeDialog kind="album" bind:open={mergeOpen} target={data.album} targetArtist={data.artist} />
 
 <Dialog.Root bind:open={changeArtistOpen}>
 	<Dialog.Content>

@@ -6,4 +6,5 @@ export type AdminArtistResponse = {
 	sortName: string;
 	sourceName: string;
 	lockedAt: string | null;
+	approved: boolean;
 };

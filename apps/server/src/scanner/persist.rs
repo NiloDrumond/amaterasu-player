@@ -122,6 +122,7 @@ async fn find_or_create_artist(
         mbid: None,
         source_name: name.to_string(),
         locked_at: None,
+        approved: false,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
@@ -297,6 +298,7 @@ async fn upsert_track(
         metadata_modified_at: None,
         deleted_at: None,
         locked_at: None,
+        approved: false,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };

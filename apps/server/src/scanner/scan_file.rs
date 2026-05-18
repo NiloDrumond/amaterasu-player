@@ -66,6 +66,7 @@ impl From<ScannedFile> for Track {
             metadata_modified_at: None,
             deleted_at: None,
             locked_at: None,
+            approved: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

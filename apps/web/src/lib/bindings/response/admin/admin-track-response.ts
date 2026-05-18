@@ -18,4 +18,5 @@ export type AdminTrackResponse = {
 	durationMs: number;
 	lockedAt: string | null;
 	deletedAt: string | null;
+	approved: boolean;
 };

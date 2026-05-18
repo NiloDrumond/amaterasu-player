@@ -2,6 +2,8 @@ import type { AdminTrackResponse } from '$lib/bindings/response/admin/admin-trac
 import type { AdminAlbumResponse } from '$lib/bindings/response/admin/admin-album-response';
 import type { AdminArtistResponse } from '$lib/bindings/response/admin/admin-artist-response';
 import type { AdminDeletedTrackResponse } from '$lib/bindings/response/admin/admin-deleted-track-response';
+import type { ReviewQueueResponse } from '$lib/bindings/response/admin/review-queue-response';
+import type { ReviewQueueCounts } from '$lib/bindings/response/admin/review-queue-counts';
 import { api, type Result } from './api';
 
 type Fetch = typeof fetch;
@@ -230,4 +232,55 @@ export function searchAlbums(
 	const params = new URLSearchParams({ q, limit: String(opts.limit ?? 20) });
 	if (opts.artistId) params.set('artistId', opts.artistId);
 	return api<AdminAlbumResponse[]>(fetch, `/api/albums/search?${params}`);
+}
+
+// ============================================================
+// Approval
+// ============================================================
+
+export function approveTrack(fetch: Fetch, id: string): Promise<Result<AdminTrackResponse>> {
+	return api<AdminTrackResponse>(fetch, `/api/admin/tracks/${id}/approve`, { method: 'POST' });
+}
+
+export function unapproveTrack(fetch: Fetch, id: string): Promise<Result<AdminTrackResponse>> {
+	return api<AdminTrackResponse>(fetch, `/api/admin/tracks/${id}/unapprove`, { method: 'POST' });
+}
+
+export function approveAlbum(fetch: Fetch, id: string): Promise<Result<AdminAlbumResponse>> {
+	return api<AdminAlbumResponse>(fetch, `/api/admin/albums/${id}/approve`, { method: 'POST' });
+}
+
+export function unapproveAlbum(fetch: Fetch, id: string): Promise<Result<AdminAlbumResponse>> {
+	return api<AdminAlbumResponse>(fetch, `/api/admin/albums/${id}/unapprove`, { method: 'POST' });
+}
+
+export function approveAlbumCascade(fetch: Fetch, id: string): Promise<Result<AdminAlbumResponse>> {
+	return api<AdminAlbumResponse>(fetch, `/api/admin/albums/${id}/approve-cascade`, {
+		method: 'POST',
+	});
+}
+
+export function approveArtist(fetch: Fetch, id: string): Promise<Result<AdminArtistResponse>> {
+	return api<AdminArtistResponse>(fetch, `/api/admin/artists/${id}/approve`, { method: 'POST' });
+}
+
+export function unapproveArtist(fetch: Fetch, id: string): Promise<Result<AdminArtistResponse>> {
+	return api<AdminArtistResponse>(fetch, `/api/admin/artists/${id}/unapprove`, {
+		method: 'POST',
+	});
+}
+
+export function getReviewCounts(fetch: Fetch): Promise<Result<ReviewQueueCounts>> {
+	return api<ReviewQueueCounts>(fetch, '/api/admin/review/counts');
+}
+
+export function getReviewQueue(
+	fetch: Fetch,
+	opts: { offset?: number; limit?: number } = {},
+): Promise<Result<ReviewQueueResponse>> {
+	const params = new URLSearchParams();
+	if (opts.offset !== undefined) params.set('offset', String(opts.offset));
+	if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+	const qs = params.toString();
+	return api<ReviewQueueResponse>(fetch, `/api/admin/review/queue${qs ? `?${qs}` : ''}`);
 }

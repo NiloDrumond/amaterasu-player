@@ -388,4 +388,62 @@ WHERE
         .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    pub async fn set_approved(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+        approved: bool,
+    ) -> Result<Option<Artist>, AppError> {
+        let updated = sqlx::query_as!(
+            Artist,
+            r#"
+            UPDATE artists
+            SET approved = $2, updated_at = NOW()
+            WHERE id = $1
+            RETURNING *
+            "#,
+            id,
+            approved
+        )
+        .fetch_optional(executor)
+        .await?;
+        Ok(updated)
+    }
+
+    pub async fn count_pending(executor: impl PgExecutor<'_>) -> Result<i64, AppError> {
+        let row = sqlx::query!(r#"SELECT COUNT(*) AS "n!" FROM artists WHERE approved = FALSE"#)
+            .fetch_one(executor)
+            .await?;
+        Ok(row.n)
+    }
+
+    /// Pending artists that aren't already represented by an album in the
+    /// caller-provided list of album IDs (the review queue's current page).
+    /// Capped at a reasonable upper bound; no pagination.
+    pub async fn find_pending_excluding_album_artists(
+        executor: impl PgExecutor<'_>,
+        excluded_album_ids: &[Uuid],
+        limit: i64,
+    ) -> Result<Vec<Artist>, AppError> {
+        let artists = sqlx::query_as!(
+            Artist,
+            r#"
+            SELECT *
+            FROM artists ar
+            WHERE ar.approved = FALSE
+              AND NOT EXISTS (
+                  SELECT 1 FROM albums al
+                  WHERE al.id = ANY($1)
+                    AND (al.artist_id = ar.id OR al.source_album_artist_id = ar.id)
+              )
+            ORDER BY ar.created_at DESC
+            LIMIT $2
+            "#,
+            excluded_album_ids,
+            limit,
+        )
+        .fetch_all(executor)
+        .await?;
+        Ok(artists)
+    }
 }

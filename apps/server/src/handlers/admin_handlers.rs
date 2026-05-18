@@ -16,7 +16,7 @@ use crate::{
         },
         response::{
             AdminAlbumResponse, AdminArtistResponse, AdminDeletedTrackResponse, AdminTrackResponse,
-            SearchEntityType,
+            ReviewQueueAlbumGroup, ReviewQueueCounts, ReviewQueueResponse, SearchEntityType,
         },
     },
     error::{AppError, AppResult},
@@ -25,6 +25,8 @@ use crate::{
     search::indexers,
     state::AppState,
 };
+
+use serde::Deserialize;
 
 pub async fn scan_library(State(state): State<AppState>) -> StatusCode {
     let Some(permit) = state.library_scanner.try_acquire_scan() else {
@@ -442,6 +444,162 @@ pub async fn merge_artist(
         }
     });
     Ok(Json(updated.into()))
+}
+
+// =====================================================================
+// Approval
+// =====================================================================
+
+pub async fn approve_track(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AdminTrackResponse>> {
+    let updated = TrackRepository::set_approved(&state.db, id, true)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(Json(updated.into()))
+}
+
+pub async fn unapprove_track(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AdminTrackResponse>> {
+    let updated = TrackRepository::set_approved(&state.db, id, false)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(Json(updated.into()))
+}
+
+pub async fn approve_album(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AdminAlbumResponse>> {
+    let updated = AlbumRepository::set_approved(&state.db, id, true)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(Json(updated.into()))
+}
+
+pub async fn unapprove_album(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AdminAlbumResponse>> {
+    let updated = AlbumRepository::set_approved(&state.db, id, false)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(Json(updated.into()))
+}
+
+pub async fn approve_artist(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AdminArtistResponse>> {
+    let updated = ArtistRepository::set_approved(&state.db, id, true)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(Json(updated.into()))
+}
+
+pub async fn unapprove_artist(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AdminArtistResponse>> {
+    let updated = ArtistRepository::set_approved(&state.db, id, false)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(Json(updated.into()))
+}
+
+/// Approves the album, its (single) artist if still pending, and every
+/// non-deleted track on it. Single transaction.
+pub async fn approve_album_cascade(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AdminAlbumResponse>> {
+    let mut tx = state.db.begin().await?;
+
+    let album = AlbumRepository::set_approved(&mut *tx, id, true)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    if let Some(artist_id) = album.artist_id {
+        ArtistRepository::set_approved(&mut *tx, artist_id, true).await?;
+    }
+
+    TrackRepository::approve_all_for_album(&mut *tx, id).await?;
+
+    tx.commit().await?;
+    Ok(Json(album.into()))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewQueueQuery {
+    #[serde(default)]
+    pub offset: Option<i64>,
+    #[serde(default)]
+    pub limit: Option<i64>,
+}
+
+const REVIEW_QUEUE_DEFAULT_LIMIT: i64 = 20;
+const REVIEW_QUEUE_MAX_LIMIT: i64 = 100;
+const STANDALONE_ARTISTS_CAP: i64 = 50;
+
+pub async fn get_review_counts(
+    State(state): State<AppState>,
+) -> AppResult<Json<ReviewQueueCounts>> {
+    Ok(Json(ReviewQueueCounts {
+        pending_albums: AlbumRepository::count_pending(&state.db).await?,
+        pending_tracks: TrackRepository::count_pending(&state.db).await?,
+        pending_artists: ArtistRepository::count_pending(&state.db).await?,
+    }))
+}
+
+pub async fn get_review_queue(
+    State(state): State<AppState>,
+    Query(q): Query<ReviewQueueQuery>,
+) -> AppResult<Json<ReviewQueueResponse>> {
+    let limit = q
+        .limit
+        .unwrap_or(REVIEW_QUEUE_DEFAULT_LIMIT)
+        .clamp(1, REVIEW_QUEUE_MAX_LIMIT);
+    let offset = q.offset.unwrap_or(0).max(0);
+
+    let album_ids = AlbumRepository::find_pending_affected_ids(&state.db, limit, offset).await?;
+
+    let mut album_groups = Vec::with_capacity(album_ids.len());
+    for album_id in &album_ids {
+        let album = AlbumRepository::find_by_id(&state.db, *album_id).await?;
+        let artist = match album.artist_id {
+            Some(aid) => ArtistRepository::find_by_id(&state.db, aid).await?,
+            None => None,
+        };
+        let tracks = TrackRepository::find_by_album_id(&state.db, *album_id).await?;
+        album_groups.push(ReviewQueueAlbumGroup {
+            album: album.into(),
+            artist: artist.map(Into::into),
+            tracks: tracks.into_iter().map(Into::into).collect(),
+        });
+    }
+
+    let standalone_artists = ArtistRepository::find_pending_excluding_album_artists(
+        &state.db,
+        &album_ids,
+        STANDALONE_ARTISTS_CAP,
+    )
+    .await?;
+
+    let counts = ReviewQueueCounts {
+        pending_albums: AlbumRepository::count_pending(&state.db).await?,
+        pending_tracks: TrackRepository::count_pending(&state.db).await?,
+        pending_artists: ArtistRepository::count_pending(&state.db).await?,
+    };
+
+    Ok(Json(ReviewQueueResponse {
+        albums: album_groups,
+        standalone_artists: standalone_artists.into_iter().map(Into::into).collect(),
+        counts,
+    }))
 }
 
 pub async fn merge_album(
