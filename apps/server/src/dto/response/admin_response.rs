@@ -125,6 +125,15 @@ pub struct ReviewQueueAlbumGroup {
     pub album: AdminAlbumResponse,
     pub artist: Option<AdminArtistResponse>,
     pub tracks: Vec<AdminTrackResponse>,
+    pub track_artists: Vec<AdminArtistResponse>,
+}
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct ReviewQueueStandaloneArtist {
+    pub artist: AdminArtistResponse,
+    pub tracks: Vec<AdminTrackResponse>,
+    pub track_albums: Vec<AdminAlbumResponse>,
 }
 
 #[api_type("response/admin")]
@@ -139,6 +148,6 @@ pub struct ReviewQueueCounts {
 #[derive(Debug, Serialize)]
 pub struct ReviewQueueResponse {
     pub albums: Vec<ReviewQueueAlbumGroup>,
-    pub standalone_artists: Vec<AdminArtistResponse>,
+    pub standalone_artists: Vec<ReviewQueueStandaloneArtist>,
     pub counts: ReviewQueueCounts,
 }

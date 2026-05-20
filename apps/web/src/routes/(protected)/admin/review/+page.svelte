@@ -3,17 +3,24 @@
 	import TrackEditForm from '$lib/components/admin/track-edit-form.svelte';
 	import AlbumEditForm from '$lib/components/admin/album-edit-form.svelte';
 	import ArtistEditForm from '$lib/components/admin/artist-edit-form.svelte';
-	import { approveAlbumCascade } from '$lib/services/admin-service';
+	import {
+		approveAlbumCascade,
+		approveAlbum,
+		approveArtist,
+		approveTrack,
+	} from '$lib/services/admin-service';
+	import { formatMilliseconds } from '$lib/utils/date';
 	import { toast } from 'svelte-sonner';
 	import { invalidateAll, goto } from '$app/navigation';
 	import type { ReviewQueueAlbumGroup } from '$lib/bindings/response/admin/review-queue-album-group';
 
 	let { data } = $props();
 
-	let expanded = $state<Record<string, boolean>>({});
-	let artistExpanded = $state<Record<string, boolean>>({});
+	let editing = $state<Record<string, boolean>>({});
+	let collapsed = $state<Record<string, boolean>>({});
 	let showApproved = $state<Record<string, boolean>>({});
 	let cascading = $state<Record<string, boolean>>({});
+	let approving = $state<Record<string, boolean>>({});
 
 	function pendingCount(group: ReviewQueueAlbumGroup): number {
 		let n = 0;
@@ -34,6 +41,27 @@
 		}
 	}
 
+	async function approveEntity(kind: 'album' | 'artist' | 'track', id: string) {
+		approving[id] = true;
+		const fn = kind === 'album' ? approveAlbum : kind === 'artist' ? approveArtist : approveTrack;
+		const { error } = await fn(fetch, id);
+		approving[id] = false;
+		if (error) toast.error('Approve failed', { description: error });
+		else {
+			toast.success('Approved');
+			await invalidateAll();
+		}
+	}
+
+	function toggleEdit(id: string) {
+		editing[id] = !editing[id];
+	}
+
+	async function afterChange(id: string) {
+		editing[id] = false;
+		await invalidateAll();
+	}
+
 	function gotoOffset(newOffset: number) {
 		const qs = newOffset <= 0 ? '' : `?offset=${newOffset}`;
 		goto(`/admin/review${qs}`, { keepFocus: true, noScroll: false });
@@ -52,48 +80,120 @@
 			artist{data.queue.counts.pendingArtists === 1n ? '' : 's'} pending
 		</p>
 		<p class="text-xs text-muted-foreground">
-			Approve entities individually, or use “Approve album + all tracks” to clear a whole group.
+			Each row shows the basics — click <strong>Edit</strong> if something looks off, or
+			<strong>Approve</strong> to clear it.
 		</p>
 	</header>
 
 	{#if data.queue.standaloneArtists.length > 0}
-		<section class="mx-auto max-w-4xl space-y-3">
+		<section class="mx-auto max-w-4xl space-y-2">
 			<h2 class="text-lg font-semibold">Pending artists ({data.queue.standaloneArtists.length})</h2>
-			<p class="text-xs text-muted-foreground">
-				These artists have no pending albums on this page. Approve or delete them directly.
-			</p>
 			<div class="space-y-4">
-				{#each data.queue.standaloneArtists as artist (artist.id)}
-					{@const isExpanded = artistExpanded[artist.id] === true}
-					<article class="rounded-lg border bg-card shadow-sm">
-						<header class="flex flex-wrap items-baseline gap-3 p-4">
-							<div class="min-w-0 flex-1">
-								<h3 class="truncate text-base font-semibold">{artist.name}</h3>
-								<p class="truncate text-xs text-muted-foreground">{artist.id}</p>
+				{#each data.queue.standaloneArtists as group (group.artist.id)}
+					{@const artist = group.artist}
+					{@const isEditing = editing[artist.id] === true}
+					{@const trackAlbumMap = new Map(group.trackAlbums.map((a) => [a.id, a]))}
+					{@const artistTrackAlbumFor = (albumId: string | null) =>
+						albumId == null ? null : (trackAlbumMap.get(albumId) ?? null)}
+					<article class="overflow-hidden rounded-lg border bg-card shadow-sm">
+						<div class="border-b last:border-b-0">
+							<div class="flex items-center gap-3 px-4 py-2">
+								<span
+									class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+								>
+									ARTIST
+								</span>
+								<a
+									href="/admin/artists/{artist.id}"
+									class="min-w-0 flex-1 truncate text-sm hover:underline"
+								>
+									{artist.name}
+								</a>
+								{#if artist.sortName && artist.sortName !== artist.name}
+									<span class="hidden truncate text-xs text-muted-foreground sm:inline"
+										>sort: {artist.sortName}</span
+									>
+								{/if}
+								{#if group.tracks.length > 0}
+									<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+										{group.tracks.length} track{group.tracks.length === 1 ? '' : 's'}
+									</span>
+								{/if}
+								<Button
+									size="sm"
+									onclick={() => approveEntity('artist', artist.id)}
+									disabled={approving[artist.id]}
+								>
+									{approving[artist.id] ? '…' : 'Approve'}
+								</Button>
+								<Button size="sm" variant="ghost" onclick={() => toggleEdit(artist.id)}>
+									{isEditing ? 'Close' : 'Edit'}
+								</Button>
 							</div>
-							<span
-								class="rounded-md bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-600 dark:text-amber-400"
-							>
-								Pending
-							</span>
-							<Button
-								variant="ghost"
-								size="sm"
-								onclick={() => (artistExpanded[artist.id] = !isExpanded)}
-							>
-								{isExpanded ? 'Collapse' : 'Expand'}
-							</Button>
-						</header>
-						{#if isExpanded}
-							<div class="border-t p-4">
-								<ArtistEditForm
-									{artist}
-									canDelete={true}
-									onAfterChange={() => invalidateAll()}
-									onAfterDelete={() => invalidateAll()}
-								/>
+							{#if isEditing}
+								<div class="border-t bg-muted/30 p-4">
+									<ArtistEditForm
+										{artist}
+										canDelete={group.tracks.length === 0}
+										onAfterChange={() => afterChange(artist.id)}
+										onAfterDelete={() => afterChange(artist.id)}
+									/>
+								</div>
+							{/if}
+						</div>
+
+						{#each group.tracks as track (track.id)}
+							{@const trackEditing = editing[track.id] === true}
+							{@const trackAlbum = artistTrackAlbumFor(track.albumId)}
+							<div class="border-b last:border-b-0">
+								<div class="flex items-center gap-3 px-4 py-2">
+									<span class="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground">
+										{track.trackNo ?? '–'}
+									</span>
+									<a
+										href="/admin/tracks/{track.id}"
+										class="min-w-0 flex-1 truncate text-sm hover:underline"
+									>
+										{track.title}
+									</a>
+									{#if trackAlbum}
+										<a
+											href="/admin/albums/{trackAlbum.id}"
+											class="hidden shrink-0 truncate text-xs text-muted-foreground hover:underline sm:inline"
+										>
+											{trackAlbum.title}
+										</a>
+									{/if}
+									<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+										{formatMilliseconds(Number(track.durationMs))}
+									</span>
+									{#if !track.approved}
+										<Button
+											size="sm"
+											onclick={() => approveEntity('track', track.id)}
+											disabled={approving[track.id]}
+										>
+											{approving[track.id] ? '…' : 'Approve'}
+										</Button>
+									{/if}
+									<Button size="sm" variant="ghost" onclick={() => toggleEdit(track.id)}>
+										{trackEditing ? 'Close' : 'Edit'}
+									</Button>
+								</div>
+								{#if trackEditing}
+									<div class="border-t bg-muted/30 p-4">
+										<TrackEditForm
+											{track}
+											{artist}
+											album={trackAlbum}
+											showArtistLink={false}
+											onAfterChange={() => afterChange(track.id)}
+											onAfterDelete={() => afterChange(track.id)}
+										/>
+									</div>
+								{/if}
 							</div>
-						{/if}
+						{/each}
 					</article>
 				{/each}
 			</div>
@@ -112,16 +212,35 @@
 		{#each data.queue.albums as group (group.album.id)}
 			{@const pendingTracks = group.tracks.filter((t) => !t.approved)}
 			{@const approvedTracks = group.tracks.filter((t) => t.approved)}
-			{@const isExpanded = expanded[group.album.id] === true}
-			<article class="rounded-lg border bg-card shadow-sm">
-				<header class="flex flex-wrap items-baseline gap-3 border-b p-4">
+			{@const trackArtistMap = new Map(group.trackArtists.map((a) => [a.id, a]))}
+			{@const trackArtistFor = (artistId: string | null) =>
+				artistId == null
+					? null
+					: (trackArtistMap.get(artistId) ?? (group.artist?.id === artistId ? group.artist : null))}
+			{@const albumEditing = editing[group.album.id] === true}
+			{@const artistEditing = group.artist ? editing[group.artist.id] === true : false}
+			{@const isCollapsed = collapsed[group.album.id] === true}
+			<article class="overflow-hidden rounded-lg border bg-card shadow-sm">
+				<header
+					class="flex flex-wrap items-baseline gap-3 bg-muted/30 px-4 py-3"
+					class:border-b={!isCollapsed}
+				>
 					<div class="min-w-0 flex-1">
-						<h3 class="truncate text-base font-semibold">{group.album.title}</h3>
-						<p class="truncate text-sm text-muted-foreground">
-							{group.artist?.name ?? '(no artist)'} · {group.tracks.length} track{group.tracks
-								.length === 1
-								? ''
-								: 's'}
+						<h3 class="truncate text-base font-semibold">
+							<a href="/admin/albums/{group.album.id}" class="hover:underline">
+								{group.album.title}
+							</a>
+						</h3>
+						<p class="truncate text-xs text-muted-foreground">
+							{#if group.artist}
+								<a href="/admin/artists/{group.artist.id}" class="hover:underline"
+									>{group.artist.name}</a
+								>
+							{:else}
+								(no artist)
+							{/if}
+							{#if group.album.date}· {group.album.date}{/if}
+							· {group.tracks.length} track{group.tracks.length === 1 ? '' : 's'}
 							{#if pendingTracks.length > 0}
 								· <span class="text-amber-600 dark:text-amber-400"
 									>{pendingTracks.length} pending</span
@@ -129,8 +248,8 @@
 							{/if}
 						</p>
 					</div>
-
 					<Button
+						size="sm"
 						onclick={() => cascadeApprove(group.album.id)}
 						disabled={cascading[group.album.id] || pendingCount(group) === 0}
 					>
@@ -141,86 +260,159 @@
 								: 'Approve album + all tracks'}
 					</Button>
 					<Button
-						variant="ghost"
 						size="sm"
-						onclick={() => (expanded[group.album.id] = !isExpanded)}
+						variant="ghost"
+						onclick={() => (collapsed[group.album.id] = !isCollapsed)}
 					>
-						{isExpanded ? 'Collapse' : 'Expand'}
+						{isCollapsed ? 'Expand' : 'Collapse'}
 					</Button>
 				</header>
 
-				{#if isExpanded}
-					<div class="space-y-6 p-4">
-						<div class="space-y-2">
-							<div class="flex items-baseline justify-between gap-2">
-								<h4 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-									Album
-								</h4>
-								{#if !group.album.approved}
+				{#if !isCollapsed}
+					<div>
+						{#if !group.album.approved}
+							<div class="border-b">
+								<div class="flex items-center gap-3 px-4 py-2">
 									<span
-										class="rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+										class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
 									>
-										Pending
+										ALBUM
 									</span>
-								{/if}
-							</div>
-							<AlbumEditForm
-								album={group.album}
-								artist={group.artist}
-								canDelete={group.tracks.length === 0}
-								showArtistLink={false}
-								onAfterChange={() => invalidateAll()}
-								onAfterDelete={() => invalidateAll()}
-							/>
-						</div>
-
-						{#if group.artist && !group.artist.approved}
-							<div class="space-y-2">
-								<div class="flex items-baseline justify-between gap-2">
-									<h4 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-										Artist
-									</h4>
-									<span
-										class="rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+									<a
+										href="/admin/albums/{group.album.id}"
+										class="min-w-0 flex-1 truncate text-sm hover:underline"
 									>
-										Pending
-									</span>
+										{group.album.title}
+									</a>
+									{#if group.album.sortTitle && group.album.sortTitle !== group.album.title}
+										<span class="hidden truncate text-xs text-muted-foreground sm:inline"
+											>sort: {group.album.sortTitle}</span
+										>
+									{/if}
+									<Button
+										size="sm"
+										onclick={() => approveEntity('album', group.album.id)}
+										disabled={approving[group.album.id]}
+									>
+										{approving[group.album.id] ? '…' : 'Approve'}
+									</Button>
+									<Button size="sm" variant="ghost" onclick={() => toggleEdit(group.album.id)}>
+										{albumEditing ? 'Close' : 'Edit'}
+									</Button>
 								</div>
-								<ArtistEditForm
-									artist={group.artist}
-									canDelete={false}
-									onAfterChange={() => invalidateAll()}
-									onAfterDelete={() => invalidateAll()}
-								/>
+								{#if albumEditing}
+									<div class="border-t bg-muted/30 p-4">
+										<AlbumEditForm
+											album={group.album}
+											artist={group.artist}
+											canDelete={group.tracks.length === 0}
+											showArtistLink={false}
+											onAfterChange={() => afterChange(group.album.id)}
+											onAfterDelete={() => afterChange(group.album.id)}
+										/>
+									</div>
+								{/if}
 							</div>
 						{/if}
 
-						<div class="space-y-3">
-							<h4 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-								Pending tracks ({pendingTracks.length})
-							</h4>
-							{#if pendingTracks.length === 0}
-								<p class="text-sm text-muted-foreground">No pending tracks on this album.</p>
-							{:else}
-								{#each pendingTracks as track (track.id)}
-									<div class="rounded-md border bg-background p-3">
+						{#if group.artist && !group.artist.approved}
+							{@const groupArtist = group.artist}
+							<div class="border-b">
+								<div class="flex items-center gap-3 px-4 py-2">
+									<span
+										class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+									>
+										ARTIST
+									</span>
+									<a
+										href="/admin/artists/{groupArtist.id}"
+										class="min-w-0 flex-1 truncate text-sm hover:underline"
+									>
+										{groupArtist.name}
+									</a>
+									{#if groupArtist.sortName && groupArtist.sortName !== groupArtist.name}
+										<span class="hidden truncate text-xs text-muted-foreground sm:inline"
+											>sort: {groupArtist.sortName}</span
+										>
+									{/if}
+									<Button
+										size="sm"
+										onclick={() => approveEntity('artist', groupArtist.id)}
+										disabled={approving[groupArtist.id]}
+									>
+										{approving[groupArtist.id] ? '…' : 'Approve'}
+									</Button>
+									<Button size="sm" variant="ghost" onclick={() => toggleEdit(groupArtist.id)}>
+										{artistEditing ? 'Close' : 'Edit'}
+									</Button>
+								</div>
+								{#if artistEditing}
+									<div class="border-t bg-muted/30 p-4">
+										<ArtistEditForm
+											artist={groupArtist}
+											canDelete={false}
+											onAfterChange={() => afterChange(groupArtist.id)}
+											onAfterDelete={() => afterChange(groupArtist.id)}
+										/>
+									</div>
+								{/if}
+							</div>
+						{/if}
+
+						{#each pendingTracks as track (track.id)}
+							{@const trackEditing = editing[track.id] === true}
+							{@const trackArtist = trackArtistFor(track.artistId)}
+							<div class="border-b last:border-b-0">
+								<div class="flex items-center gap-3 px-4 py-2">
+									<span class="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground">
+										{track.trackNo ?? '–'}
+									</span>
+									<a
+										href="/admin/tracks/{track.id}"
+										class="min-w-0 flex-1 truncate text-sm hover:underline"
+									>
+										{track.title}
+									</a>
+									{#if trackArtist}
+										<a
+											href="/admin/artists/{trackArtist.id}"
+											class="hidden shrink-0 truncate text-xs text-muted-foreground hover:underline sm:inline"
+										>
+											{trackArtist.name}
+										</a>
+									{/if}
+									<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+										{formatMilliseconds(Number(track.durationMs))}
+									</span>
+									<Button
+										size="sm"
+										onclick={() => approveEntity('track', track.id)}
+										disabled={approving[track.id]}
+									>
+										{approving[track.id] ? '…' : 'Approve'}
+									</Button>
+									<Button size="sm" variant="ghost" onclick={() => toggleEdit(track.id)}>
+										{trackEditing ? 'Close' : 'Edit'}
+									</Button>
+								</div>
+								{#if trackEditing}
+									<div class="border-t bg-muted/30 p-4">
 										<TrackEditForm
 											{track}
-											artist={group.artist}
+											artist={trackArtist}
 											album={group.album}
 											showArtistLink={false}
 											showAlbumLink={false}
-											showAlbumPicker={false}
-											onAfterChange={() => invalidateAll()}
-											onAfterDelete={() => invalidateAll()}
+											onAfterChange={() => afterChange(track.id)}
+											onAfterDelete={() => afterChange(track.id)}
 										/>
 									</div>
-								{/each}
-							{/if}
-						</div>
+								{/if}
+							</div>
+						{/each}
 
 						{#if approvedTracks.length > 0}
-							<div class="space-y-2 border-t pt-3">
+							<div class="border-t bg-muted/20 px-4 py-2">
 								<button
 									type="button"
 									class="text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
@@ -229,7 +421,7 @@
 									{showApproved[group.album.id] ? '▾' : '▸'} Approved tracks ({approvedTracks.length})
 								</button>
 								{#if showApproved[group.album.id]}
-									<ul class="space-y-1 text-sm">
+									<ul class="mt-2 space-y-1 text-sm">
 										{#each approvedTracks as track (track.id)}
 											<li class="flex items-center justify-between gap-2 px-1">
 												<span class="truncate">

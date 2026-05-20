@@ -55,7 +55,10 @@ pub fn admin_routes() -> Router<AppState> {
             post(admin_handlers::merge_artist),
         )
         .route("/admin/review/queue", get(admin_handlers::get_review_queue))
-        .route("/admin/review/counts", get(admin_handlers::get_review_counts))
+        .route(
+            "/admin/review/counts",
+            get(admin_handlers::get_review_counts),
+        )
         .route(
             "/admin/tracks/{id}/approve",
             post(admin_handlers::approve_track),

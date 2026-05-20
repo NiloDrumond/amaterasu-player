@@ -2,6 +2,7 @@
 	import ArtistEditForm from '$lib/components/admin/artist-edit-form.svelte';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import { albumsColumns } from '$lib/components/albums/columns.js';
+	import { tracksColumns } from '$lib/components/tracks/columns.js';
 	import { goto, invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
@@ -50,6 +51,20 @@
 				data={data.albums}
 				columns={albumsColumns.filter((col) => col.id !== 'artist')}
 				onRowClick={(row) => goto(`/admin/albums/${row.id}`)}
+			/>
+		{/if}
+	</section>
+
+	<section class="space-y-2">
+		<h2>Tracks ({data.tracks.length})</h2>
+		{#if data.tracks.length === 0}
+			<p class="text-sm text-muted-foreground">No tracks.</p>
+		{:else}
+			<DataTable
+				storageKey="admin:artist:tracks"
+				data={data.tracks}
+				columns={tracksColumns}
+				onRowClick={(row) => goto(`/admin/tracks/${row.id}`)}
 			/>
 		{/if}
 	</section>

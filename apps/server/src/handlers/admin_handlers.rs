@@ -16,7 +16,8 @@ use crate::{
         },
         response::{
             AdminAlbumResponse, AdminArtistResponse, AdminDeletedTrackResponse, AdminTrackResponse,
-            ReviewQueueAlbumGroup, ReviewQueueCounts, ReviewQueueResponse, SearchEntityType,
+            ReviewQueueAlbumGroup, ReviewQueueCounts, ReviewQueueResponse,
+            ReviewQueueStandaloneArtist, SearchEntityType,
         },
     },
     error::{AppError, AppResult},
@@ -575,19 +576,56 @@ pub async fn get_review_queue(
             None => None,
         };
         let tracks = TrackRepository::find_by_album_id(&state.db, *album_id).await?;
+
+        let album_artist_id = artist.as_ref().map(|a| a.id);
+        let mut seen_artist_ids: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
+        let mut track_artists: Vec<AdminArtistResponse> = Vec::new();
+        for t in &tracks {
+            let Some(tid) = t.artist_id else { continue };
+            if Some(tid) == album_artist_id {
+                continue;
+            }
+            if !seen_artist_ids.insert(tid) {
+                continue;
+            }
+            if let Some(a) = ArtistRepository::find_by_id(&state.db, tid).await? {
+                track_artists.push(a.into());
+            }
+        }
+
         album_groups.push(ReviewQueueAlbumGroup {
             album: album.into(),
             artist: artist.map(Into::into),
             tracks: tracks.into_iter().map(Into::into).collect(),
+            track_artists,
         });
     }
 
-    let standalone_artists = ArtistRepository::find_pending_excluding_album_artists(
+    let standalone_artists_raw = ArtistRepository::find_pending_excluding_album_artists(
         &state.db,
         &album_ids,
         STANDALONE_ARTISTS_CAP,
     )
     .await?;
+
+    let mut standalone_artists: Vec<ReviewQueueStandaloneArtist> =
+        Vec::with_capacity(standalone_artists_raw.len());
+    for artist in standalone_artists_raw {
+        let tracks = TrackRepository::find_by_artist_id(&state.db, artist.id).await?;
+        let mut album_ids_seen: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
+        for t in &tracks {
+            if let Some(aid) = t.album_id {
+                album_ids_seen.insert(aid);
+            }
+        }
+        let album_id_vec: Vec<Uuid> = album_ids_seen.into_iter().collect();
+        let albums = AlbumRepository::find_by_ids(&state.db, &album_id_vec).await?;
+        standalone_artists.push(ReviewQueueStandaloneArtist {
+            artist: artist.into(),
+            tracks: tracks.into_iter().map(Into::into).collect(),
+            track_albums: albums.into_iter().map(Into::into).collect(),
+        });
+    }
 
     let counts = ReviewQueueCounts {
         pending_albums: AlbumRepository::count_pending(&state.db).await?,
@@ -597,7 +635,7 @@ pub async fn get_review_queue(
 
     Ok(Json(ReviewQueueResponse {
         albums: album_groups,
-        standalone_artists: standalone_artists.into_iter().map(Into::into).collect(),
+        standalone_artists,
         counts,
     }))
 }

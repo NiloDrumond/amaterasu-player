@@ -3,9 +3,8 @@ import type { AdminAlbumResponse } from './admin-album-response';
 import type { AdminArtistResponse } from './admin-artist-response';
 import type { AdminTrackResponse } from './admin-track-response';
 
-export type ReviewQueueAlbumGroup = {
-	album: AdminAlbumResponse;
-	artist: AdminArtistResponse | null;
+export type ReviewQueueStandaloneArtist = {
+	artist: AdminArtistResponse;
 	tracks: Array<AdminTrackResponse>;
-	trackArtists: Array<AdminArtistResponse>;
+	trackAlbums: Array<AdminAlbumResponse>;
 };
