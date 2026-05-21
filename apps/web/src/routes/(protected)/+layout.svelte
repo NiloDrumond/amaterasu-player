@@ -4,6 +4,10 @@
 	import CommandPalette from '$lib/components/search/command-palette.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import { setPlayer } from '$lib/player/player.svelte';
+	import {
+		hydratePlayerFromStorage,
+		setupPlayerPersistence,
+	} from '$lib/player/player-persistence.svelte';
 	import { usePlayerShortcuts } from '$lib/shortcuts/player-shortcuts.svelte';
 	import { getVolume, initUserPreferences, setVolume } from '$lib/state/user-preferences.svelte';
 
@@ -17,6 +21,8 @@
 		player.volume = initialVolume;
 		player.previousVolume = initialVolume > 0 ? initialVolume : 1;
 	}
+	hydratePlayerFromStorage(player);
+	setupPlayerPersistence(player);
 	$effect(() => {
 		const v = player.volume;
 		if (v !== getVolume()) setVolume(v);

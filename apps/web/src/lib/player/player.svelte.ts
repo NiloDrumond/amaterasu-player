@@ -17,6 +17,14 @@ export interface QueueItem {
 	origin: PlaybackContext;
 }
 
+export interface PlayerSnapshot {
+	queue: QueueItem[];
+	originalQueue: QueueItem[] | null;
+	index: number;
+	shuffleEnabled: boolean;
+	repeatMode: RepeatMode;
+}
+
 // Scrobble threshold: >50% of track duration OR >4 minutes, whichever comes first.
 const SCROBBLE_MIN_FRACTION = 0.5;
 const SCROBBLE_MIN_SECONDS = 240;
@@ -48,7 +56,7 @@ export class PlayerState {
 	levels = $state<number[]>(new Array(VISUALIZER_BARS).fill(0));
 
 	private scrobbledTrackKey: string | null = null;
-	private originalQueue: QueueItem[] | null = null;
+	private originalQueue = $state<QueueItem[] | null>(null);
 	private audioCtx: AudioContext | null = null;
 	private analyser: AnalyserNode | null = null;
 	private freqBuffer: Uint8Array<ArrayBuffer> | null = null;
@@ -156,6 +164,29 @@ export class PlayerState {
 
 	cycleRepeatMode() {
 		this.repeatMode = this.repeatMode === 'off' ? 'all' : this.repeatMode === 'all' ? 'one' : 'off';
+	}
+
+	snapshot(): PlayerSnapshot {
+		return {
+			queue: this.queue,
+			originalQueue: this.originalQueue,
+			index: this.index,
+			shuffleEnabled: this.shuffleEnabled,
+			repeatMode: this.repeatMode,
+		};
+	}
+
+	restore(state: PlayerSnapshot) {
+		if (state.queue.length === 0) return;
+		this.queue = state.queue;
+		this.originalQueue = state.originalQueue;
+		this.index = Math.max(0, Math.min(state.index, state.queue.length - 1));
+		this.shuffleEnabled = state.shuffleEnabled;
+		this.repeatMode = state.repeatMode;
+		this.isPlaying = false;
+		this.currentTime = 0;
+		this.stopAfterCurrent = false;
+		this.resetScrobble();
 	}
 
 	toggleStopAfterCurrent() {
