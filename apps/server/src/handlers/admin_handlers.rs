@@ -28,6 +28,20 @@ use crate::{
 };
 
 use serde::Deserialize;
+use sqlx::PgPool;
+
+async fn artist_with_aliases(
+    db: &PgPool,
+    artist: crate::db::entities::Artist,
+) -> AppResult<AdminArtistResponse> {
+    let aliases = AliasRepository::find_artist_aliases_by_artist_id(db, artist.id).await?;
+    Ok(AdminArtistResponse::from(artist).with_aliases(aliases))
+}
+
+async fn album_with_aliases(db: &PgPool, album: Album) -> AppResult<AdminAlbumResponse> {
+    let aliases = AliasRepository::find_album_aliases_by_album_id(db, album.id).await?;
+    Ok(AdminAlbumResponse::from(album).with_aliases(aliases))
+}
 
 pub async fn scan_library(State(state): State<AppState>) -> StatusCode {
     let Some(permit) = state.library_scanner.try_acquire_scan() else {
@@ -243,7 +257,7 @@ pub async fn get_album(
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<AdminAlbumResponse>> {
     let album = AlbumRepository::find_by_id(&state.db, id).await?;
-    Ok(Json(album.into()))
+    Ok(Json(album_with_aliases(&state.db, album).await?))
 }
 
 pub async fn update_album(
@@ -267,7 +281,7 @@ pub async fn update_album(
         None => None,
     };
     indexers::index_album(&state.search, &updated, artist_name.as_deref());
-    Ok(Json(updated.into()))
+    Ok(Json(album_with_aliases(&state.db, updated).await?))
 }
 
 pub async fn create_album(
@@ -283,7 +297,11 @@ pub async fn create_album(
         None,
         None,
     );
-    let created = AlbumRepository::create(&state.db, &album).await?;
+    let mut tx = state.db.begin().await?;
+    let created = AlbumRepository::create(&mut *tx, &album).await?;
+    AliasRepository::insert_album_alias(&mut *tx, &created.title, created.artist_id, created.id)
+        .await?;
+    tx.commit().await?;
     let artist_name = match created.artist_id {
         Some(aid) => ArtistRepository::find_by_id(&state.db, aid)
             .await?
@@ -291,7 +309,10 @@ pub async fn create_album(
         None => None,
     };
     indexers::index_album(&state.search, &created, artist_name.as_deref());
-    Ok((StatusCode::CREATED, Json(created.into())))
+    Ok((
+        StatusCode::CREATED,
+        Json(album_with_aliases(&state.db, created).await?),
+    ))
 }
 
 pub async fn delete_album(
@@ -331,7 +352,7 @@ pub async fn get_artist(
     let artist = ArtistRepository::find_by_id(&state.db, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    Ok(Json(artist.into()))
+    Ok(Json(artist_with_aliases(&state.db, artist).await?))
 }
 
 pub async fn update_artist(
@@ -341,7 +362,7 @@ pub async fn update_artist(
 ) -> AppResult<Json<AdminArtistResponse>> {
     let updated = ArtistRepository::update(&state.db, id, &body.name, &body.sort_name).await?;
     indexers::index_artist(&state.search, &updated);
-    Ok(Json(updated.into()))
+    Ok(Json(artist_with_aliases(&state.db, updated).await?))
 }
 
 pub async fn create_artist(
@@ -350,9 +371,17 @@ pub async fn create_artist(
 ) -> AppResult<(StatusCode, Json<AdminArtistResponse>)> {
     let sort_name = body.sort_name.unwrap_or_else(|| body.name.clone());
     let artist = Artist::new(body.name, sort_name);
-    let created = ArtistRepository::create(&state.db, &artist).await?;
+    let mut tx = state.db.begin().await?;
+    let created = ArtistRepository::create(&mut *tx, &artist).await?;
+    // New artist gets one alias from the name; future scans of files tagged
+    // with this exact name resolve to this artist.
+    AliasRepository::insert_artist_alias(&mut *tx, &created.name, created.id).await?;
+    tx.commit().await?;
     indexers::index_artist(&state.search, &created);
-    Ok((StatusCode::CREATED, Json(created.into())))
+    Ok((
+        StatusCode::CREATED,
+        Json(artist_with_aliases(&state.db, created).await?),
+    ))
 }
 
 pub async fn delete_artist(
@@ -395,18 +424,19 @@ pub async fn merge_artist(
 
     let mut tx = state.db.begin().await?;
 
-    let source = ArtistRepository::find_by_id(&mut *tx, body.source_id)
+    let _source = ArtistRepository::find_by_id(&mut *tx, body.source_id)
         .await?
         .ok_or(AppError::NotFound)?;
     let _target = ArtistRepository::find_by_id(&mut *tx, target_id)
         .await?
         .ok_or(AppError::NotFound)?;
 
-    // Reject if source's albums would collide with target's on the
-    // (source_album_artist_id, lower(source_title)) unique index. Admin must
-    // merge those albums first.
+    // Reject if any source_title is shared between the two artists' alias
+    // rows. Repointing source_album_artist_id from `source` to `target`
+    // would violate the (source_album_artist_id, lower(source_title))
+    // partial unique index on album_aliases.
     let collisions =
-        ArtistRepository::find_album_source_title_collisions(&mut *tx, body.source_id, target_id)
+        AliasRepository::find_album_alias_artist_collisions(&mut *tx, body.source_id, target_id)
             .await?;
     if !collisions.is_empty() {
         return Err(AppError::Conflict(format!(
@@ -415,21 +445,20 @@ pub async fn merge_artist(
         )));
     }
 
-    // Re-point all referrers from source → target.
+    // Re-point all referrers from source → target. Aliases carry the
+    // scan-side identity now; the source's artist_aliases rows move with
+    // `repoint_artist_aliases`, and the album_aliases rows that named
+    // `source` as their source_artist move via `repoint_album_alias_artist`.
     TrackRepository::reassign_artist(&mut *tx, body.source_id, target_id).await?;
     ArtistRepository::reassign_albums_artist(&mut *tx, body.source_id, target_id).await?;
     AliasRepository::repoint_album_alias_artist(&mut *tx, body.source_id, target_id).await?;
     AliasRepository::repoint_artist_aliases(&mut *tx, body.source_id, target_id).await?;
 
-    // Absorb the source's source_name so future scans map to target.
-    AliasRepository::upsert_artist_alias(&mut *tx, &source.source_name, target_id).await?;
-
     // Apply admin-chosen field values to the target (sets locked_at = NOW()).
     let updated =
         ArtistRepository::update(&mut *tx, target_id, &body.name, &body.sort_name).await?;
 
-    // Hard-delete source. All FKs were re-pointed above; CASCADE on
-    // artist_aliases would have wiped its aliases, but we already moved them.
+    // Hard-delete source. All FKs were re-pointed above.
     ArtistRepository::delete(&mut *tx, body.source_id).await?;
 
     tx.commit().await?;
@@ -444,7 +473,7 @@ pub async fn merge_artist(
             tracing::warn!("search: post-merge rebuild failed: {}", e);
         }
     });
-    Ok(Json(updated.into()))
+    Ok(Json(artist_with_aliases(&state.db, updated).await?))
 }
 
 // =====================================================================
@@ -478,7 +507,7 @@ pub async fn approve_album(
     let updated = AlbumRepository::set_approved(&state.db, id, true)
         .await?
         .ok_or(AppError::NotFound)?;
-    Ok(Json(updated.into()))
+    Ok(Json(album_with_aliases(&state.db, updated).await?))
 }
 
 pub async fn unapprove_album(
@@ -488,7 +517,7 @@ pub async fn unapprove_album(
     let updated = AlbumRepository::set_approved(&state.db, id, false)
         .await?
         .ok_or(AppError::NotFound)?;
-    Ok(Json(updated.into()))
+    Ok(Json(album_with_aliases(&state.db, updated).await?))
 }
 
 pub async fn approve_artist(
@@ -498,7 +527,7 @@ pub async fn approve_artist(
     let updated = ArtistRepository::set_approved(&state.db, id, true)
         .await?
         .ok_or(AppError::NotFound)?;
-    Ok(Json(updated.into()))
+    Ok(Json(artist_with_aliases(&state.db, updated).await?))
 }
 
 pub async fn unapprove_artist(
@@ -508,7 +537,7 @@ pub async fn unapprove_artist(
     let updated = ArtistRepository::set_approved(&state.db, id, false)
         .await?
         .ok_or(AppError::NotFound)?;
-    Ok(Json(updated.into()))
+    Ok(Json(artist_with_aliases(&state.db, updated).await?))
 }
 
 /// Approves the album, its (single) artist if still pending, and every
@@ -568,18 +597,33 @@ pub async fn get_review_queue(
 
     let album_ids = AlbumRepository::find_pending_affected_ids(&state.db, limit, offset).await?;
 
-    let mut album_groups = Vec::with_capacity(album_ids.len());
+    // Collect every artist + album id we'll touch, so we can pull aliases in
+    // two bulk queries instead of N+1.
+    let mut all_album_ids: Vec<Uuid> = album_ids.clone();
+    let mut all_artist_ids: Vec<Uuid> = Vec::new();
+
+    struct GroupBuild {
+        album: Album,
+        artist: Option<crate::db::entities::Artist>,
+        tracks: Vec<crate::db::entities::Track>,
+        track_artists: Vec<crate::db::entities::Artist>,
+    }
+
+    let mut group_builds: Vec<GroupBuild> = Vec::with_capacity(album_ids.len());
     for album_id in &album_ids {
         let album = AlbumRepository::find_by_id(&state.db, *album_id).await?;
         let artist = match album.artist_id {
             Some(aid) => ArtistRepository::find_by_id(&state.db, aid).await?,
             None => None,
         };
+        if let Some(a) = &artist {
+            all_artist_ids.push(a.id);
+        }
         let tracks = TrackRepository::find_by_album_id(&state.db, *album_id).await?;
 
         let album_artist_id = artist.as_ref().map(|a| a.id);
         let mut seen_artist_ids: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
-        let mut track_artists: Vec<AdminArtistResponse> = Vec::new();
+        let mut track_artists: Vec<crate::db::entities::Artist> = Vec::new();
         for t in &tracks {
             let Some(tid) = t.artist_id else { continue };
             if Some(tid) == album_artist_id {
@@ -589,14 +633,15 @@ pub async fn get_review_queue(
                 continue;
             }
             if let Some(a) = ArtistRepository::find_by_id(&state.db, tid).await? {
-                track_artists.push(a.into());
+                all_artist_ids.push(a.id);
+                track_artists.push(a);
             }
         }
 
-        album_groups.push(ReviewQueueAlbumGroup {
-            album: album.into(),
-            artist: artist.map(Into::into),
-            tracks: tracks.into_iter().map(Into::into).collect(),
+        group_builds.push(GroupBuild {
+            album,
+            artist,
+            tracks,
             track_artists,
         });
     }
@@ -608,9 +653,15 @@ pub async fn get_review_queue(
     )
     .await?;
 
-    let mut standalone_artists: Vec<ReviewQueueStandaloneArtist> =
+    struct StandaloneBuild {
+        artist: crate::db::entities::Artist,
+        tracks: Vec<crate::db::entities::Track>,
+        track_albums: Vec<Album>,
+    }
+    let mut standalone_builds: Vec<StandaloneBuild> =
         Vec::with_capacity(standalone_artists_raw.len());
     for artist in standalone_artists_raw {
+        all_artist_ids.push(artist.id);
         let tracks = TrackRepository::find_by_artist_id(&state.db, artist.id).await?;
         let mut album_ids_seen: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
         for t in &tracks {
@@ -620,10 +671,80 @@ pub async fn get_review_queue(
         }
         let album_id_vec: Vec<Uuid> = album_ids_seen.into_iter().collect();
         let albums = AlbumRepository::find_by_ids(&state.db, &album_id_vec).await?;
+        for al in &albums {
+            all_album_ids.push(al.id);
+        }
+        standalone_builds.push(StandaloneBuild {
+            artist,
+            tracks,
+            track_albums: albums,
+        });
+    }
+
+    // Bulk fetch aliases for everything we collected, then bucket by id.
+    let artist_aliases =
+        AliasRepository::find_artist_aliases_by_artist_ids(&state.db, &all_artist_ids).await?;
+    let album_aliases =
+        AliasRepository::find_album_aliases_by_album_ids(&state.db, &all_album_ids).await?;
+    let mut artist_alias_buckets: std::collections::HashMap<Uuid, Vec<_>> =
+        std::collections::HashMap::new();
+    for a in artist_aliases {
+        artist_alias_buckets.entry(a.artist_id).or_default().push(a);
+    }
+    let mut album_alias_buckets: std::collections::HashMap<Uuid, Vec<_>> =
+        std::collections::HashMap::new();
+    for a in album_aliases {
+        album_alias_buckets.entry(a.album_id).or_default().push(a);
+    }
+
+    let take_artist_aliases = |buckets: &mut std::collections::HashMap<Uuid, Vec<_>>,
+                               id: Uuid|
+     -> Vec<_> { buckets.remove(&id).unwrap_or_default() };
+    let take_album_aliases = |buckets: &mut std::collections::HashMap<Uuid, Vec<_>>,
+                              id: Uuid|
+     -> Vec<_> { buckets.remove(&id).unwrap_or_default() };
+
+    let mut album_groups: Vec<ReviewQueueAlbumGroup> = Vec::with_capacity(group_builds.len());
+    for b in group_builds {
+        let album_aliases_for = take_album_aliases(&mut album_alias_buckets, b.album.id);
+        let album_resp = AdminAlbumResponse::from(b.album).with_aliases(album_aliases_for);
+        let artist_resp = b.artist.map(|a| {
+            let aliases = take_artist_aliases(&mut artist_alias_buckets, a.id);
+            AdminArtistResponse::from(a).with_aliases(aliases)
+        });
+        let track_artists_resp: Vec<AdminArtistResponse> = b
+            .track_artists
+            .into_iter()
+            .map(|a| {
+                let aliases = take_artist_aliases(&mut artist_alias_buckets, a.id);
+                AdminArtistResponse::from(a).with_aliases(aliases)
+            })
+            .collect();
+        album_groups.push(ReviewQueueAlbumGroup {
+            album: album_resp,
+            artist: artist_resp,
+            tracks: b.tracks.into_iter().map(Into::into).collect(),
+            track_artists: track_artists_resp,
+        });
+    }
+
+    let mut standalone_artists: Vec<ReviewQueueStandaloneArtist> =
+        Vec::with_capacity(standalone_builds.len());
+    for b in standalone_builds {
+        let artist_aliases_for = take_artist_aliases(&mut artist_alias_buckets, b.artist.id);
+        let artist_resp = AdminArtistResponse::from(b.artist).with_aliases(artist_aliases_for);
+        let track_albums_resp: Vec<AdminAlbumResponse> = b
+            .track_albums
+            .into_iter()
+            .map(|al| {
+                let aliases = take_album_aliases(&mut album_alias_buckets, al.id);
+                AdminAlbumResponse::from(al).with_aliases(aliases)
+            })
+            .collect();
         standalone_artists.push(ReviewQueueStandaloneArtist {
-            artist: artist.into(),
-            tracks: tracks.into_iter().map(Into::into).collect(),
-            track_albums: albums.into_iter().map(Into::into).collect(),
+            artist: artist_resp,
+            tracks: b.tracks.into_iter().map(Into::into).collect(),
+            track_albums: track_albums_resp,
         });
     }
 
@@ -653,21 +774,15 @@ pub async fn merge_album(
 
     let mut tx = state.db.begin().await?;
 
-    let source = AlbumRepository::find_by_id(&mut *tx, body.source_id).await?;
+    let _source = AlbumRepository::find_by_id(&mut *tx, body.source_id).await?;
     let _target = AlbumRepository::find_by_id(&mut *tx, target_id).await?;
 
-    // Re-point tracks from source → target.
+    // Re-point tracks and aliases from source → target. The source album's
+    // scanner keys live in album_aliases (post-demotion); moving them with
+    // the rest preserves scan stability for files originally tagged for
+    // either album.
     TrackRepository::reassign_album(&mut *tx, body.source_id, target_id).await?;
     AliasRepository::repoint_album_aliases(&mut *tx, body.source_id, target_id).await?;
-
-    // Absorb the source's scanner keys so future scans map to target.
-    AliasRepository::upsert_album_alias(
-        tx.as_mut(),
-        &source.source_title,
-        source.source_album_artist_id,
-        target_id,
-    )
-    .await?;
 
     // Apply admin-chosen field values to the target (sets locked_at = NOW()).
     AlbumRepository::update(
@@ -708,5 +823,5 @@ pub async fn merge_album(
             tracing::warn!("search: post-merge rebuild failed: {}", e);
         }
     });
-    Ok(Json(updated.into()))
+    Ok(Json(album_with_aliases(&state.db, updated).await?))
 }

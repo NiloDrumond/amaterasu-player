@@ -17,7 +17,7 @@
 	let { data } = $props();
 
 	let editing = $state<Record<string, boolean>>({});
-	let collapsed = $state<Record<string, boolean>>({});
+	let expanded = $state<Record<string, boolean>>({});
 	let showApproved = $state<Record<string, boolean>>({});
 	let cascading = $state<Record<string, boolean>>({});
 	let approving = $state<Record<string, boolean>>({});
@@ -92,6 +92,7 @@
 				{#each data.queue.standaloneArtists as group (group.artist.id)}
 					{@const artist = group.artist}
 					{@const isEditing = editing[artist.id] === true}
+					{@const isExpanded = expanded[artist.id] === true}
 					{@const trackAlbumMap = new Map(group.trackAlbums.map((a) => [a.id, a]))}
 					{@const artistTrackAlbumFor = (albumId: string | null) =>
 						albumId == null ? null : (trackAlbumMap.get(albumId) ?? null)}
@@ -129,6 +130,15 @@
 								<Button size="sm" variant="ghost" onclick={() => toggleEdit(artist.id)}>
 									{isEditing ? 'Close' : 'Edit'}
 								</Button>
+								{#if group.tracks.length > 0}
+									<Button
+										size="sm"
+										variant="ghost"
+										onclick={() => (expanded[artist.id] = !isExpanded)}
+									>
+										{isExpanded ? 'Collapse' : 'Expand'}
+									</Button>
+								{/if}
 							</div>
 							{#if isEditing}
 								<div class="border-t bg-muted/30 p-4">
@@ -142,58 +152,60 @@
 							{/if}
 						</div>
 
-						{#each group.tracks as track (track.id)}
-							{@const trackEditing = editing[track.id] === true}
-							{@const trackAlbum = artistTrackAlbumFor(track.albumId)}
-							<div class="border-b last:border-b-0">
-								<div class="flex items-center gap-3 px-4 py-2">
-									<span class="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground">
-										{track.trackNo ?? '–'}
-									</span>
-									<a
-										href="/admin/tracks/{track.id}"
-										class="min-w-0 flex-1 truncate text-sm hover:underline"
-									>
-										{track.title}
-									</a>
-									{#if trackAlbum}
+						{#if isExpanded}
+							{#each group.tracks as track (track.id)}
+								{@const trackEditing = editing[track.id] === true}
+								{@const trackAlbum = artistTrackAlbumFor(track.albumId)}
+								<div class="border-b last:border-b-0">
+									<div class="flex items-center gap-3 px-4 py-2">
+										<span class="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground">
+											{track.trackNo ?? '–'}
+										</span>
 										<a
-											href="/admin/albums/{trackAlbum.id}"
-											class="hidden shrink-0 truncate text-xs text-muted-foreground hover:underline sm:inline"
+											href="/admin/tracks/{track.id}"
+											class="min-w-0 flex-1 truncate text-sm hover:underline"
 										>
-											{trackAlbum.title}
+											{track.title}
 										</a>
-									{/if}
-									<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-										{formatMilliseconds(Number(track.durationMs))}
-									</span>
-									{#if !track.approved}
-										<Button
-											size="sm"
-											onclick={() => approveEntity('track', track.id)}
-											disabled={approving[track.id]}
-										>
-											{approving[track.id] ? '…' : 'Approve'}
+										{#if trackAlbum}
+											<a
+												href="/admin/albums/{trackAlbum.id}"
+												class="hidden shrink-0 truncate text-xs text-muted-foreground hover:underline sm:inline"
+											>
+												{trackAlbum.title}
+											</a>
+										{/if}
+										<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+											{formatMilliseconds(Number(track.durationMs))}
+										</span>
+										{#if !track.approved}
+											<Button
+												size="sm"
+												onclick={() => approveEntity('track', track.id)}
+												disabled={approving[track.id]}
+											>
+												{approving[track.id] ? '…' : 'Approve'}
+											</Button>
+										{/if}
+										<Button size="sm" variant="ghost" onclick={() => toggleEdit(track.id)}>
+											{trackEditing ? 'Close' : 'Edit'}
 										</Button>
-									{/if}
-									<Button size="sm" variant="ghost" onclick={() => toggleEdit(track.id)}>
-										{trackEditing ? 'Close' : 'Edit'}
-									</Button>
-								</div>
-								{#if trackEditing}
-									<div class="border-t bg-muted/30 p-4">
-										<TrackEditForm
-											{track}
-											{artist}
-											album={trackAlbum}
-											showArtistLink={false}
-											onAfterChange={() => afterChange(track.id)}
-											onAfterDelete={() => afterChange(track.id)}
-										/>
 									</div>
-								{/if}
-							</div>
-						{/each}
+									{#if trackEditing}
+										<div class="border-t bg-muted/30 p-4">
+											<TrackEditForm
+												{track}
+												{artist}
+												album={trackAlbum}
+												showArtistLink={false}
+												onAfterChange={() => afterChange(track.id)}
+												onAfterDelete={() => afterChange(track.id)}
+											/>
+										</div>
+									{/if}
+								</div>
+							{/each}
+						{/if}
 					</article>
 				{/each}
 			</div>
@@ -219,11 +231,11 @@
 					: (trackArtistMap.get(artistId) ?? (group.artist?.id === artistId ? group.artist : null))}
 			{@const albumEditing = editing[group.album.id] === true}
 			{@const artistEditing = group.artist ? editing[group.artist.id] === true : false}
-			{@const isCollapsed = collapsed[group.album.id] === true}
+			{@const isExpanded = expanded[group.album.id] === true}
 			<article class="overflow-hidden rounded-lg border bg-card shadow-sm">
 				<header
 					class="flex flex-wrap items-baseline gap-3 bg-muted/30 px-4 py-3"
-					class:border-b={!isCollapsed}
+					class:border-b={isExpanded}
 				>
 					<div class="min-w-0 flex-1">
 						<h3 class="truncate text-base font-semibold">
@@ -262,13 +274,13 @@
 					<Button
 						size="sm"
 						variant="ghost"
-						onclick={() => (collapsed[group.album.id] = !isCollapsed)}
+						onclick={() => (expanded[group.album.id] = !isExpanded)}
 					>
-						{isCollapsed ? 'Expand' : 'Collapse'}
+						{isExpanded ? 'Collapse' : 'Expand'}
 					</Button>
 				</header>
 
-				{#if !isCollapsed}
+				{#if isExpanded}
 					<div>
 						{#if !group.album.approved}
 							<div class="border-b">

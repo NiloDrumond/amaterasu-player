@@ -141,7 +141,20 @@
 	</Field>
 
 	<div class="border-t pt-3 text-xs text-muted-foreground">
-		<div>source_title: <span class="font-mono">{album.sourceTitle}</span></div>
+		<div class="mb-1 font-semibold tracking-wide uppercase">Scan aliases</div>
+		{#if album.aliases.length === 0}
+			<div class="italic">none</div>
+		{:else}
+			<ul class="space-y-0.5">
+				{#each album.aliases as alias (alias.id)}
+					<li class="font-mono">
+						{alias.sourceTitle}{#if alias.sourceAlbumArtistId}
+							<span class="text-muted-foreground/70"> · {alias.sourceAlbumArtistId}</span>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</div>
 </FieldGroup>
 

@@ -4,6 +4,41 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::db::entities::{Album, Artist, Track};
+use crate::repositories::{AlbumAliasRow, ArtistAliasRow};
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct ArtistAliasResponse {
+    pub id: Uuid,
+    pub source_name: String,
+}
+
+impl From<ArtistAliasRow> for ArtistAliasResponse {
+    fn from(r: ArtistAliasRow) -> Self {
+        Self {
+            id: r.id,
+            source_name: r.source_name,
+        }
+    }
+}
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct AlbumAliasResponse {
+    pub id: Uuid,
+    pub source_title: String,
+    pub source_album_artist_id: Option<Uuid>,
+}
+
+impl From<AlbumAliasRow> for AlbumAliasResponse {
+    fn from(r: AlbumAliasRow) -> Self {
+        Self {
+            id: r.id,
+            source_title: r.source_title,
+            source_album_artist_id: r.source_album_artist_id,
+        }
+    }
+}
 
 #[api_type("response/admin")]
 #[derive(Debug, Serialize)]
@@ -60,13 +95,12 @@ pub struct AdminAlbumResponse {
     pub title: String,
     pub sort_title: String,
     pub artist_id: Option<Uuid>,
-    pub source_title: String,
-    pub source_album_artist_id: Option<Uuid>,
     pub date: Option<NaiveDate>,
     pub cover_path: Option<String>,
     pub cover_url: Option<String>,
     pub locked_at: Option<DateTime<Utc>>,
     pub approved: bool,
+    pub aliases: Vec<AlbumAliasResponse>,
 }
 
 impl From<Album> for AdminAlbumResponse {
@@ -76,14 +110,20 @@ impl From<Album> for AdminAlbumResponse {
             title: a.title,
             sort_title: a.sort_title,
             artist_id: a.artist_id,
-            source_title: a.source_title,
-            source_album_artist_id: a.source_album_artist_id,
             date: a.date,
             cover_url: a.cover_path.as_ref().map(|p| format!("/api/covers/{p}")),
             cover_path: a.cover_path,
             locked_at: a.locked_at,
             approved: a.approved,
+            aliases: Vec::new(),
         }
+    }
+}
+
+impl AdminAlbumResponse {
+    pub fn with_aliases(mut self, aliases: Vec<AlbumAliasRow>) -> Self {
+        self.aliases = aliases.into_iter().map(Into::into).collect();
+        self
     }
 }
 
@@ -93,9 +133,9 @@ pub struct AdminArtistResponse {
     pub id: Uuid,
     pub name: String,
     pub sort_name: String,
-    pub source_name: String,
     pub locked_at: Option<DateTime<Utc>>,
     pub approved: bool,
+    pub aliases: Vec<ArtistAliasResponse>,
 }
 
 impl From<Artist> for AdminArtistResponse {
@@ -104,10 +144,17 @@ impl From<Artist> for AdminArtistResponse {
             id: a.id,
             name: a.name,
             sort_name: a.sort_name,
-            source_name: a.source_name,
             locked_at: a.locked_at,
             approved: a.approved,
+            aliases: Vec::new(),
         }
+    }
+}
+
+impl AdminArtistResponse {
+    pub fn with_aliases(mut self, aliases: Vec<ArtistAliasRow>) -> Self {
+        self.aliases = aliases.into_iter().map(Into::into).collect();
+        self
     }
 }
 

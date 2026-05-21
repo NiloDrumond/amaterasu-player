@@ -36,8 +36,8 @@ impl ArtistRepository {
         let created = sqlx::query_as!(
             Artist,
             r#"
-            INSERT INTO artists (id, name, sort_name, mbid, source_name, locked_at, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO artists (id, name, sort_name, mbid, locked_at, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING
                 *
             "#,
@@ -45,7 +45,6 @@ impl ArtistRepository {
             artist.name,
             artist.sort_name,
             artist.mbid,
-            artist.source_name,
             artist.locked_at,
             artist.created_at,
             artist.updated_at
@@ -102,28 +101,6 @@ impl ArtistRepository {
         .await?;
 
         Ok(artists)
-    }
-
-    pub async fn find_by_source_name(
-        executor: impl PgExecutor<'_>,
-        source_name: &str,
-    ) -> Result<Option<Artist>, AppError> {
-        let artist = sqlx::query_as!(
-            Artist,
-            r#"
-            SELECT
-                *
-            FROM
-                artists
-            WHERE
-                LOWER(source_name) = LOWER($1)
-            "#,
-            source_name
-        )
-        .fetch_optional(executor)
-        .await?;
-
-        Ok(artist)
     }
 
     pub async fn search(
@@ -288,14 +265,9 @@ WHERE
         Ok(())
     }
 
-    /// Repoint `albums.artist_id` and `albums.source_album_artist_id` from
-    /// `from_id` to `to_id`.
-    ///
-    /// `source_album_artist_id` is part of the scanner-unique key
-    /// `(source_album_artist_id, lower(source_title))`. If `to_id` already has
-    /// an album with the same `source_title` as one of `from_id`'s albums, this
-    /// statement violates the unique index — callers should pre-check collisions
-    /// via [`find_album_source_title_collisions`].
+    /// Repoint `albums.artist_id` from `from_id` to `to_id`. Scan-side identity
+    /// lives in `album_aliases` now and is repointed separately by
+    /// [`AliasRepository::repoint_album_alias_artist`].
     pub async fn reassign_albums_artist(
         executor: impl PgExecutor<'_>,
         from_id: Uuid,
@@ -304,11 +276,9 @@ WHERE
         sqlx::query!(
             r#"
             UPDATE albums
-            SET
-                artist_id = CASE WHEN artist_id = $1 THEN $2 ELSE artist_id END,
-                source_album_artist_id = CASE WHEN source_album_artist_id = $1 THEN $2 ELSE source_album_artist_id END,
+            SET artist_id = $2,
                 updated_at = NOW()
-            WHERE artist_id = $1 OR source_album_artist_id = $1
+            WHERE artist_id = $1
             "#,
             from_id,
             to_id,
@@ -316,34 +286,6 @@ WHERE
         .execute(executor)
         .await?;
         Ok(())
-    }
-
-    /// Returns the `source_title`s shared between two artists' albums (matched
-    /// case-insensitively). These would collide on the
-    /// `(source_album_artist_id, lower(source_title))` unique index if
-    /// `from_id`'s albums were re-pointed to `to_id` directly.
-    pub async fn find_album_source_title_collisions(
-        executor: impl PgExecutor<'_>,
-        from_id: Uuid,
-        to_id: Uuid,
-    ) -> Result<Vec<String>, AppError> {
-        let rows = sqlx::query!(
-            r#"
-            SELECT a.source_title
-            FROM albums a
-            WHERE a.source_album_artist_id = $1
-                AND EXISTS (
-                    SELECT 1 FROM albums b
-                    WHERE b.source_album_artist_id = $2
-                        AND LOWER(b.source_title) = LOWER(a.source_title)
-                )
-            "#,
-            from_id,
-            to_id,
-        )
-        .fetch_all(executor)
-        .await?;
-        Ok(rows.into_iter().map(|r| r.source_title).collect())
     }
 
     /// Unconditional hard-delete. Caller must ensure no FK referrers remain.
@@ -354,9 +296,10 @@ WHERE
         Ok(())
     }
 
-    /// Hard-deletes the artist only if no album references it (as `artist_id` or
-    /// `source_album_artist_id`) and no track references it. Returns `true` if
-    /// deleted, `false` if a reference still exists.
+    /// Hard-deletes the artist only if no album or non-deleted track references
+    /// it via `artist_id`. Aliases CASCADE; the scan-once invariant in
+    /// `scanner/persist.rs` keeps existing tracks from being pulled back onto
+    /// a recreated artist on the next scan.
     pub async fn delete_if_empty(
         executor: impl PgExecutor<'_>,
         id: Uuid,
@@ -366,21 +309,10 @@ WHERE
             DELETE FROM artists
             WHERE id = $1
                 AND NOT EXISTS (
-                    SELECT
-                        1
-                    FROM
-                        albums
-                    WHERE
-                        artist_id = $1
-                        OR source_album_artist_id = $1)
+                    SELECT 1 FROM albums WHERE artist_id = $1)
                 AND NOT EXISTS (
-                    SELECT
-                        1
-                    FROM
-                        tracks
-                    WHERE
-                        artist_id = $1
-                        AND deleted_at IS NULL)
+                    SELECT 1 FROM tracks
+                    WHERE artist_id = $1 AND deleted_at IS NULL)
             "#,
             id
         )
@@ -434,7 +366,7 @@ WHERE
               AND NOT EXISTS (
                   SELECT 1 FROM albums al
                   WHERE al.id = ANY($1)
-                    AND (al.artist_id = ar.id OR al.source_album_artist_id = ar.id)
+                    AND al.artist_id = ar.id
               )
             ORDER BY ar.created_at DESC
             LIMIT $2

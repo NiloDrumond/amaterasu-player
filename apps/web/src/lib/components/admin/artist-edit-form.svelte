@@ -88,7 +88,16 @@
 	</Field>
 
 	<div class="border-t pt-3 text-xs text-muted-foreground">
-		<div>source_name: <span class="font-mono">{artist.sourceName}</span></div>
+		<div class="mb-1 font-semibold tracking-wide uppercase">Scan aliases</div>
+		{#if artist.aliases.length === 0}
+			<div class="italic">none</div>
+		{:else}
+			<ul class="space-y-0.5">
+				{#each artist.aliases as alias (alias.id)}
+					<li class="font-mono">{alias.sourceName}</li>
+				{/each}
+			</ul>
+		{/if}
 	</div>
 </FieldGroup>
 

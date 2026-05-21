@@ -39,8 +39,8 @@ impl AlbumRepository {
         let created = sqlx::query_as!(
             Album,
             r#"
-            INSERT INTO albums (id, artist_id, title, sort_title, date, mbid, cover_path, source_title, source_album_artist_id, locked_at, replaygain_album_gain, replaygain_album_peak, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            INSERT INTO albums (id, artist_id, title, sort_title, date, mbid, cover_path, locked_at, replaygain_album_gain, replaygain_album_peak, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING
                 *
             "#,
@@ -51,8 +51,6 @@ impl AlbumRepository {
             album.date,
             album.mbid,
             album.cover_path,
-            album.source_title,
-            album.source_album_artist_id,
             album.locked_at,
             album.replaygain_album_gain,
             album.replaygain_album_peak,
@@ -108,33 +106,6 @@ impl AlbumRepository {
         .await?;
 
         Ok(albums)
-    }
-
-    pub async fn find_by_source_keys(
-        executor: impl PgExecutor<'_>,
-        source_title: &str,
-        source_album_artist_id: Option<Uuid>,
-    ) -> Result<Option<Album>, AppError> {
-        let album = sqlx::query_as!(
-            Album,
-            r#"
-            SELECT
-                *
-            FROM
-                albums
-            WHERE
-                LOWER(source_title) = LOWER($1)
-                AND (source_album_artist_id = $2
-                    OR (source_album_artist_id IS NULL
-                        AND $2 IS NULL))
-            "#,
-            source_title,
-            source_album_artist_id
-        )
-        .fetch_optional(executor)
-        .await?;
-
-        Ok(album)
     }
 
     pub async fn search(

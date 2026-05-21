@@ -30,13 +30,20 @@ cd apps/web && bun format
 bun run test
 '''
 
+[tasks."format:rust"]
+run = "cargo fmt"
+
+[tasks."format:web"]
+dir = "apps/web"
+run = "bun run format"
+
+[tasks."format:sql"]
+dir = "apps/server"
+run = "sqruff fix"
+
 [tasks.format]
 description = "Format code"
-run = '''
-cargo fmt
-cd apps/web && bun run format
-cd ../server && sqruff fix
-'''
+depends = ["format:rust", "format:web", "format:sql"]
 
 [tasks.check]
 description = "Run cargo check, clippy, and frontend type/lint checks"

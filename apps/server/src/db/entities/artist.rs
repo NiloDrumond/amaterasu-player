@@ -9,7 +9,6 @@ pub struct Artist {
     pub name: String,
     pub sort_name: String,
     pub mbid: Option<String>, // MusicBrainz ID
-    pub source_name: String,
     pub locked_at: Option<DateTime<Utc>>,
     pub approved: bool,
     pub created_at: DateTime<Utc>,
@@ -20,10 +19,8 @@ impl Artist {
     pub fn new(name: String, sort_name: String) -> Self {
         Self {
             id: Uuid::new_v4(),
-            source_name: name.clone(),
             name,
             sort_name,
-            // TODO: mbid
             mbid: None,
             locked_at: None,
             approved: false,

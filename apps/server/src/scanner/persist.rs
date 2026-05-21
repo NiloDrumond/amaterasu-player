@@ -18,6 +18,40 @@ pub async fn persist_scanned_file(
     covers_dir: &Path,
     scanned: ScannedFile,
 ) -> Result<Option<Track>, AppError> {
+    // Scan-once: if the file's audio_hash already corresponds to a track, just
+    // sync the file_path and return. Skipping the artist/album lookup keeps
+    // admin edits/merges immune to re-scan churn — tracks never get pulled
+    // back onto a freshly-created entity derived from the on-disk tag.
+    let audio_hash = scanned.audio.audio_hash.to_vec();
+    if let Some(existing) = TrackRepository::find_by_audio_hash(pool, &audio_hash).await? {
+        if existing.file_path != scanned.file_path {
+            // Same audio_hash + different filename = collision risk worth flagging.
+            let old_name = std::path::Path::new(&existing.file_path).file_name();
+            let new_name = std::path::Path::new(&scanned.file_path).file_name();
+            if old_name != new_name {
+                tracing::error!(
+                    track_id = %existing.id,
+                    old_path = %existing.file_path,
+                    new_path = %scanned.file_path,
+                    "Possible hash collision: same audio_hash but different file name, skipping"
+                );
+                return Err(AppError::Internal(anyhow::anyhow!(
+                    "Possible hash collision: '{}' and '{}' share the same audio hash",
+                    existing.file_path,
+                    scanned.file_path
+                )));
+            }
+            tracing::info!(
+                track_id = %existing.id,
+                old_path = %existing.file_path,
+                new_path = %scanned.file_path,
+                "Track file moved"
+            );
+            TrackRepository::update_file_path(pool, existing.id, &scanned.file_path).await?;
+        }
+        return Ok(Some(existing));
+    }
+
     let mut tx = pool.begin().await?;
 
     let album_artist_id =
@@ -102,12 +136,7 @@ async fn find_or_create_artist(
         None => return Ok(None),
     };
 
-    // Match by source_name so admin renames don't cause duplicates.
-    if let Some(artist) = ArtistRepository::find_by_source_name(&mut *tx, name).await? {
-        return Ok(Some(artist));
-    }
-
-    // Then check whether this source_name was merged away into another artist.
+    // The alias table is the only scanner identity surface now.
     if let Some(target_id) = AliasRepository::find_artist_id_by_source_name(&mut *tx, name).await? {
         if let Some(artist) = ArtistRepository::find_by_id(&mut *tx, target_id).await? {
             return Ok(Some(artist));
@@ -120,13 +149,14 @@ async fn find_or_create_artist(
         name: name.to_string(),
         sort_name: sort_name.to_string(),
         mbid: None,
-        source_name: name.to_string(),
         locked_at: None,
         approved: false,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    ArtistRepository::create(&mut *tx, &artist).await.map(Some)
+    let created = ArtistRepository::create(&mut *tx, &artist).await?;
+    AliasRepository::insert_artist_alias(&mut *tx, name, created.id).await?;
+    Ok(Some(created))
 }
 
 async fn find_or_create_album(
@@ -135,13 +165,7 @@ async fn find_or_create_album(
     album_artist_id: Option<Uuid>,
 ) -> Result<Album, AppError> {
     let title = &scanned.album_metadata.name;
-    if let Some(album) =
-        AlbumRepository::find_by_source_keys(&mut *tx, title, album_artist_id).await?
-    {
-        return Ok(album);
-    }
 
-    // Check the alias table — covers the case where this album was merged away.
     if let Some(target_id) =
         AliasRepository::find_album_id_by_source_keys(&mut *tx, title, album_artist_id).await?
     {
@@ -162,7 +186,9 @@ async fn find_or_create_album(
         scanned.album_metadata.replaygain_album_gain,
         scanned.album_metadata.replaygain_album_peak,
     );
-    AlbumRepository::create(&mut *tx, &album).await
+    let created = AlbumRepository::create(&mut *tx, &album).await?;
+    AliasRepository::insert_album_alias(&mut *tx, title, album_artist_id, created.id).await?;
+    Ok(created)
 }
 
 async fn upsert_track(
@@ -172,7 +198,6 @@ async fn upsert_track(
     artist_id: Option<Uuid>,
 ) -> Result<Option<Track>, AppError> {
     let audio_hash = scanned.audio.audio_hash.to_vec();
-    let existing = TrackRepository::find_by_audio_hash(&mut *tx, &audio_hash).await?;
 
     let sort_title = scanned
         .track_metadata
@@ -180,50 +205,9 @@ async fn upsert_track(
         .clone()
         .unwrap_or_else(|| scanned.track_metadata.title.clone());
 
-    if let Some(mut track) = existing {
-        if track.file_path != scanned.file_path {
-            let old_name = std::path::Path::new(&track.file_path).file_name();
-            let new_name = std::path::Path::new(&scanned.file_path).file_name();
-
-            if old_name != new_name {
-                tracing::error!(
-                    track_id = %track.id,
-                    old_path = %track.file_path,
-                    new_path = %scanned.file_path,
-                    "Possible hash collision: same audio_hash but different file name, skipping"
-                );
-                return Err(AppError::Internal(anyhow::anyhow!(
-                    "Possible hash collision: '{}' and '{}' share the same audio hash",
-                    track.file_path,
-                    scanned.file_path
-                )));
-            }
-
-            tracing::info!(
-                track_id = %track.id,
-                old_path = %track.file_path,
-                new_path = %scanned.file_path,
-                "Track file moved"
-            );
-        }
-
-        // Locked or soft-deleted tracks survive rescans untouched, except for
-        // file_path so file moves still resolve.
-        if track.locked_at.is_some() || track.deleted_at.is_some() {
-            if track.file_path != scanned.file_path {
-                TrackRepository::update_file_path(&mut *tx, track.id, &scanned.file_path).await?;
-                track.file_path = scanned.file_path;
-            }
-            return Ok(Some(track));
-        }
-
-        apply_scanned_fields(
-            &mut track, scanned, album_id, artist_id, audio_hash, sort_title,
-        );
-        return TrackRepository::update(&mut *tx, &track).await.map(Some);
-    }
-
-    // No audio_hash match. Check whether the same logical track exists in another format.
+    // The audio_hash short-circuit lives in `persist_scanned_file`, so this
+    // function is only reached for genuinely new audio. Try the album+title
+    // format-upgrade path first.
     if let Some(mut existing) =
         TrackRepository::find_by_album_and_title(&mut *tx, album_id, &scanned.track_metadata.title)
             .await?
