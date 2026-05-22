@@ -80,8 +80,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	{
 		id: 'quality',
 		header: 'QUALITY',
-		size: 80,
-		maxSize: 80,
+		size: 90,
+		maxSize: 90,
 		enableSorting: false,
 		cell: ({ row }) => {
 			return renderComponent(TrackQuality, { track: row.original });
