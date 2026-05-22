@@ -130,6 +130,40 @@ export function forceRescanAlbum(fetch: Fetch, id: string): Promise<Result<void>
 	return api<void>(fetch, `/api/admin/albums/${id}/force-rescan`, { method: 'POST' });
 }
 
+/**
+ * Upload a new cover image for the album. Multipart upload -- bypasses the
+ * `api()` helper because it doesn't accept FormData bodies. Mirrors `api()`'s
+ * `Result<T>` return shape for consistency.
+ */
+export async function uploadAlbumCover(
+	fetch: Fetch,
+	id: string,
+	file: File,
+): Promise<Result<AdminAlbumResponse>> {
+	const form = new FormData();
+	form.append('file', file);
+	try {
+		const res = await fetch(`/api/admin/albums/${id}/cover`, {
+			method: 'POST',
+			body: form,
+		});
+		if (!res.ok) {
+			let errorMessage: string;
+			try {
+				const body = await res.json();
+				errorMessage = typeof body.error === 'string' ? body.error : res.statusText;
+			} catch {
+				errorMessage = res.statusText;
+			}
+			return { data: null, error: errorMessage, status: res.status };
+		}
+		const data = (await res.json()) as AdminAlbumResponse;
+		return { data, error: null, status: res.status };
+	} catch {
+		return { data: null, error: 'Network error', status: null };
+	}
+}
+
 // ============================================================
 // Artist admin
 // ============================================================

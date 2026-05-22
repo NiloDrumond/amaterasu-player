@@ -42,6 +42,10 @@ pub fn admin_routes() -> Router<AppState> {
             post(admin_handlers::force_rescan_album),
         )
         .route(
+            "/admin/albums/{id}/cover",
+            post(admin_handlers::upload_album_cover),
+        )
+        .route(
             "/admin/albums/{id}/merge",
             post(admin_handlers::merge_album),
         )
@@ -121,7 +125,7 @@ pub fn admin_routes() -> Router<AppState> {
         )
         .route(
             "/admin/review/queue/mb-suggestions",
-            get(musicbrainz_handlers::review_queue_album_suggestions),
+            get(musicbrainz_handlers::review_queue_mb_suggestions),
         )
         .route(
             "/admin/mb-suggestions/{id}/accept",

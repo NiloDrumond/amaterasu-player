@@ -12,7 +12,6 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use serde_json::{json, Value as JsonValue};
-use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -22,6 +21,7 @@ use crate::repositories::{
     AlbumRepository, ArtistRepository, MbLookupStatusRepository, MetadataSuggestion,
     MetadataSuggestionRepository, NewSuggestion, SuggestionEntityType, TrackRepository,
 };
+use crate::services::cover_storage;
 
 use super::client::MusicBrainzClient;
 use super::cover_art::CoverArtClient;
@@ -463,26 +463,14 @@ impl MetadataSuggestionService {
             tracing::debug!(album_id = %album_id, ?target, "no CAA front cover");
             return Ok(());
         };
-        let ext = infer::get(&bytes)
-            .and_then(|t| match t.mime_type() {
-                "image/jpeg" => Some("jpg"),
-                "image/png" => Some("png"),
-                "image/webp" => Some("webp"),
-                _ => None,
-            })
-            .unwrap_or("jpg");
 
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let hash = hex::encode(hasher.finalize());
-        let filename = format!("{}.{}", hash, ext);
-        let path = self.covers_dir.join(&filename);
-        if !path.exists() {
-            if let Err(e) = tokio::fs::write(&path, &bytes).await {
-                tracing::warn!(album_id = %album_id, "failed to write cover: {}", e);
+        let filename = match cover_storage::store_cover_bytes(&self.covers_dir, &bytes).await {
+            Ok(f) => f,
+            Err(e) => {
+                tracing::warn!(album_id = %album_id, "failed to store CAA cover: {}", e);
                 return Ok(());
             }
-        }
+        };
         // set_cover_path is a write that happens on the pool, not a tx --
         // we're past the transactional accept. Any failure here gets logged
         // and swallowed.

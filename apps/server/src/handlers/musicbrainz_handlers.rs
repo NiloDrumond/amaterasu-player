@@ -145,37 +145,55 @@ async fn list_for(
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReviewQueueSuggestionsQuery {
-    /// Comma-separated list of album UUIDs. Empty -> empty result.
+    /// Comma-separated list of album UUIDs. Empty/omitted -> no album rows
+    /// in the response.
     #[serde(default)]
     pub album_ids: Option<String>,
+    /// Comma-separated list of artist UUIDs. Empty/omitted -> no artist rows
+    /// in the response.
+    #[serde(default)]
+    pub artist_ids: Option<String>,
 }
 
 /// Batch fetch used by the review-queue page-server load. Returns a flat list
-/// of pending album suggestions for the supplied album IDs; the frontend
-/// buckets by `entityId`.
-pub async fn review_queue_album_suggestions(
+/// of pending suggestions for the supplied album + artist IDs; the frontend
+/// buckets by `entityType` / `entityId`.
+pub async fn review_queue_mb_suggestions(
     State(state): State<AppState>,
     Query(q): Query<ReviewQueueSuggestionsQuery>,
 ) -> AppResult<Json<Vec<MetadataSuggestionResponse>>> {
-    let ids: Vec<Uuid> = q
-        .album_ids
-        .as_deref()
-        .map(|s| {
-            s.split(',')
-                .filter_map(|p| Uuid::parse_str(p.trim()).ok())
-                .collect()
-        })
-        .unwrap_or_default();
-    if ids.is_empty() {
-        return Ok(Json(Vec::new()));
+    let album_ids = parse_uuid_csv(q.album_ids.as_deref());
+    let artist_ids = parse_uuid_csv(q.artist_ids.as_deref());
+
+    let mut out: Vec<MetadataSuggestionResponse> = Vec::new();
+    if !album_ids.is_empty() {
+        let rows = MetadataSuggestionRepository::find_pending_by_entity_ids(
+            &state.db,
+            SuggestionEntityType::Album,
+            &album_ids,
+        )
+        .await?;
+        out.extend(rows.into_iter().map(Into::into));
     }
-    let rows = MetadataSuggestionRepository::find_pending_by_entity_ids(
-        &state.db,
-        SuggestionEntityType::Album,
-        &ids,
-    )
-    .await?;
-    Ok(Json(rows.into_iter().map(Into::into).collect()))
+    if !artist_ids.is_empty() {
+        let rows = MetadataSuggestionRepository::find_pending_by_entity_ids(
+            &state.db,
+            SuggestionEntityType::Artist,
+            &artist_ids,
+        )
+        .await?;
+        out.extend(rows.into_iter().map(Into::into));
+    }
+    Ok(Json(out))
+}
+
+fn parse_uuid_csv(s: Option<&str>) -> Vec<Uuid> {
+    s.map(|s| {
+        s.split(',')
+            .filter_map(|p| Uuid::parse_str(p.trim()).ok())
+            .collect()
+    })
+    .unwrap_or_default()
 }
 
 // =====================================================================

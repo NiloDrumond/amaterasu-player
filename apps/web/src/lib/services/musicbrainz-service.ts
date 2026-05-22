@@ -102,20 +102,23 @@ export function getTrackSuggestions(
 
 /**
  * Batched fetch for the review queue page-server load. Returns pending album
- * suggestions for all given album IDs in a single round-trip.
+ * AND artist suggestions in a single round-trip; each row carries
+ * `entityType` so the client can bucket.
  */
-export function getReviewQueueAlbumSuggestions(
+export function getReviewQueueMbSuggestions(
 	fetch: Fetch,
-	albumIds: string[],
+	ids: { albumIds: string[]; artistIds: string[] },
 ): Promise<Result<MetadataSuggestionResponse[]>> {
-	if (albumIds.length === 0) {
+	if (ids.albumIds.length === 0 && ids.artistIds.length === 0) {
 		return Promise.resolve({
 			data: [] as MetadataSuggestionResponse[],
 			error: null,
 			status: 200,
 		});
 	}
-	const qs = new URLSearchParams({ albumIds: albumIds.join(',') });
+	const qs = new URLSearchParams();
+	if (ids.albumIds.length > 0) qs.set('albumIds', ids.albumIds.join(','));
+	if (ids.artistIds.length > 0) qs.set('artistIds', ids.artistIds.join(','));
 	return api<MetadataSuggestionResponse[]>(fetch, `/api/admin/review/queue/mb-suggestions?${qs}`);
 }
 

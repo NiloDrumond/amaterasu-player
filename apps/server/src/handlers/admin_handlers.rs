@@ -350,6 +350,51 @@ pub async fn force_rescan_album(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Accepts a multipart upload with one file field, stores it as the album's
+/// cover. Reuses `services::cover_storage` so the on-disk shape matches the
+/// MB/CAA download path exactly (sha256-named, dedupe-on-disk).
+pub async fn upload_album_cover(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    mut multipart: axum::extract::Multipart,
+) -> AppResult<Json<AdminAlbumResponse>> {
+    // 404 early if the album doesn't exist -- avoids writing an orphan file.
+    AlbumRepository::find_by_id(&state.db, id).await?;
+
+    let mut bytes: Option<Vec<u8>> = None;
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("invalid multipart: {e}")))?
+    {
+        let data = field
+            .bytes()
+            .await
+            .map_err(|e| AppError::BadRequest(format!("failed to read upload: {e}")))?;
+        if !data.is_empty() {
+            bytes = Some(data.to_vec());
+            break; // first non-empty field wins
+        }
+    }
+    let bytes = bytes.ok_or_else(|| AppError::BadRequest("no file uploaded".to_string()))?;
+
+    let filename = crate::services::cover_storage::store_cover_bytes(&state.covers_dir, &bytes)
+        .await
+        .map_err(|e| match e {
+            crate::services::cover_storage::CoverStorageError::UnsupportedImageType
+            | crate::services::cover_storage::CoverStorageError::TooLarge(_) => {
+                AppError::BadRequest(e.to_string())
+            }
+            crate::services::cover_storage::CoverStorageError::Io(io) => {
+                AppError::Internal(anyhow::anyhow!("write cover: {io}"))
+            }
+        })?;
+
+    AlbumRepository::set_cover_path(&state.db, id, Some(filename.as_str())).await?;
+    let updated = AlbumRepository::find_by_id(&state.db, id).await?;
+    Ok(Json(album_with_aliases(&state.db, updated).await?))
+}
+
 // =====================================================================
 // Artists
 // =====================================================================

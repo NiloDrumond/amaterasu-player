@@ -12,7 +12,9 @@
 		unapproveAlbum,
 		searchArtists,
 		createAdminArtist,
+		uploadAlbumCover,
 	} from '$lib/services/admin-service';
+	import { invalidateAll } from '$app/navigation';
 	import type { AdminAlbumResponse } from '$lib/bindings/response/admin/admin-album-response';
 	import type { AdminArtistResponse } from '$lib/bindings/response/admin/admin-artist-response';
 	import { toast } from 'svelte-sonner';
@@ -44,6 +46,24 @@
 	let saving = $state(false);
 	let approving = $state(false);
 	let mergeOpen = $state(false);
+	let uploadingCover = $state(false);
+
+	async function onCoverFileChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file) return;
+		uploadingCover = true;
+		const { error } = await uploadAlbumCover(fetch, album.id, file);
+		uploadingCover = false;
+		if (error) {
+			toast.error('Cover upload failed', { description: error });
+		} else {
+			toast.success('Cover updated');
+			await invalidateAll();
+			await onAfterChange?.();
+		}
+	}
 
 	async function searchArtist(q: string) {
 		const { data } = await searchArtists(fetch, q);
@@ -107,6 +127,35 @@
 </script>
 
 <FieldGroup>
+	<Field>
+		<FieldLabel>Cover</FieldLabel>
+		<label
+			class="group relative size-24 cursor-pointer overflow-hidden rounded border bg-muted"
+			title="Click to upload a new cover"
+		>
+			{#if album.coverUrl}
+				<img src={album.coverUrl} alt="cover for {album.title}" class="size-full object-cover" />
+			{:else}
+				<span
+					class="flex size-full items-center justify-center text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+				>
+					No cover
+				</span>
+			{/if}
+			<span
+				class="absolute inset-0 flex items-center justify-center bg-black/40 text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100"
+			>
+				{uploadingCover ? 'Uploading…' : 'Upload'}
+			</span>
+			<input
+				type="file"
+				accept="image/jpeg,image/png,image/webp"
+				class="sr-only"
+				disabled={uploadingCover}
+				onchange={onCoverFileChange}
+			/>
+		</label>
+	</Field>
 	<Field>
 		<FieldLabel for="album-{album.id}-title">Title</FieldLabel>
 		<Input id="album-{album.id}-title" bind:value={title} />

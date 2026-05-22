@@ -9,11 +9,19 @@
 		approveAlbum,
 		approveArtist,
 		approveTrack,
+		uploadAlbumCover,
 	} from '$lib/services/admin-service';
-	import { bulkLookupPending, lookupAlbum, lookupArtist } from '$lib/services/musicbrainz-service';
+	import {
+		bulkLookupPending,
+		getAlbumSuggestions,
+		getArtistSuggestions,
+		lookupAlbum,
+		lookupArtist,
+	} from '$lib/services/musicbrainz-service';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import { toast } from 'svelte-sonner';
 	import { invalidateAll, goto } from '$app/navigation';
+	import type { MetadataSuggestionResponse } from '$lib/bindings/response/admin/metadata-suggestion-response';
 	import type { ReviewQueueAlbumGroup } from '$lib/bindings/response/admin/review-queue-album-group';
 
 	let { data } = $props();
@@ -26,13 +34,81 @@
 	let mbLooking = $state<Record<string, boolean>>({});
 	let mbExpanded = $state<Record<string, boolean>>({});
 	let bulkLooking = $state(false);
+	let uploadingCover = $state<Record<string, boolean>>({});
+
+	/**
+	 * Client-side override of server-loaded suggestions: when polling lands
+	 * fresh results after a manual lookup, we write them here and the UI
+	 * prefers this map over `data.albumSuggestions` / `data.artistSuggestions`.
+	 */
+	let liveSuggestions = $state<Record<string, MetadataSuggestionResponse[]>>({});
+
+	function suggestionsFor(kind: 'album' | 'artist', id: string): MetadataSuggestionResponse[] {
+		const live = liveSuggestions[id];
+		if (live) return live;
+		const fromServer = kind === 'album' ? data.albumSuggestions[id] : data.artistSuggestions[id];
+		return fromServer ?? [];
+	}
+
+	/** Latest `createdAt` across a suggestion list, or empty string. */
+	function maxCreatedAt(list: MetadataSuggestionResponse[]): string {
+		let max = '';
+		for (const s of list) if (s.createdAt > max) max = s.createdAt;
+		return max;
+	}
+
+	const POLL_INTERVAL_MS = 1500;
+	const POLL_MAX_MS = 30_000;
+
+	async function pollForFreshSuggestions(
+		kind: 'album' | 'artist',
+		id: string,
+		baselineCreatedAt: string,
+	): Promise<void> {
+		const start = Date.now();
+		const fetchFn = kind === 'album' ? getAlbumSuggestions : getArtistSuggestions;
+		while (Date.now() - start < POLL_MAX_MS) {
+			await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+			const { data: list } = await fetchFn(fetch, id);
+			if (list && list.length > 0 && maxCreatedAt(list) > baselineCreatedAt) {
+				liveSuggestions[id] = list;
+				mbExpanded[id] = true;
+				toast.success(`MusicBrainz: ${list.length} candidate${list.length === 1 ? '' : 's'}`);
+				return;
+			}
+		}
+		toast.info('No new MusicBrainz suggestions yet — try again in a moment.');
+	}
 
 	async function lookupOnMb(kind: 'album' | 'artist', id: string) {
 		mbLooking[id] = true;
+		const baseline = maxCreatedAt(suggestionsFor(kind, id));
 		const { error } = await (kind === 'album' ? lookupAlbum(fetch, id) : lookupArtist(fetch, id));
+		if (error) {
+			mbLooking[id] = false;
+			toast.error('MusicBrainz lookup failed', { description: error });
+			return;
+		}
+		toast.success('Looking up on MusicBrainz…');
+		await pollForFreshSuggestions(kind, id, baseline);
 		mbLooking[id] = false;
-		if (error) toast.error('MusicBrainz lookup failed', { description: error });
-		else toast.success('Looking up on MusicBrainz…');
+	}
+
+	async function onCoverFileChange(albumId: string, e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		// Always clear so the same file can be re-selected later.
+		input.value = '';
+		if (!file) return;
+		uploadingCover[albumId] = true;
+		const { error } = await uploadAlbumCover(fetch, albumId, file);
+		uploadingCover[albumId] = false;
+		if (error) {
+			toast.error('Cover upload failed', { description: error });
+		} else {
+			toast.success('Cover updated');
+			await invalidateAll();
+		}
 	}
 
 	async function lookupAllPending() {
@@ -111,133 +187,6 @@
 		</div>
 	</header>
 
-	{#if data.queue.standaloneArtists.length > 0}
-		<section class="mx-auto max-w-4xl space-y-2">
-			<h2 class="text-lg font-semibold">Pending artists ({data.queue.standaloneArtists.length})</h2>
-			<div class="space-y-4">
-				{#each data.queue.standaloneArtists as group (group.artist.id)}
-					{@const artist = group.artist}
-					{@const isEditing = editing[artist.id] === true}
-					{@const isExpanded = expanded[artist.id] === true}
-					{@const trackAlbumMap = new Map(group.trackAlbums.map((a) => [a.id, a]))}
-					{@const artistTrackAlbumFor = (albumId: string | null) =>
-						albumId == null ? null : (trackAlbumMap.get(albumId) ?? null)}
-					<article class="overflow-hidden rounded-lg border bg-card shadow-sm">
-						<div class="border-b last:border-b-0">
-							<div class="flex items-center gap-3 px-4 py-2">
-								<span
-									class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
-								>
-									ARTIST
-								</span>
-								<a
-									href="/admin/artists/{artist.id}"
-									class="min-w-0 flex-1 truncate text-sm hover:underline"
-								>
-									{artist.name}
-								</a>
-								{#if artist.sortName && artist.sortName !== artist.name}
-									<span class="hidden truncate text-xs text-muted-foreground sm:inline"
-										>sort: {artist.sortName}</span
-									>
-								{/if}
-								{#if group.tracks.length > 0}
-									<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-										{group.tracks.length} track{group.tracks.length === 1 ? '' : 's'}
-									</span>
-								{/if}
-								<Button
-									size="sm"
-									onclick={() => approveEntity('artist', artist.id)}
-									disabled={approving[artist.id]}
-								>
-									{approving[artist.id] ? '…' : 'Approve'}
-								</Button>
-								<Button size="sm" variant="ghost" onclick={() => toggleEdit(artist.id)}>
-									{isEditing ? 'Close' : 'Edit'}
-								</Button>
-								{#if group.tracks.length > 0}
-									<Button
-										size="sm"
-										variant="ghost"
-										onclick={() => (expanded[artist.id] = !isExpanded)}
-									>
-										{isExpanded ? 'Collapse' : 'Expand'}
-									</Button>
-								{/if}
-							</div>
-							{#if isEditing}
-								<div class="border-t bg-muted/30 p-4">
-									<ArtistEditForm
-										{artist}
-										canDelete={group.tracks.length === 0}
-										onAfterChange={() => afterChange(artist.id)}
-										onAfterDelete={() => afterChange(artist.id)}
-									/>
-								</div>
-							{/if}
-						</div>
-
-						{#if isExpanded}
-							{#each group.tracks as track (track.id)}
-								{@const trackEditing = editing[track.id] === true}
-								{@const trackAlbum = artistTrackAlbumFor(track.albumId)}
-								<div class="border-b last:border-b-0">
-									<div class="flex items-center gap-3 px-4 py-2">
-										<span class="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground">
-											{track.trackNo ?? '–'}
-										</span>
-										<a
-											href="/admin/tracks/{track.id}"
-											class="min-w-0 flex-1 truncate text-sm hover:underline"
-										>
-											{track.title}
-										</a>
-										{#if trackAlbum}
-											<a
-												href="/admin/albums/{trackAlbum.id}"
-												class="hidden shrink-0 truncate text-xs text-muted-foreground hover:underline sm:inline"
-											>
-												{trackAlbum.title}
-											</a>
-										{/if}
-										<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-											{formatMilliseconds(Number(track.durationMs))}
-										</span>
-										{#if !track.approved}
-											<Button
-												size="sm"
-												onclick={() => approveEntity('track', track.id)}
-												disabled={approving[track.id]}
-											>
-												{approving[track.id] ? '…' : 'Approve'}
-											</Button>
-										{/if}
-										<Button size="sm" variant="ghost" onclick={() => toggleEdit(track.id)}>
-											{trackEditing ? 'Close' : 'Edit'}
-										</Button>
-									</div>
-									{#if trackEditing}
-										<div class="border-t bg-muted/30 p-4">
-											<TrackEditForm
-												{track}
-												{artist}
-												album={trackAlbum}
-												showArtistLink={false}
-												onAfterChange={() => afterChange(track.id)}
-												onAfterDelete={() => afterChange(track.id)}
-											/>
-										</div>
-									{/if}
-								</div>
-							{/each}
-						{/if}
-					</article>
-				{/each}
-			</div>
-		</section>
-	{/if}
-
 	<section class="mx-auto max-w-4xl space-y-4">
 		<h2 class="text-lg font-semibold">Albums with pending content ({data.queue.albums.length})</h2>
 
@@ -258,11 +207,42 @@
 			{@const albumEditing = editing[group.album.id] === true}
 			{@const artistEditing = group.artist ? editing[group.artist.id] === true : false}
 			{@const isExpanded = expanded[group.album.id] === true}
+			{@const albumSuggs = suggestionsFor('album', group.album.id)}
 			<article class="overflow-hidden rounded-lg border bg-card shadow-sm">
 				<header
-					class="flex flex-wrap items-baseline gap-3 bg-muted/30 px-4 py-3"
+					class="flex flex-wrap items-center gap-3 bg-muted/30 px-4 py-3"
 					class:border-b={isExpanded}
 				>
+					<label
+						class="group relative size-16 shrink-0 cursor-pointer overflow-hidden rounded border bg-muted"
+						title="Click to upload a new cover"
+					>
+						{#if group.album.coverUrl}
+							<img
+								src={group.album.coverUrl}
+								alt="cover for {group.album.title}"
+								class="size-full object-cover"
+							/>
+						{:else}
+							<span
+								class="flex size-full items-center justify-center text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+							>
+								No cover
+							</span>
+						{/if}
+						<span
+							class="absolute inset-0 flex items-center justify-center bg-black/40 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100"
+						>
+							{uploadingCover[group.album.id] ? 'Uploading…' : 'Upload'}
+						</span>
+						<input
+							type="file"
+							accept="image/jpeg,image/png,image/webp"
+							class="sr-only"
+							disabled={uploadingCover[group.album.id]}
+							onchange={(e) => onCoverFileChange(group.album.id, e)}
+						/>
+					</label>
 					<div class="min-w-0 flex-1">
 						<h3 class="truncate text-base font-semibold">
 							<a href="/admin/albums/{group.album.id}" class="hover:underline">
@@ -314,7 +294,7 @@
 					</Button>
 				</header>
 
-				{#if data.albumSuggestions[group.album.id]?.length}
+				{#if albumSuggs.length}
 					{@const mbOpen = mbExpanded[group.album.id] === true}
 					<div class="border-b bg-muted/10">
 						<button
@@ -322,14 +302,10 @@
 							class="flex w-full items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
 							onclick={() => (mbExpanded[group.album.id] = !mbOpen)}
 						>
-							{mbOpen ? '▾' : '▸'} MusicBrainz suggestions ({data.albumSuggestions[group.album.id]
-								.length})
+							{mbOpen ? '▾' : '▸'} MusicBrainz suggestions ({albumSuggs.length})
 						</button>
 						{#if mbOpen}
-							<MbSuggestionList
-								suggestions={data.albumSuggestions[group.album.id]}
-								entityType="album"
-							/>
+							<MbSuggestionList suggestions={albumSuggs} entityType="album" />
 						{/if}
 					</div>
 				{/if}
@@ -383,6 +359,8 @@
 
 						{#if group.artist && !group.artist.approved}
 							{@const groupArtist = group.artist}
+							{@const artistSuggs = suggestionsFor('artist', groupArtist.id)}
+							{@const mbOpen = mbExpanded[groupArtist.id] === true}
 							<div class="border-b">
 								<div class="flex items-center gap-3 px-4 py-2">
 									<span
@@ -408,6 +386,14 @@
 									>
 										{approving[groupArtist.id] ? '…' : 'Approve'}
 									</Button>
+									<Button
+										size="sm"
+										variant="outline"
+										onclick={() => lookupOnMb('artist', groupArtist.id)}
+										disabled={mbLooking[groupArtist.id]}
+									>
+										{mbLooking[groupArtist.id] ? '…' : 'Lookup on MB'}
+									</Button>
 									<Button size="sm" variant="ghost" onclick={() => toggleEdit(groupArtist.id)}>
 										{artistEditing ? 'Close' : 'Edit'}
 									</Button>
@@ -420,6 +406,20 @@
 											onAfterChange={() => afterChange(groupArtist.id)}
 											onAfterDelete={() => afterChange(groupArtist.id)}
 										/>
+									</div>
+								{/if}
+								{#if artistSuggs.length}
+									<div class="border-t bg-muted/10">
+										<button
+											type="button"
+											class="flex w-full items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
+											onclick={() => (mbExpanded[groupArtist.id] = !mbOpen)}
+										>
+											{mbOpen ? '▾' : '▸'} MusicBrainz suggestions ({artistSuggs.length})
+										</button>
+										{#if mbOpen}
+											<MbSuggestionList suggestions={artistSuggs} entityType="artist" />
+										{/if}
 									</div>
 								{/if}
 							</div>
@@ -534,4 +534,155 @@
 			</div>
 		{/if}
 	</section>
+
+	{#if data.queue.standaloneArtists.length > 0}
+		<section class="mx-auto max-w-4xl space-y-2">
+			<h2 class="text-lg font-semibold">Pending artists ({data.queue.standaloneArtists.length})</h2>
+			<div class="space-y-4">
+				{#each data.queue.standaloneArtists as group (group.artist.id)}
+					{@const artist = group.artist}
+					{@const isEditing = editing[artist.id] === true}
+					{@const isExpanded = expanded[artist.id] === true}
+					{@const standaloneArtistSuggs = suggestionsFor('artist', artist.id)}
+					{@const standaloneMbOpen = mbExpanded[artist.id] === true}
+					{@const trackAlbumMap = new Map(group.trackAlbums.map((a) => [a.id, a]))}
+					{@const artistTrackAlbumFor = (albumId: string | null) =>
+						albumId == null ? null : (trackAlbumMap.get(albumId) ?? null)}
+					<article class="overflow-hidden rounded-lg border bg-card shadow-sm">
+						<div class="border-b last:border-b-0">
+							<div class="flex items-center gap-3 px-4 py-2">
+								<span
+									class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+								>
+									ARTIST
+								</span>
+								<a
+									href="/admin/artists/{artist.id}"
+									class="min-w-0 flex-1 truncate text-sm hover:underline"
+								>
+									{artist.name}
+								</a>
+								{#if artist.sortName && artist.sortName !== artist.name}
+									<span class="hidden truncate text-xs text-muted-foreground sm:inline"
+										>sort: {artist.sortName}</span
+									>
+								{/if}
+								{#if group.tracks.length > 0}
+									<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+										{group.tracks.length} track{group.tracks.length === 1 ? '' : 's'}
+									</span>
+								{/if}
+								<Button
+									size="sm"
+									onclick={() => approveEntity('artist', artist.id)}
+									disabled={approving[artist.id]}
+								>
+									{approving[artist.id] ? '…' : 'Approve'}
+								</Button>
+								<Button
+									size="sm"
+									variant="outline"
+									onclick={() => lookupOnMb('artist', artist.id)}
+									disabled={mbLooking[artist.id]}
+								>
+									{mbLooking[artist.id] ? '…' : 'Lookup on MB'}
+								</Button>
+								<Button size="sm" variant="ghost" onclick={() => toggleEdit(artist.id)}>
+									{isEditing ? 'Close' : 'Edit'}
+								</Button>
+								{#if group.tracks.length > 0}
+									<Button
+										size="sm"
+										variant="ghost"
+										onclick={() => (expanded[artist.id] = !isExpanded)}
+									>
+										{isExpanded ? 'Collapse' : 'Expand'}
+									</Button>
+								{/if}
+							</div>
+							{#if isEditing}
+								<div class="border-t bg-muted/30 p-4">
+									<ArtistEditForm
+										{artist}
+										canDelete={group.tracks.length === 0}
+										onAfterChange={() => afterChange(artist.id)}
+										onAfterDelete={() => afterChange(artist.id)}
+									/>
+								</div>
+							{/if}
+							{#if standaloneArtistSuggs.length}
+								<div class="border-t bg-muted/10">
+									<button
+										type="button"
+										class="flex w-full items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
+										onclick={() => (mbExpanded[artist.id] = !standaloneMbOpen)}
+									>
+										{standaloneMbOpen ? '▾' : '▸'} MusicBrainz suggestions ({standaloneArtistSuggs.length})
+									</button>
+									{#if standaloneMbOpen}
+										<MbSuggestionList suggestions={standaloneArtistSuggs} entityType="artist" />
+									{/if}
+								</div>
+							{/if}
+						</div>
+
+						{#if isExpanded}
+							{#each group.tracks as track (track.id)}
+								{@const trackEditing = editing[track.id] === true}
+								{@const trackAlbum = artistTrackAlbumFor(track.albumId)}
+								<div class="border-b last:border-b-0">
+									<div class="flex items-center gap-3 px-4 py-2">
+										<span class="w-8 shrink-0 text-right font-mono text-xs text-muted-foreground">
+											{track.trackNo ?? '–'}
+										</span>
+										<a
+											href="/admin/tracks/{track.id}"
+											class="min-w-0 flex-1 truncate text-sm hover:underline"
+										>
+											{track.title}
+										</a>
+										{#if trackAlbum}
+											<a
+												href="/admin/albums/{trackAlbum.id}"
+												class="hidden shrink-0 truncate text-xs text-muted-foreground hover:underline sm:inline"
+											>
+												{trackAlbum.title}
+											</a>
+										{/if}
+										<span class="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+											{formatMilliseconds(Number(track.durationMs))}
+										</span>
+										{#if !track.approved}
+											<Button
+												size="sm"
+												onclick={() => approveEntity('track', track.id)}
+												disabled={approving[track.id]}
+											>
+												{approving[track.id] ? '…' : 'Approve'}
+											</Button>
+										{/if}
+										<Button size="sm" variant="ghost" onclick={() => toggleEdit(track.id)}>
+											{trackEditing ? 'Close' : 'Edit'}
+										</Button>
+									</div>
+									{#if trackEditing}
+										<div class="border-t bg-muted/30 p-4">
+											<TrackEditForm
+												{track}
+												{artist}
+												album={trackAlbum}
+												showArtistLink={false}
+												onAfterChange={() => afterChange(track.id)}
+												onAfterDelete={() => afterChange(track.id)}
+											/>
+										</div>
+									{/if}
+								</div>
+							{/each}
+						{/if}
+					</article>
+				{/each}
+			</div>
+		</section>
+	{/if}
 </div>
