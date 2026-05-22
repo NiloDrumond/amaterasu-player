@@ -2,6 +2,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { toast } from 'svelte-sonner';
 	import { deletePlaylist, getPlaylistTracks } from '$lib/services/playlist-service';
+	import { pinPlaylist } from '$lib/services/pin-service';
 	import { getPlayer } from '$lib/player/player.svelte';
 	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
@@ -44,11 +45,21 @@
 			onDeleted?.();
 		}
 	}
+
+	async function handlePin() {
+		const { error } = await pinPlaylist(fetch, id);
+		if (error) {
+			toast.error(error);
+		} else {
+			toast.success('Pinned to home');
+		}
+	}
 </script>
 
 <DropdownMenu.Group>
 	<DropdownMenu.Label>Actions</DropdownMenu.Label>
 	<DropdownMenu.Item onclick={play}>Play</DropdownMenu.Item>
+	<DropdownMenu.Item onclick={handlePin}>Pin to home</DropdownMenu.Item>
 	<DropdownMenu.Item onclick={handleDelete} class="text-destructive focus:text-destructive">
 		Delete
 	</DropdownMenu.Item>

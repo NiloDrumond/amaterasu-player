@@ -103,6 +103,72 @@ impl PlaylistRepository {
         Ok(playlist)
     }
 
+    pub async fn find_by_ids_for_user(
+        executor: impl PgExecutor<'_>,
+        user_id: Uuid,
+        ids: &[Uuid],
+    ) -> AppResult<Vec<PlaylistStats>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                p.id,
+                p.user_id,
+                p.name,
+                p.created_at,
+                p.updated_at,
+                p.type AS "playlist_type!",
+                p.filter_definition AS "filter_definition: Json<FilterNode>",
+                p.cached_track_count,
+                p.cached_total_duration_ms,
+                CASE WHEN p.type = 'dynamic' THEN
+                    p.cached_track_count::bigint
+                ELSE
+                    COUNT(pt.id)
+                END AS "track_count!: i64",
+                CASE WHEN p.type = 'dynamic' THEN
+                    p.cached_total_duration_ms
+                ELSE
+                    COALESCE(SUM(t.duration_ms), 0)::bigint
+                END AS "total_duration_ms!: i64"
+            FROM
+                playlists p
+                LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id
+                LEFT JOIN tracks t ON t.id = pt.track_id
+            WHERE
+                p.id = ANY($1)
+                AND p.user_id = $2
+            GROUP BY
+                p.id
+            "#,
+            ids,
+            user_id,
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| PlaylistStats {
+                playlist: Playlist {
+                    id: r.id,
+                    user_id: r.user_id,
+                    name: r.name,
+                    created_at: r.created_at,
+                    updated_at: r.updated_at,
+                    playlist_type: r.playlist_type,
+                    filter_definition: r.filter_definition,
+                    cached_track_count: r.cached_track_count,
+                    cached_total_duration_ms: r.cached_total_duration_ms,
+                },
+                track_count: r.track_count,
+                total_duration_ms: r.total_duration_ms,
+            })
+            .collect())
+    }
+
     pub async fn find_by_id_and_user(
         executor: impl PgExecutor<'_>,
         id: Uuid,

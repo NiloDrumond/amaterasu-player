@@ -5,6 +5,7 @@ use crate::routes::album_collection_routes::album_collection_routes;
 use crate::routes::album_routes::albums_routes;
 use crate::routes::artist_routes::artists_routes;
 use crate::routes::cover_routes::covers_routes;
+use crate::routes::home_routes::home_routes;
 use crate::routes::playlist_routes::playlist_routes;
 use crate::routes::search_routes::search_routes;
 use crate::routes::tag_category_routes::tag_category_routes;
@@ -28,6 +29,7 @@ mod album_routes;
 mod artist_routes;
 mod auth_routes;
 mod cover_routes;
+mod home_routes;
 mod playlist_routes;
 mod search_routes;
 mod tag_category_routes;
@@ -48,6 +50,7 @@ pub fn create_api_router(
         .merge(artists_routes())
         .merge(tracks_routes())
         .merge(covers_routes())
+        .merge(home_routes())
         .merge(playlist_routes())
         .merge(search_routes())
         .merge(tag_category_routes())

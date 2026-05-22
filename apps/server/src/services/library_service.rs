@@ -127,7 +127,12 @@ impl LibraryService {
         self.bundle_albums(albums).await
     }
 
-    async fn bundle_albums(&self, albums: Vec<Album>) -> AppResult<Vec<AlbumWithRefs>> {
+    pub async fn get_albums_by_ids(&self, ids: &[Uuid]) -> AppResult<Vec<AlbumWithRefs>> {
+        let albums = AlbumRepository::find_by_ids(&self.pool, ids).await?;
+        self.bundle_albums(albums).await
+    }
+
+    pub async fn bundle_albums(&self, albums: Vec<Album>) -> AppResult<Vec<AlbumWithRefs>> {
         let artist_ids: Vec<Uuid> = albums.iter().filter_map(|a| a.artist_id).collect();
         let album_ids: Vec<Uuid> = albums.iter().map(|a| a.id).collect();
 

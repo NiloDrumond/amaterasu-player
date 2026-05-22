@@ -7,6 +7,7 @@ use sqlx::PgPool;
 use crate::musicbrainz::{LookupSender, MetadataSuggestionService};
 use crate::scanner::LibraryScanner;
 use crate::search::SearchIndex;
+use crate::services::RecommendationCache;
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
@@ -18,6 +19,7 @@ pub struct AppState {
     /// `None` when MUSICBRAINZ_ENABLED=false.
     pub mb_service: Option<MetadataSuggestionService>,
     pub mb_lookup_sender: Option<LookupSender>,
+    pub recommendation_cache: Arc<RecommendationCache>,
 }
 
 impl FromRef<AppState> for () {
@@ -43,6 +45,7 @@ impl AppState {
             grafana_proxy,
             mb_service,
             mb_lookup_sender,
+            recommendation_cache: Arc::new(RecommendationCache::new()),
         }
     }
 }

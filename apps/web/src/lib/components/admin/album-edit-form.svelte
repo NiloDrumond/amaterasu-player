@@ -130,7 +130,7 @@
 	<Field>
 		<FieldLabel>Cover</FieldLabel>
 		<label
-			class="group relative block aspect-square size-24 cursor-pointer overflow-hidden rounded border bg-muted w-max!"
+			class="group relative block aspect-square size-24 w-max! cursor-pointer overflow-hidden rounded border bg-muted"
 			title="Click to upload a new cover"
 		>
 			{#if album.coverUrl}

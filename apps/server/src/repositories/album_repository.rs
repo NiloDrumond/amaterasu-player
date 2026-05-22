@@ -18,6 +18,7 @@ pub enum AlbumSortKey {
     Year,
     TrackCount,
     Time,
+    Recent,
 }
 
 impl FromStr for AlbumSortKey {
@@ -29,6 +30,7 @@ impl FromStr for AlbumSortKey {
             "year" => Ok(Self::Year),
             "trackCount" => Ok(Self::TrackCount),
             "time" => Ok(Self::Time),
+            "recent" => Ok(Self::Recent),
             other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
         }
     }
@@ -193,6 +195,9 @@ impl AlbumRepository {
                 qb.push(format!(
                     " ORDER BY agg.total_duration_ms {d} NULLS LAST, albums.sort_title, albums.id"
                 ));
+            }
+            Some(AlbumSortKey::Recent) => {
+                qb.push(format!(" ORDER BY albums.created_at {d}, albums.id"));
             }
         };
         qb.push(" LIMIT ").push_bind(limit as i64);

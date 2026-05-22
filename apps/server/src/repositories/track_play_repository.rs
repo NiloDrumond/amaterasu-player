@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
@@ -170,5 +171,109 @@ impl TrackPlayRepository {
             .into_iter()
             .map(|r| (r.playlist_id, r.play_count))
             .collect())
+    }
+
+    /// Album IDs the user has played, ordered by most recent play. Returns the
+    /// timestamp of the latest play alongside each id so callers can merge
+    /// album and playlist recency lists.
+    pub async fn recent_album_ids_with_time(
+        executor: impl PgExecutor<'_>,
+        user_id: Uuid,
+        limit: i64,
+    ) -> AppResult<Vec<(Uuid, DateTime<Utc>)>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT context_album_id AS "album_id!", MAX(played_at) AS "last_played!"
+            FROM track_plays
+            WHERE user_id = $1 AND context_album_id IS NOT NULL
+            GROUP BY context_album_id
+            ORDER BY MAX(played_at) DESC
+            LIMIT $2
+            "#,
+            user_id,
+            limit,
+        )
+        .fetch_all(executor)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.album_id, r.last_played))
+            .collect())
+    }
+
+    /// Playlist IDs the user has played, ordered by most recent play. Like
+    /// `recent_album_ids_with_time`, returns timestamps for cross-source merging.
+    pub async fn recent_playlist_ids_with_time(
+        executor: impl PgExecutor<'_>,
+        user_id: Uuid,
+        limit: i64,
+    ) -> AppResult<Vec<(Uuid, DateTime<Utc>)>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT context_playlist_id AS "playlist_id!", MAX(played_at) AS "last_played!"
+            FROM track_plays
+            WHERE user_id = $1 AND context_playlist_id IS NOT NULL
+            GROUP BY context_playlist_id
+            ORDER BY MAX(played_at) DESC
+            LIMIT $2
+            "#,
+            user_id,
+            limit,
+        )
+        .fetch_all(executor)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.playlist_id, r.last_played))
+            .collect())
+    }
+
+    /// Albums the user used to play heavily (>= 3 lifetime plays from this
+    /// context) but hasn't touched in the last 30 days. Returned with total
+    /// play count so callers can merge with playlists by historical popularity.
+    pub async fn forgotten_album_ids_with_plays(
+        executor: impl PgExecutor<'_>,
+        user_id: Uuid,
+        limit: i64,
+    ) -> AppResult<Vec<(Uuid, i64)>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT context_album_id AS "album_id!", COUNT(*) AS "plays!"
+            FROM track_plays
+            WHERE user_id = $1 AND context_album_id IS NOT NULL
+            GROUP BY context_album_id
+            HAVING COUNT(*) >= 3 AND MAX(played_at) < NOW() - INTERVAL '30 days'
+            ORDER BY COUNT(*) DESC
+            LIMIT $2
+            "#,
+            user_id,
+            limit,
+        )
+        .fetch_all(executor)
+        .await?;
+        Ok(rows.into_iter().map(|r| (r.album_id, r.plays)).collect())
+    }
+
+    pub async fn forgotten_playlist_ids_with_plays(
+        executor: impl PgExecutor<'_>,
+        user_id: Uuid,
+        limit: i64,
+    ) -> AppResult<Vec<(Uuid, i64)>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT context_playlist_id AS "playlist_id!", COUNT(*) AS "plays!"
+            FROM track_plays
+            WHERE user_id = $1 AND context_playlist_id IS NOT NULL
+            GROUP BY context_playlist_id
+            HAVING COUNT(*) >= 3 AND MAX(played_at) < NOW() - INTERVAL '30 days'
+            ORDER BY COUNT(*) DESC
+            LIMIT $2
+            "#,
+            user_id,
+            limit,
+        )
+        .fetch_all(executor)
+        .await?;
+        Ok(rows.into_iter().map(|r| (r.playlist_id, r.plays)).collect())
     }
 }
