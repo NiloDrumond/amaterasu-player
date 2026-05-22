@@ -250,6 +250,16 @@ impl ArtistRepository {
         Ok(updated)
     }
 
+    pub async fn find_by_mbid(
+        executor: impl PgExecutor<'_>,
+        mbid: &str,
+    ) -> Result<Option<Artist>, AppError> {
+        let artist = sqlx::query_as!(Artist, r#"SELECT * FROM artists WHERE mbid = $1"#, mbid,)
+            .fetch_optional(executor)
+            .await?;
+        Ok(artist)
+    }
+
     /// Stamps the MusicBrainz artist MBID without touching anything else.
     /// Used after the admin accepts a MB suggestion.
     pub async fn set_mbid(

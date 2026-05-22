@@ -18,8 +18,9 @@ use uuid::Uuid;
 use crate::db::entities::{Album, Artist, Track};
 use crate::error::{AppError, AppResult};
 use crate::repositories::{
-    AlbumRepository, ArtistRepository, MbLookupStatusRepository, MetadataSuggestion,
-    MetadataSuggestionRepository, NewSuggestion, SuggestionEntityType, TrackRepository,
+    AlbumRepository, AliasRepository, ArtistRepository, MbLookupStatusRepository,
+    MetadataSuggestion, MetadataSuggestionRepository, NewSuggestion, SuggestionEntityType,
+    TrackRepository,
 };
 use crate::services::cover_storage;
 
@@ -351,9 +352,16 @@ impl MetadataSuggestionService {
             .or_else(|| Some(current.sort_title.clone()))
             .unwrap_or_else(|| new_title.clone());
         let new_date = proposal.date.or(current.date);
-        let new_artist_id = current.artist_id; // artist re-pointing requires a separate decision
 
         let mut tx = self.pool.begin().await?;
+        let new_artist_id = resolve_artist_from_mb(
+            &mut tx,
+            proposal.artist_mbid.as_deref(),
+            proposal.artist_name.as_deref(),
+        )
+        .await?
+        .or(current.artist_id);
+
         AlbumRepository::update(
             &mut *tx,
             s.entity_id,
@@ -509,4 +517,40 @@ fn proposed_artist_json(p: &ArtistProposal) -> JsonValue {
 
 fn proposed_track_json(p: &TrackProposal) -> JsonValue {
     serde_json::to_value(p).unwrap_or_else(|_| json!({}))
+}
+
+/// Best-effort resolve of an MB artist (by MBID + name) to a local artist row.
+/// Falls back to creating a new artist when nothing matches. Returns `None`
+/// only when neither MBID nor name is usable.
+///
+/// Resolution order:
+///   1. Local artist whose `mbid` column matches.
+///   2. Local artist reachable via the alias table by name (case-insensitive).
+///   3. Create a new artist with the proposed name + MBID, and seed an alias.
+async fn resolve_artist_from_mb(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    mbid: Option<&str>,
+    name: Option<&str>,
+) -> AppResult<Option<Uuid>> {
+    let mbid = mbid.map(str::trim).filter(|s| !s.is_empty());
+    let name = name.map(str::trim).filter(|s| !s.is_empty());
+
+    if let Some(m) = mbid {
+        if let Some(existing) = ArtistRepository::find_by_mbid(&mut **tx, m).await? {
+            return Ok(Some(existing.id));
+        }
+    }
+    if let Some(n) = name {
+        if let Some(id) = AliasRepository::find_artist_id_by_source_name(&mut **tx, n).await? {
+            return Ok(Some(id));
+        }
+    }
+
+    // Neither lookup hit -- create a new artist when we at least have a name.
+    let Some(n) = name else { return Ok(None) };
+    let mut new_artist = Artist::new(n.to_string(), n.to_string());
+    new_artist.mbid = mbid.map(str::to_string);
+    let created = ArtistRepository::create(&mut **tx, &new_artist).await?;
+    AliasRepository::insert_artist_alias(&mut **tx, n, created.id).await?;
+    Ok(Some(created.id))
 }
