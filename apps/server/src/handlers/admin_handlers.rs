@@ -22,7 +22,10 @@ use crate::{
     },
     error::{AppError, AppResult},
     repositories::track_repository::TrackUpdate,
-    repositories::{AlbumRepository, AliasRepository, ArtistRepository, TrackRepository},
+    repositories::{
+        AlbumRepository, AliasRepository, ArtistRepository, MetadataSuggestionRepository,
+        SuggestionEntityType, TrackRepository,
+    },
     search::indexers,
     state::AppState,
 };
@@ -319,17 +322,23 @@ pub async fn delete_album(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    let deleted = AlbumRepository::delete_if_empty(&state.db, id).await?;
+    let mut tx = state.db.begin().await?;
+    let exists_before = AlbumRepository::find_by_id(&mut *tx, id).await.is_ok();
+    // Clean up MB suggestions before the album row goes -- the table has no
+    // FK so we'd otherwise leak orphan rows.
+    if exists_before {
+        MetadataSuggestionRepository::delete_for_entity(&mut tx, SuggestionEntityType::Album, id)
+            .await?;
+    }
+    let deleted = AlbumRepository::delete_if_empty(&mut *tx, id).await?;
+    tx.commit().await?;
     if deleted {
         indexers::remove(&state.search, SearchEntityType::Album, id);
         Ok(StatusCode::NO_CONTENT)
+    } else if !exists_before {
+        Err(AppError::NotFound)
     } else {
-        // Either album not found, or it still has live tracks. Distinguish:
-        if AlbumRepository::find_by_id(&state.db, id).await.is_err() {
-            Err(AppError::NotFound)
-        } else {
-            Err(AppError::AlbumNotEmpty)
-        }
+        Err(AppError::AlbumNotEmpty)
     }
 }
 
@@ -388,11 +397,18 @@ pub async fn delete_artist(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    let deleted = ArtistRepository::delete_if_empty(&state.db, id).await?;
+    let mut tx = state.db.begin().await?;
+    let exists_before = ArtistRepository::find_by_id(&mut *tx, id).await?.is_some();
+    if exists_before {
+        MetadataSuggestionRepository::delete_for_entity(&mut tx, SuggestionEntityType::Artist, id)
+            .await?;
+    }
+    let deleted = ArtistRepository::delete_if_empty(&mut *tx, id).await?;
+    tx.commit().await?;
     if deleted {
         indexers::remove(&state.search, SearchEntityType::Artist, id);
         Ok(StatusCode::NO_CONTENT)
-    } else if ArtistRepository::find_by_id(&state.db, id).await?.is_none() {
+    } else if !exists_before {
         Err(AppError::NotFound)
     } else {
         Err(AppError::ArtistNotEmpty)

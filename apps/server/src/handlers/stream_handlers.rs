@@ -259,6 +259,8 @@ mod tests {
             deleted_at: None,
             locked_at: None,
             approved: false,
+            mb_lookup_status: None,
+            mb_lookup_attempted_at: None,
             created_at: now,
             updated_at: now,
         }

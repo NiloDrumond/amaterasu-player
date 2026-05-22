@@ -54,8 +54,8 @@ tracing-appender = "0.2"
 tracing-loki = "0.2"
 url = "2"
 
-# Reverse proxy to Grafana
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+# Outbound HTTP: Grafana proxy + MusicBrainz/CAA clients
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
 
 # Config
 dotenvy = "0.15"
@@ -79,3 +79,6 @@ tantivy = "0.26"
 amaterasu-macros = { path = "../../libs/macros" }
 ron = "0.12.0"
 base64 = "0.22.1"
+
+[dev-dependencies]
+wiremock = "0.6"

@@ -1,7 +1,9 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+
+use uuid::Uuid;
 
 use sqlx::PgPool;
 use walkdir::{DirEntry, WalkDir};
@@ -27,6 +29,7 @@ fn is_system_junk(entry: &DirEntry) -> bool {
     name.starts_with("._")
 }
 
+use crate::musicbrainz::{LookupJob, LookupSender};
 use crate::scanner::persist::persist_scanned_file;
 use crate::scanner::scan_file::ScannedFile;
 use crate::scanner::scan_track::parse_numeric_prefix;
@@ -47,6 +50,9 @@ pub struct LibraryScanner {
     covers_dir: PathBuf,
     pool: PgPool,
     scanning: Arc<AtomicBool>,
+    /// Optional sender to the MB lookup worker. `None` when MB is disabled;
+    /// the scanner runs the same regardless and just skips enqueuing.
+    mb_lookup_sender: Option<LookupSender>,
 }
 
 impl LibraryScanner {
@@ -56,7 +62,14 @@ impl LibraryScanner {
             covers_dir,
             pool,
             scanning: Arc::new(AtomicBool::new(false)),
+            mb_lookup_sender: None,
         }
+    }
+
+    /// Builder hook called from `main.rs` once the MB worker is spawned.
+    pub fn with_mb_lookup_sender(mut self, sender: LookupSender) -> Self {
+        self.mb_lookup_sender = Some(sender);
+        self
     }
 
     pub fn try_acquire_scan(&self) -> Option<ScanPermit> {
@@ -79,6 +92,11 @@ impl LibraryScanner {
     pub async fn run_scan(&self, _permit: ScanPermit) -> Result<(), anyhow::Error> {
         let mut scanned: u64 = 0;
         let mut failed: u64 = 0;
+        // Per-scan dedup: many tracks share an album + an artist, but a
+        // single MB lookup per parent is enough. Without this set, a 50-track
+        // album enqueues 50 identical album lookups.
+        let mut enqueued_albums: HashSet<Uuid> = HashSet::new();
+        let mut enqueued_artists: HashSet<Uuid> = HashSet::new();
 
         let mut by_folder: BTreeMap<PathBuf, Vec<PathBuf>> = BTreeMap::new();
         let walker = WalkDir::new(&self.library_path)
@@ -130,7 +148,31 @@ impl LibraryScanner {
             for scanned_file in scanned_files {
                 let display_path = scanned_file.file_path().to_string();
                 match persist_scanned_file(&self.pool, &self.covers_dir, scanned_file).await {
-                    Ok(Some(_)) => scanned += 1,
+                    Ok(Some(track)) => {
+                        scanned += 1;
+                        // Enqueue MB lookups for the just-persisted track's
+                        // album + artist, deduplicated for this scan run.
+                        // `try_send` never blocks; failures are logged inside
+                        // `enqueue` and do not abort the scan.
+                        if let Some(sender) = &self.mb_lookup_sender {
+                            if let Some(album_id) = track.album_id {
+                                if enqueued_albums.insert(album_id) {
+                                    let _ = sender.enqueue(LookupJob::Album {
+                                        id: album_id,
+                                        force: false,
+                                    });
+                                }
+                            }
+                            if let Some(artist_id) = track.artist_id {
+                                if enqueued_artists.insert(artist_id) {
+                                    let _ = sender.enqueue(LookupJob::Artist {
+                                        id: artist_id,
+                                        force: false,
+                                    });
+                                }
+                            }
+                        }
+                    }
                     Ok(None) => {}
                     Err(e) => {
                         tracing::warn!("Failed to persist {}: {}", display_path, e);

@@ -198,3 +198,49 @@ pub struct ReviewQueueResponse {
     pub standalone_artists: Vec<ReviewQueueStandaloneArtist>,
     pub counts: ReviewQueueCounts,
 }
+
+// ===================================================================
+// MusicBrainz metadata suggestions
+// ===================================================================
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct MetadataSuggestionResponse {
+    pub id: Uuid,
+    pub entity_type: String,
+    pub entity_id: Uuid,
+    pub source: String,
+    pub mbid: String,
+    pub score: i32,
+    pub rank: i32,
+    /// Per-entity-type payload. See `musicbrainz::mapping` for the shape:
+    /// `AlbumProposal` for album suggestions, `ArtistProposal` for artists,
+    /// `TrackProposal` for tracks. The frontend discriminates on `entityType`.
+    #[ts(type = "Record<string, unknown>")]
+    pub proposed: serde_json::Value,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+}
+
+impl From<crate::repositories::MetadataSuggestion> for MetadataSuggestionResponse {
+    fn from(s: crate::repositories::MetadataSuggestion) -> Self {
+        Self {
+            id: s.id,
+            entity_type: s.entity_type,
+            entity_id: s.entity_id,
+            source: s.source,
+            mbid: s.mbid,
+            score: s.score as i32,
+            rank: s.rank as i32,
+            proposed: s.proposed,
+            status: s.status,
+            created_at: s.created_at,
+        }
+    }
+}
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct BulkMbLookupResponse {
+    pub enqueued: i64,
+}

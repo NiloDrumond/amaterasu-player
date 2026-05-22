@@ -3,7 +3,10 @@ use axum::{
     Router,
 };
 
-use crate::{handlers::admin_handlers, state::AppState};
+use crate::{
+    handlers::{admin_handlers, musicbrainz_handlers},
+    state::AppState,
+};
 
 pub fn admin_routes() -> Router<AppState> {
     Router::new()
@@ -86,5 +89,46 @@ pub fn admin_routes() -> Router<AppState> {
         .route(
             "/admin/artists/{id}/unapprove",
             post(admin_handlers::unapprove_artist),
+        )
+        // MusicBrainz metadata suggestions
+        .route(
+            "/admin/albums/{id}/mb-lookup",
+            post(musicbrainz_handlers::lookup_album),
+        )
+        .route(
+            "/admin/artists/{id}/mb-lookup",
+            post(musicbrainz_handlers::lookup_artist),
+        )
+        .route(
+            "/admin/tracks/{id}/mb-lookup",
+            post(musicbrainz_handlers::lookup_track),
+        )
+        .route(
+            "/admin/mb-lookup/pending",
+            post(musicbrainz_handlers::bulk_lookup_pending),
+        )
+        .route(
+            "/admin/albums/{id}/mb-suggestions",
+            get(musicbrainz_handlers::list_album_suggestions),
+        )
+        .route(
+            "/admin/artists/{id}/mb-suggestions",
+            get(musicbrainz_handlers::list_artist_suggestions),
+        )
+        .route(
+            "/admin/tracks/{id}/mb-suggestions",
+            get(musicbrainz_handlers::list_track_suggestions),
+        )
+        .route(
+            "/admin/review/queue/mb-suggestions",
+            get(musicbrainz_handlers::review_queue_album_suggestions),
+        )
+        .route(
+            "/admin/mb-suggestions/{id}/accept",
+            post(musicbrainz_handlers::accept_suggestion),
+        )
+        .route(
+            "/admin/mb-suggestions/{id}/reject",
+            post(musicbrainz_handlers::reject_suggestion),
         )
 }

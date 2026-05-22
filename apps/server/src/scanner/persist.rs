@@ -151,6 +151,8 @@ async fn find_or_create_artist(
         mbid: None,
         locked_at: None,
         approved: false,
+        mb_lookup_status: None,
+        mb_lookup_attempted_at: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
@@ -283,6 +285,8 @@ async fn upsert_track(
         deleted_at: None,
         locked_at: None,
         approved: false,
+        mb_lookup_status: None,
+        mb_lookup_attempted_at: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };

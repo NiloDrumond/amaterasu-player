@@ -12,6 +12,7 @@ mod dto;
 mod error;
 mod filters;
 pub mod handlers;
+mod musicbrainz;
 mod repositories;
 mod routes;
 mod scanner;
@@ -89,8 +90,39 @@ async fn main() -> anyhow::Result<()> {
         Err(e) => tracing::warn!("search: initial rebuild failed: {}", e),
     }
 
-    let library_scanner =
+    // Construct the MB suggestion service + spawn the worker before the
+    // scanner so we can hand it the lookup-sender on construction.
+    let (mb_service, mb_lookup_sender) = if config.musicbrainz.enabled {
+        let user_agent = config
+            .musicbrainz
+            .user_agent
+            .as_deref()
+            .expect("user_agent presence checked in Config::from_env");
+        let mb_client =
+            musicbrainz::MusicBrainzClient::new(user_agent, config.musicbrainz.base_url.clone())?;
+        let caa_client = musicbrainz::CoverArtClient::new(
+            user_agent,
+            config.musicbrainz.cover_art_archive_base_url.clone(),
+        )?;
+        let service = musicbrainz::MetadataSuggestionService::new(
+            db_pool.clone(),
+            covers_dir.clone(),
+            mb_client,
+            caa_client,
+            config.musicbrainz.max_candidates,
+        );
+        let sender = musicbrainz::spawn_worker(service.clone());
+        (Some(service), Some(sender))
+    } else {
+        tracing::info!("MusicBrainz integration disabled (MUSICBRAINZ_ENABLED=false)");
+        (None, None)
+    };
+
+    let mut library_scanner =
         scanner::LibraryScanner::new(config.library_path, covers_dir.clone(), db_pool.clone());
+    if let Some(sender) = mb_lookup_sender.clone() {
+        library_scanner = library_scanner.with_mb_lookup_sender(sender);
+    }
 
     if !config.skip_initial_scan {
         let library_scanner_clone = library_scanner.clone();
@@ -128,6 +160,8 @@ async fn main() -> anyhow::Result<()> {
         covers_dir,
         search_index,
         grafana_proxy,
+        mb_service,
+        mb_lookup_sender,
     );
 
     let tasks_state = app_state.clone();

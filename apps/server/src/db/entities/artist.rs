@@ -13,6 +13,9 @@ pub struct Artist {
     pub approved: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+
+    pub mb_lookup_status: Option<String>,
+    pub mb_lookup_attempted_at: Option<DateTime<Utc>>,
 }
 
 impl Artist {
@@ -24,6 +27,8 @@ impl Artist {
             mbid: None,
             locked_at: None,
             approved: false,
+            mb_lookup_status: None,
+            mb_lookup_attempted_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

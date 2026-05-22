@@ -33,7 +33,7 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 		enableSorting: false,
 		enableHiding: false,
 	},
-	{ id: 'trackNo', accessorKey: 'trackNo', header: '#' },
+	{ id: 'trackNo', accessorKey: 'trackNo', header: '#', size: 30, maxSize: 30 },
 	{
 		accessorKey: 'title',
 		header: 'TITLE',

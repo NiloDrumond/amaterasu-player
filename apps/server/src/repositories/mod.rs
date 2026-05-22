@@ -2,6 +2,7 @@ pub mod album_collection_repository;
 pub mod album_repository;
 pub mod alias_repository;
 pub mod artist_repository;
+pub mod metadata_suggestion_repository;
 pub mod playlist_repository;
 pub mod session_repository;
 pub mod tag_category_repository;
@@ -14,6 +15,10 @@ pub use album_collection_repository::AlbumCollectionRepository;
 pub use album_repository::{AlbumRepository, AlbumSortKey};
 pub use alias_repository::{AlbumAliasRow, AliasRepository, ArtistAliasRow};
 pub use artist_repository::{ArtistRepository, ArtistSortKey};
+pub use metadata_suggestion_repository::{
+    MbLookupStatusRepository, MetadataSuggestion, MetadataSuggestionRepository, NewSuggestion,
+    SuggestionEntityType,
+};
 pub use playlist_repository::{PlaylistRepository, PlaylistSortKey};
 pub use session_repository::SessionRepository;
 pub use tag_category_repository::TagCategoryRepository;

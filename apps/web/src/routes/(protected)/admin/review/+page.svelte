@@ -3,12 +3,14 @@
 	import TrackEditForm from '$lib/components/admin/track-edit-form.svelte';
 	import AlbumEditForm from '$lib/components/admin/album-edit-form.svelte';
 	import ArtistEditForm from '$lib/components/admin/artist-edit-form.svelte';
+	import MbSuggestionList from '$lib/components/admin/mb-suggestion-list.svelte';
 	import {
 		approveAlbumCascade,
 		approveAlbum,
 		approveArtist,
 		approveTrack,
 	} from '$lib/services/admin-service';
+	import { bulkLookupPending, lookupAlbum, lookupArtist } from '$lib/services/musicbrainz-service';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import { toast } from 'svelte-sonner';
 	import { invalidateAll, goto } from '$app/navigation';
@@ -21,6 +23,25 @@
 	let showApproved = $state<Record<string, boolean>>({});
 	let cascading = $state<Record<string, boolean>>({});
 	let approving = $state<Record<string, boolean>>({});
+	let mbLooking = $state<Record<string, boolean>>({});
+	let mbExpanded = $state<Record<string, boolean>>({});
+	let bulkLooking = $state(false);
+
+	async function lookupOnMb(kind: 'album' | 'artist', id: string) {
+		mbLooking[id] = true;
+		const { error } = await (kind === 'album' ? lookupAlbum(fetch, id) : lookupArtist(fetch, id));
+		mbLooking[id] = false;
+		if (error) toast.error('MusicBrainz lookup failed', { description: error });
+		else toast.success('Looking up on MusicBrainz…');
+	}
+
+	async function lookupAllPending() {
+		bulkLooking = true;
+		const { data: resp, error } = await bulkLookupPending(fetch);
+		bulkLooking = false;
+		if (error) toast.error('Bulk lookup failed', { description: error });
+		else toast.success(`Enqueued ${resp?.enqueued ?? 0n} MusicBrainz lookups`);
+	}
 
 	function pendingCount(group: ReviewQueueAlbumGroup): number {
 		let n = 0;
@@ -83,6 +104,11 @@
 			Each row shows the basics — click <strong>Edit</strong> if something looks off, or
 			<strong>Approve</strong> to clear it.
 		</p>
+		<div class="pt-2">
+			<Button size="sm" variant="outline" onclick={lookupAllPending} disabled={bulkLooking}>
+				{bulkLooking ? 'Enqueueing…' : 'Lookup all pending on MusicBrainz'}
+			</Button>
+		</div>
 	</header>
 
 	{#if data.queue.standaloneArtists.length > 0}
@@ -273,12 +299,40 @@
 					</Button>
 					<Button
 						size="sm"
+						variant="outline"
+						onclick={() => lookupOnMb('album', group.album.id)}
+						disabled={mbLooking[group.album.id]}
+					>
+						{mbLooking[group.album.id] ? '…' : 'Lookup on MB'}
+					</Button>
+					<Button
+						size="sm"
 						variant="ghost"
 						onclick={() => (expanded[group.album.id] = !isExpanded)}
 					>
 						{isExpanded ? 'Collapse' : 'Expand'}
 					</Button>
 				</header>
+
+				{#if data.albumSuggestions[group.album.id]?.length}
+					{@const mbOpen = mbExpanded[group.album.id] === true}
+					<div class="border-b bg-muted/10">
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-foreground"
+							onclick={() => (mbExpanded[group.album.id] = !mbOpen)}
+						>
+							{mbOpen ? '▾' : '▸'} MusicBrainz suggestions ({data.albumSuggestions[group.album.id]
+								.length})
+						</button>
+						{#if mbOpen}
+							<MbSuggestionList
+								suggestions={data.albumSuggestions[group.album.id]}
+								entityType="album"
+							/>
+						{/if}
+					</div>
+				{/if}
 
 				{#if isExpanded}
 					<div>

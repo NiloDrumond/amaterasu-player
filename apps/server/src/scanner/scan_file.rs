@@ -67,6 +67,8 @@ impl From<ScannedFile> for Track {
             deleted_at: None,
             locked_at: None,
             approved: false,
+            mb_lookup_status: None,
+            mb_lookup_attempted_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

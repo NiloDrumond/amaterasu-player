@@ -4,6 +4,7 @@ use std::sync::Arc;
 use axum::extract::FromRef;
 use sqlx::PgPool;
 
+use crate::musicbrainz::{LookupSender, MetadataSuggestionService};
 use crate::scanner::LibraryScanner;
 use crate::search::SearchIndex;
 
@@ -14,6 +15,9 @@ pub struct AppState {
     pub covers_dir: PathBuf,
     pub search: Arc<SearchIndex>,
     pub grafana_proxy: Option<crate::handlers::grafana_proxy_handlers::GrafanaProxy>,
+    /// `None` when MUSICBRAINZ_ENABLED=false.
+    pub mb_service: Option<MetadataSuggestionService>,
+    pub mb_lookup_sender: Option<LookupSender>,
 }
 
 impl FromRef<AppState> for () {
@@ -21,12 +25,15 @@ impl FromRef<AppState> for () {
 }
 
 impl AppState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         db: PgPool,
         library_scanner: LibraryScanner,
         covers_dir: PathBuf,
         search: Arc<SearchIndex>,
         grafana_proxy: Option<crate::handlers::grafana_proxy_handlers::GrafanaProxy>,
+        mb_service: Option<MetadataSuggestionService>,
+        mb_lookup_sender: Option<LookupSender>,
     ) -> Self {
         Self {
             db,
@@ -34,6 +41,8 @@ impl AppState {
             covers_dir,
             search,
             grafana_proxy,
+            mb_service,
+            mb_lookup_sender,
         }
     }
 }

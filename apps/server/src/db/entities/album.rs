@@ -19,6 +19,9 @@ pub struct Album {
 
     pub replaygain_album_gain: Option<f32>,
     pub replaygain_album_peak: Option<f32>,
+
+    pub mb_lookup_status: Option<String>,
+    pub mb_lookup_attempted_at: Option<DateTime<Utc>>,
 }
 
 impl Album {
@@ -42,6 +45,8 @@ impl Album {
             approved: false,
             replaygain_album_gain,
             replaygain_album_peak,
+            mb_lookup_status: None,
+            mb_lookup_attempted_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

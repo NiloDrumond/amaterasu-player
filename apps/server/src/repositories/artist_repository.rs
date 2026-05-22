@@ -250,6 +250,23 @@ impl ArtistRepository {
         Ok(updated)
     }
 
+    /// Stamps the MusicBrainz artist MBID without touching anything else.
+    /// Used after the admin accepts a MB suggestion.
+    pub async fn set_mbid(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+        mbid: &str,
+    ) -> Result<(), AppError> {
+        sqlx::query!(
+            r#"UPDATE artists SET mbid = $2, updated_at = NOW() WHERE id = $1"#,
+            id,
+            mbid,
+        )
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
     pub async fn clear_lock(executor: impl PgExecutor<'_>, id: Uuid) -> Result<(), AppError> {
         sqlx::query!(
             r#"UPDATE
