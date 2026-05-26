@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use tokio::sync::Semaphore;
+use tokio::task::JoinSet;
 use uuid::Uuid;
 
 use sqlx::PgPool;
@@ -90,14 +92,14 @@ impl LibraryScanner {
     }
 
     pub async fn run_scan(&self, _permit: ScanPermit) -> Result<(), anyhow::Error> {
+        ffmpeg_next::init()?;
+
         let mut scanned: u64 = 0;
         let mut failed: u64 = 0;
-        // Per-scan dedup: many tracks share an album + an artist, but a
-        // single MB lookup per parent is enough. Without this set, a 50-track
-        // album enqueues 50 identical album lookups.
         let mut enqueued_albums: HashSet<Uuid> = HashSet::new();
         let mut enqueued_artists: HashSet<Uuid> = HashSet::new();
 
+        // Phase 1: Walk & collect files grouped by folder.
         let mut by_folder: BTreeMap<PathBuf, Vec<PathBuf>> = BTreeMap::new();
         let walker = WalkDir::new(&self.library_path)
             .into_iter()
@@ -118,18 +120,46 @@ impl LibraryScanner {
             by_folder.entry(parent).or_default().push(path);
         }
 
-        for (_parent, files) in by_folder {
-            let mut scanned_files: Vec<ScannedFile> = Vec::with_capacity(files.len());
-            for path in &files {
-                match ScannedFile::scan(path, &self.library_path) {
-                    Ok(f) => scanned_files.push(f),
-                    Err(e) => {
-                        tracing::warn!("Failed to scan {}: {}", path.display(), e);
-                        failed += 1;
-                    }
+        // Phase 2: Scan files in parallel across all folders.
+        let max_parallel = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(4);
+        let semaphore = Arc::new(Semaphore::new(max_parallel));
+        let mut join_set = JoinSet::new();
+
+        for (parent, files) in &by_folder {
+            for path in files {
+                let permit = semaphore.clone().acquire_owned().await.unwrap();
+                let path = path.clone();
+                let parent = parent.clone();
+                let library_path = self.library_path.clone();
+                join_set.spawn_blocking(move || {
+                    let _permit = permit;
+                    let result = ScannedFile::scan(&path, &library_path);
+                    (parent, path, result)
+                });
+            }
+        }
+
+        let mut scanned_by_folder: BTreeMap<PathBuf, Vec<ScannedFile>> = BTreeMap::new();
+        while let Some(res) = join_set.join_next().await {
+            match res {
+                Ok((parent, _, Ok(f))) => {
+                    scanned_by_folder.entry(parent).or_default().push(f);
+                }
+                Ok((_, path, Err(e))) => {
+                    tracing::warn!("Failed to scan {}: {}", path.display(), e);
+                    failed += 1;
+                }
+                Err(e) => {
+                    tracing::warn!("Scan task panicked: {}", e);
+                    failed += 1;
                 }
             }
+        }
 
+        // Phase 3: Album gate + persist (sequential, per folder).
+        for (_parent, mut scanned_files) in scanned_by_folder {
             let album_gate = scanned_files.len() >= 2
                 && scanned_files
                     .iter()
@@ -150,10 +180,6 @@ impl LibraryScanner {
                 match persist_scanned_file(&self.pool, &self.covers_dir, scanned_file).await {
                     Ok(Some(track)) => {
                         scanned += 1;
-                        // Enqueue MB lookups for the just-persisted track's
-                        // album + artist, deduplicated for this scan run.
-                        // `try_send` never blocks; failures are logged inside
-                        // `enqueue` and do not abort the scan.
                         if let Some(sender) = &self.mb_lookup_sender {
                             if let Some(album_id) = track.album_id {
                                 if enqueued_albums.insert(album_id) {

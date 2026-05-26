@@ -117,6 +117,14 @@ impl TrackRepository {
         Ok(track)
     }
 
+    pub async fn find_by_ids(executor: impl PgExecutor<'_>, ids: &[Uuid]) -> AppResult<Vec<Track>> {
+        let tracks = sqlx::query_as!(Track, r#"SELECT * FROM tracks WHERE id = ANY($1)"#, ids)
+            .fetch_all(executor)
+            .await?;
+
+        Ok(tracks)
+    }
+
     pub async fn find_by_audio_hash(
         executor: impl PgExecutor<'_>,
         audio_hash: &[u8],
@@ -538,6 +546,48 @@ WHERE id = $1
         Ok(tracks)
     }
 
+    pub async fn find_by_album_ids(
+        executor: impl PgExecutor<'_>,
+        album_ids: &[Uuid],
+    ) -> AppResult<Vec<Track>> {
+        let tracks = sqlx::query_as!(
+            Track,
+            r#"
+            SELECT *
+            FROM tracks
+            WHERE album_id = ANY($1)
+              AND deleted_at IS NULL
+            ORDER BY album_id, disc NULLS LAST, track_no NULLS LAST
+            "#,
+            album_ids
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(tracks)
+    }
+
+    pub async fn find_by_artist_ids(
+        executor: impl PgExecutor<'_>,
+        artist_ids: &[Uuid],
+    ) -> AppResult<Vec<Track>> {
+        let tracks = sqlx::query_as!(
+            Track,
+            r#"
+            SELECT *
+            FROM tracks
+            WHERE artist_id = ANY($1)
+              AND deleted_at IS NULL
+            ORDER BY artist_id, disc NULLS LAST, track_no NULLS LAST, title
+            "#,
+            artist_ids
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(tracks)
+    }
+
     pub async fn find_by_artist_id(
         executor: impl PgExecutor<'_>,
         artist_id: Uuid,
@@ -620,13 +670,16 @@ WHERE id = $1
     pub async fn find(
         pool: &PgPool,
         filter: Option<&FilterNode>,
-        limit: i32,
-        offset: i32,
-        sort: Option<TrackSortKey>,
-        dir: Option<SortDir>,
-        seed: Option<i64>,
-        user_id: Option<Uuid>,
+        params: &super::FindParams<TrackSortKey>,
     ) -> AppResult<Vec<Track>> {
+        let super::FindParams {
+            limit,
+            offset,
+            sort,
+            dir,
+            seed,
+            user_id,
+        } = params;
         let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
             "SELECT tracks.* FROM tracks \
              LEFT JOIN albums ON albums.id = tracks.album_id \
@@ -684,8 +737,8 @@ WHERE id = $1
                 qb.push(" || tracks.id::text), tracks.id");
             }
         };
-        qb.push(" LIMIT ").push_bind(limit as i64);
-        qb.push(" OFFSET ").push_bind(offset as i64);
+        qb.push(" LIMIT ").push_bind(*limit as i64);
+        qb.push(" OFFSET ").push_bind(*offset as i64);
 
         let tracks = qb.build_query_as::<Track>().fetch_all(pool).await?;
         Ok(tracks)

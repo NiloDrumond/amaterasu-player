@@ -10,4 +10,8 @@ export type SearchPaginationParams = {
 	q: string | null;
 	sort: string | null;
 	dir: SortDir | null;
+	/**
+	 * Seed used when `sort == "random"` for stable cross-page shuffles.
+	 */
+	seed: bigint | null;
 };

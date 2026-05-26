@@ -150,13 +150,16 @@ impl AlbumRepository {
     pub async fn find(
         pool: &PgPool,
         filter: Option<&FilterNode>,
-        limit: i32,
-        offset: i32,
-        sort: Option<AlbumSortKey>,
-        dir: Option<SortDir>,
-        seed: Option<i64>,
-        user_id: Option<Uuid>,
+        params: &super::FindParams<AlbumSortKey>,
     ) -> AppResult<Vec<Album>> {
+        let super::FindParams {
+            limit,
+            offset,
+            sort,
+            dir,
+            seed,
+            user_id,
+        } = params;
         let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
             "SELECT albums.* FROM albums \
              LEFT JOIN artists ON artists.id = albums.artist_id \
@@ -221,8 +224,8 @@ impl AlbumRepository {
                 qb.push(" || albums.id::text), albums.id");
             }
         };
-        qb.push(" LIMIT ").push_bind(limit as i64);
-        qb.push(" OFFSET ").push_bind(offset as i64);
+        qb.push(" LIMIT ").push_bind(*limit as i64);
+        qb.push(" OFFSET ").push_bind(*offset as i64);
 
         let albums = qb.build_query_as::<Album>().fetch_all(pool).await?;
         Ok(albums)

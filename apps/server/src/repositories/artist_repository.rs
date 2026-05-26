@@ -139,13 +139,16 @@ impl ArtistRepository {
     pub async fn find_all_with_query(
         pool: &PgPool,
         query: Option<&str>,
-        limit: i32,
-        offset: i32,
-        sort: Option<ArtistSortKey>,
-        dir: Option<SortDir>,
-        seed: Option<i64>,
-        user_id: Option<Uuid>,
+        params: &super::FindParams<ArtistSortKey>,
     ) -> Result<Vec<Artist>, AppError> {
+        let super::FindParams {
+            limit,
+            offset,
+            sort,
+            dir,
+            seed,
+            user_id,
+        } = params;
         let pattern = query.map(|q| {
             format!(
                 "%{}%",
@@ -204,8 +207,8 @@ impl ArtistRepository {
                 qb.push(" || artists.id::text), artists.id");
             }
         };
-        qb.push(" LIMIT ").push_bind(limit as i64);
-        qb.push(" OFFSET ").push_bind(offset as i64);
+        qb.push(" LIMIT ").push_bind(*limit as i64);
+        qb.push(" OFFSET ").push_bind(*offset as i64);
 
         let artists = qb.build_query_as::<Artist>().fetch_all(pool).await?;
         Ok(artists)

@@ -20,6 +20,7 @@ pub struct AppState {
     pub mb_service: Option<MetadataSuggestionService>,
     pub mb_lookup_sender: Option<LookupSender>,
     pub recommendation_cache: Arc<RecommendationCache>,
+    pub trust_proxy_headers: bool,
 }
 
 impl FromRef<AppState> for () {
@@ -36,6 +37,7 @@ impl AppState {
         grafana_proxy: Option<crate::handlers::grafana_proxy_handlers::GrafanaProxy>,
         mb_service: Option<MetadataSuggestionService>,
         mb_lookup_sender: Option<LookupSender>,
+        trust_proxy_headers: bool,
     ) -> Self {
         Self {
             db,
@@ -46,6 +48,7 @@ impl AppState {
             mb_service,
             mb_lookup_sender,
             recommendation_cache: Arc::new(RecommendationCache::new()),
+            trust_proxy_headers,
         }
     }
 }

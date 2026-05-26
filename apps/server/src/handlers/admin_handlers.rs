@@ -7,12 +7,13 @@ use axum_valid::Garde;
 use uuid::Uuid;
 
 use crate::{
+    auth::middleware::AdminUser,
     db::entities::{Album, Artist},
     dto::{
         request::{
             BatchUpdateTracksParams, BatchUpdateTracksResponse, CreateAlbumParams,
             CreateArtistParams, HardDeleteQuery, MergeAlbumParams, MergeArtistParams,
-            UpdateAlbumParams, UpdateArtistParams, UpdateTrackParams,
+            RegisterEmailParams, UpdateAlbumParams, UpdateArtistParams, UpdateTrackParams,
         },
         response::{
             AdminAlbumResponse, AdminArtistResponse, AdminDeletedTrackResponse, AdminTrackResponse,
@@ -27,6 +28,7 @@ use crate::{
         SuggestionEntityType, TrackRepository,
     },
     search::indexers,
+    services::auth_service::AuthService,
     state::AppState,
 };
 
@@ -44,6 +46,18 @@ async fn artist_with_aliases(
 async fn album_with_aliases(db: &PgPool, album: Album) -> AppResult<AdminAlbumResponse> {
     let aliases = AliasRepository::find_album_aliases_by_album_id(db, album.id).await?;
     Ok(AdminAlbumResponse::from(album).with_aliases(aliases))
+}
+
+pub async fn create_user(
+    State(state): State<AppState>,
+    _admin: AdminUser,
+    Garde(Json(body)): Garde<Json<RegisterEmailParams>>,
+) -> AppResult<StatusCode> {
+    let service = AuthService::new(state.db.clone());
+    service
+        .register_email(body.email, body.name, body.password)
+        .await?;
+    Ok(StatusCode::CREATED)
 }
 
 pub async fn scan_library(State(state): State<AppState>) -> StatusCode {
@@ -140,31 +154,22 @@ pub async fn batch_update_tracks(
     };
 
     let updated = TrackRepository::admin_update_many(&state.db, &body.ids, &patch).await?;
-    for tid in &body.ids {
-        if let Ok(Some(t)) = TrackRepository::find_by_id(&state.db, *tid).await {
-            let artist_name = match t.artist_id {
-                Some(aid) => ArtistRepository::find_by_id(&state.db, aid)
-                    .await
-                    .ok()
-                    .flatten()
-                    .map(|a| a.name),
-                None => None,
-            };
-            let album_title = match t.album_id {
-                Some(aid) => AlbumRepository::find_by_id(&state.db, aid)
-                    .await
-                    .ok()
-                    .map(|a| a.title),
-                None => None,
-            };
-            indexers::index_track(
-                &state.search,
-                &t,
-                artist_name.as_deref(),
-                album_title.as_deref(),
-            );
-        }
+
+    let tracks = TrackRepository::find_by_ids(&state.db, &body.ids).await?;
+    let artist_ids: Vec<Uuid> = tracks.iter().filter_map(|t| t.artist_id).collect();
+    let album_ids: Vec<Uuid> = tracks.iter().filter_map(|t| t.album_id).collect();
+    let artists = ArtistRepository::find_by_ids(&state.db, &artist_ids).await?;
+    let albums = AlbumRepository::find_by_ids(&state.db, &album_ids).await?;
+    let artist_map: std::collections::HashMap<Uuid, &str> =
+        artists.iter().map(|a| (a.id, a.name.as_str())).collect();
+    let album_map: std::collections::HashMap<Uuid, &str> =
+        albums.iter().map(|a| (a.id, a.title.as_str())).collect();
+    for t in &tracks {
+        let artist_name = t.artist_id.and_then(|id| artist_map.get(&id).copied());
+        let album_title = t.album_id.and_then(|id| album_map.get(&id).copied());
+        indexers::index_track(&state.search, t, artist_name, album_title);
     }
+
     Ok(Json(BatchUpdateTracksResponse {
         updated: updated as i64,
     }))
@@ -656,155 +661,167 @@ pub async fn get_review_queue(
         .clamp(1, REVIEW_QUEUE_MAX_LIMIT);
     let offset = q.offset.unwrap_or(0).max(0);
 
+    use std::collections::{HashMap, HashSet};
+
     let album_ids = AlbumRepository::find_pending_affected_ids(&state.db, limit, offset).await?;
 
-    // Collect every artist + album id we'll touch, so we can pull aliases in
-    // two bulk queries instead of N+1.
-    let mut all_album_ids: Vec<Uuid> = album_ids.clone();
-    let mut all_artist_ids: Vec<Uuid> = Vec::new();
-
-    struct GroupBuild {
-        album: Album,
-        artist: Option<crate::db::entities::Artist>,
-        tracks: Vec<crate::db::entities::Track>,
-        track_artists: Vec<crate::db::entities::Artist>,
+    // Batch-fetch albums + their tracks in two queries instead of N+1.
+    let albums = AlbumRepository::find_by_ids(&state.db, &album_ids).await?;
+    let album_map: HashMap<Uuid, &Album> = albums.iter().map(|a| (a.id, a)).collect();
+    let all_album_tracks = TrackRepository::find_by_album_ids(&state.db, &album_ids).await?;
+    let mut tracks_by_album: HashMap<Uuid, Vec<_>> = HashMap::new();
+    for t in &all_album_tracks {
+        if let Some(aid) = t.album_id {
+            tracks_by_album.entry(aid).or_default().push(t);
+        }
     }
 
-    let mut group_builds: Vec<GroupBuild> = Vec::with_capacity(album_ids.len());
-    for album_id in &album_ids {
-        let album = AlbumRepository::find_by_id(&state.db, *album_id).await?;
-        let artist = match album.artist_id {
-            Some(aid) => ArtistRepository::find_by_id(&state.db, aid).await?,
-            None => None,
-        };
-        if let Some(a) = &artist {
-            all_artist_ids.push(a.id);
+    // Collect every artist ID we'll need, then batch-fetch all artists once.
+    let mut needed_artist_ids: HashSet<Uuid> = HashSet::new();
+    for a in &albums {
+        if let Some(aid) = a.artist_id {
+            needed_artist_ids.insert(aid);
         }
-        let tracks = TrackRepository::find_by_album_id(&state.db, *album_id).await?;
-
-        let album_artist_id = artist.as_ref().map(|a| a.id);
-        let mut seen_artist_ids: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
-        let mut track_artists: Vec<crate::db::entities::Artist> = Vec::new();
-        for t in &tracks {
-            let Some(tid) = t.artist_id else { continue };
-            if Some(tid) == album_artist_id {
-                continue;
-            }
-            if !seen_artist_ids.insert(tid) {
-                continue;
-            }
-            if let Some(a) = ArtistRepository::find_by_id(&state.db, tid).await? {
-                all_artist_ids.push(a.id);
-                track_artists.push(a);
-            }
+    }
+    for t in &all_album_tracks {
+        if let Some(aid) = t.artist_id {
+            needed_artist_ids.insert(aid);
         }
-
-        group_builds.push(GroupBuild {
-            album,
-            artist,
-            tracks,
-            track_artists,
-        });
     }
 
+    // Standalone artists: pending artists whose albums aren't in the album queue.
     let standalone_artists_raw = ArtistRepository::find_pending_excluding_album_artists(
         &state.db,
         &album_ids,
         STANDALONE_ARTISTS_CAP,
     )
     .await?;
+    let standalone_artist_ids: Vec<Uuid> = standalone_artists_raw.iter().map(|a| a.id).collect();
 
-    struct StandaloneBuild {
-        artist: crate::db::entities::Artist,
-        tracks: Vec<crate::db::entities::Track>,
-        track_albums: Vec<Album>,
-    }
-    let mut standalone_builds: Vec<StandaloneBuild> =
-        Vec::with_capacity(standalone_artists_raw.len());
-    for artist in standalone_artists_raw {
-        all_artist_ids.push(artist.id);
-        let tracks = TrackRepository::find_by_artist_id(&state.db, artist.id).await?;
-        let mut album_ids_seen: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
-        for t in &tracks {
-            if let Some(aid) = t.album_id {
-                album_ids_seen.insert(aid);
-            }
+    // Fetch tracks for standalone artists in one query.
+    let standalone_tracks =
+        TrackRepository::find_by_artist_ids(&state.db, &standalone_artist_ids).await?;
+    let mut tracks_by_artist: HashMap<Uuid, Vec<_>> = HashMap::new();
+    for t in &standalone_tracks {
+        if let Some(aid) = t.artist_id {
+            tracks_by_artist.entry(aid).or_default().push(t);
         }
-        let album_id_vec: Vec<Uuid> = album_ids_seen.into_iter().collect();
-        let albums = AlbumRepository::find_by_ids(&state.db, &album_id_vec).await?;
-        for al in &albums {
-            all_album_ids.push(al.id);
-        }
-        standalone_builds.push(StandaloneBuild {
-            artist,
-            tracks,
-            track_albums: albums,
-        });
     }
 
-    // Bulk fetch aliases for everything we collected, then bucket by id.
+    // Collect album IDs from standalone tracks for their track_albums.
+    let mut standalone_album_ids: HashSet<Uuid> = HashSet::new();
+    for t in &standalone_tracks {
+        if let Some(aid) = t.album_id {
+            standalone_album_ids.insert(aid);
+        }
+    }
+    let standalone_albums = AlbumRepository::find_by_ids(
+        &state.db,
+        &standalone_album_ids.into_iter().collect::<Vec<_>>(),
+    )
+    .await?;
+    let standalone_album_map: HashMap<Uuid, &Album> =
+        standalone_albums.iter().map(|a| (a.id, a)).collect();
+
+    for a in &standalone_artists_raw {
+        needed_artist_ids.insert(a.id);
+    }
+
+    // Single batch fetch for all artists.
+    let all_artist_ids_vec: Vec<Uuid> = needed_artist_ids.into_iter().collect();
+    let all_artists = ArtistRepository::find_by_ids(&state.db, &all_artist_ids_vec).await?;
+    let artist_map: HashMap<Uuid, &Artist> = all_artists.iter().map(|a| (a.id, a)).collect();
+
+    // Bulk fetch aliases.
+    let mut all_album_ids: Vec<Uuid> = album_ids.clone();
+    all_album_ids.extend(standalone_albums.iter().map(|a| a.id));
     let artist_aliases =
-        AliasRepository::find_artist_aliases_by_artist_ids(&state.db, &all_artist_ids).await?;
+        AliasRepository::find_artist_aliases_by_artist_ids(&state.db, &all_artist_ids_vec).await?;
     let album_aliases =
         AliasRepository::find_album_aliases_by_album_ids(&state.db, &all_album_ids).await?;
-    let mut artist_alias_buckets: std::collections::HashMap<Uuid, Vec<_>> =
-        std::collections::HashMap::new();
+    let mut artist_alias_buckets: HashMap<Uuid, Vec<_>> = HashMap::new();
     for a in artist_aliases {
         artist_alias_buckets.entry(a.artist_id).or_default().push(a);
     }
-    let mut album_alias_buckets: std::collections::HashMap<Uuid, Vec<_>> =
-        std::collections::HashMap::new();
+    let mut album_alias_buckets: HashMap<Uuid, Vec<_>> = HashMap::new();
     for a in album_aliases {
         album_alias_buckets.entry(a.album_id).or_default().push(a);
     }
 
-    let take_artist_aliases = |buckets: &mut std::collections::HashMap<Uuid, Vec<_>>,
-                               id: Uuid|
-     -> Vec<_> { buckets.remove(&id).unwrap_or_default() };
-    let take_album_aliases = |buckets: &mut std::collections::HashMap<Uuid, Vec<_>>,
-                              id: Uuid|
-     -> Vec<_> { buckets.remove(&id).unwrap_or_default() };
+    let take_artist_aliases = |buckets: &mut HashMap<Uuid, Vec<_>>, id: Uuid| -> Vec<_> {
+        buckets.remove(&id).unwrap_or_default()
+    };
+    let take_album_aliases = |buckets: &mut HashMap<Uuid, Vec<_>>, id: Uuid| -> Vec<_> {
+        buckets.remove(&id).unwrap_or_default()
+    };
 
-    let mut album_groups: Vec<ReviewQueueAlbumGroup> = Vec::with_capacity(group_builds.len());
-    for b in group_builds {
-        let album_aliases_for = take_album_aliases(&mut album_alias_buckets, b.album.id);
-        let album_resp = AdminAlbumResponse::from(b.album).with_aliases(album_aliases_for);
-        let artist_resp = b.artist.map(|a| {
-            let aliases = take_artist_aliases(&mut artist_alias_buckets, a.id);
-            AdminArtistResponse::from(a).with_aliases(aliases)
-        });
-        let track_artists_resp: Vec<AdminArtistResponse> = b
-            .track_artists
-            .into_iter()
-            .map(|a| {
+    // Assemble album groups.
+    let mut album_groups: Vec<ReviewQueueAlbumGroup> = Vec::with_capacity(album_ids.len());
+    for album_id in &album_ids {
+        let Some(album) = album_map.get(album_id) else {
+            continue;
+        };
+        let album_aliases_for = take_album_aliases(&mut album_alias_buckets, album.id);
+        let album_resp = AdminAlbumResponse::from((*album).clone()).with_aliases(album_aliases_for);
+
+        let artist_resp = album.artist_id.and_then(|aid| {
+            artist_map.get(&aid).map(|a| {
                 let aliases = take_artist_aliases(&mut artist_alias_buckets, a.id);
-                AdminArtistResponse::from(a).with_aliases(aliases)
+                AdminArtistResponse::from((*a).clone()).with_aliases(aliases)
             })
-            .collect();
+        });
+
+        let tracks = tracks_by_album.remove(album_id).unwrap_or_default();
+        let album_artist_id = album.artist_id;
+        let mut seen: HashSet<Uuid> = HashSet::new();
+        let mut track_artists_resp: Vec<AdminArtistResponse> = Vec::new();
+        for t in &tracks {
+            let Some(tid) = t.artist_id else { continue };
+            if Some(tid) == album_artist_id || !seen.insert(tid) {
+                continue;
+            }
+            if let Some(a) = artist_map.get(&tid) {
+                let aliases = take_artist_aliases(&mut artist_alias_buckets, a.id);
+                track_artists_resp
+                    .push(AdminArtistResponse::from((*a).clone()).with_aliases(aliases));
+            }
+        }
+
         album_groups.push(ReviewQueueAlbumGroup {
             album: album_resp,
             artist: artist_resp,
-            tracks: b.tracks.into_iter().map(Into::into).collect(),
+            tracks: tracks.into_iter().cloned().map(Into::into).collect(),
             track_artists: track_artists_resp,
         });
     }
 
+    // Assemble standalone artists.
     let mut standalone_artists: Vec<ReviewQueueStandaloneArtist> =
-        Vec::with_capacity(standalone_builds.len());
-    for b in standalone_builds {
-        let artist_aliases_for = take_artist_aliases(&mut artist_alias_buckets, b.artist.id);
-        let artist_resp = AdminArtistResponse::from(b.artist).with_aliases(artist_aliases_for);
-        let track_albums_resp: Vec<AdminAlbumResponse> = b
-            .track_albums
+        Vec::with_capacity(standalone_artists_raw.len());
+    for artist in standalone_artists_raw {
+        let artist_aliases_for = take_artist_aliases(&mut artist_alias_buckets, artist.id);
+        let artist_resp =
+            AdminArtistResponse::from(artist.clone()).with_aliases(artist_aliases_for);
+
+        let tracks = tracks_by_artist.remove(&artist.id).unwrap_or_default();
+        let mut seen_album_ids: HashSet<Uuid> = HashSet::new();
+        for t in &tracks {
+            if let Some(aid) = t.album_id {
+                seen_album_ids.insert(aid);
+            }
+        }
+        let track_albums_resp: Vec<AdminAlbumResponse> = seen_album_ids
             .into_iter()
+            .filter_map(|aid| standalone_album_map.get(&aid))
             .map(|al| {
                 let aliases = take_album_aliases(&mut album_alias_buckets, al.id);
-                AdminAlbumResponse::from(al).with_aliases(aliases)
+                AdminAlbumResponse::from((*al).clone()).with_aliases(aliases)
             })
             .collect();
+
         standalone_artists.push(ReviewQueueStandaloneArtist {
             artist: artist_resp,
-            tracks: b.tracks.into_iter().map(Into::into).collect(),
+            tracks: tracks.into_iter().cloned().map(Into::into).collect(),
             track_albums: track_albums_resp,
         });
     }

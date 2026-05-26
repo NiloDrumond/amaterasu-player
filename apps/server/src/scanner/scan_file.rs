@@ -88,8 +88,6 @@ impl ScannedFile {
     }
 
     pub fn scan(path: &std::path::Path, library_path: &str) -> ScannerResult<Self> {
-        ffmpeg::init()?;
-
         let path_str = path.to_str().ok_or(ScannerError::InvalidFileName(
             path.to_str().map(|s| s.to_string()),
         ))?;

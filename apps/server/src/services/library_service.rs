@@ -8,8 +8,8 @@ use crate::dto::request::SortDir;
 use crate::error::AppResult;
 use crate::filters::FilterNode;
 use crate::repositories::{
-    AlbumRepository, AlbumSortKey, ArtistRepository, ArtistSortKey, TrackPlayRepository,
-    TrackRepository, TrackSortKey,
+    AlbumRepository, AlbumSortKey, ArtistRepository, ArtistSortKey, FindParams,
+    TrackPlayRepository, TrackRepository, TrackSortKey,
 };
 
 pub struct TrackWithRefs {
@@ -56,12 +56,14 @@ impl LibraryService {
         let tracks = TrackRepository::find(
             &self.pool,
             filter,
-            limit,
-            offset,
-            sort,
-            dir,
-            seed,
-            Some(self.user_id),
+            &FindParams {
+                limit,
+                offset,
+                sort,
+                dir,
+                seed,
+                user_id: Some(self.user_id),
+            },
         )
         .await?;
         let total = TrackRepository::count(&self.pool, filter).await?;
@@ -90,12 +92,14 @@ impl LibraryService {
         let albums = AlbumRepository::find(
             &self.pool,
             filter,
-            limit,
-            offset,
-            sort,
-            dir,
-            seed,
-            Some(self.user_id),
+            &FindParams {
+                limit,
+                offset,
+                sort,
+                dir,
+                seed,
+                user_id: Some(self.user_id),
+            },
         )
         .await?;
         let total = AlbumRepository::count(&self.pool, filter).await?;
@@ -126,12 +130,14 @@ impl LibraryService {
         let artists = ArtistRepository::find_all_with_query(
             &self.pool,
             query,
-            limit,
-            offset,
-            sort,
-            dir,
-            seed,
-            Some(self.user_id),
+            &FindParams {
+                limit,
+                offset,
+                sort,
+                dir,
+                seed,
+                user_id: Some(self.user_id),
+            },
         )
         .await?;
         let total = ArtistRepository::count_with_query(&self.pool, query).await?;

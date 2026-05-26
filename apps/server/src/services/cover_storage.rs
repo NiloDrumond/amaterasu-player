@@ -56,7 +56,9 @@ pub async fn store_cover_bytes(
     let filename = format!("{}.{}", hash, ext);
     let path = covers_dir.join(&filename);
     if !path.exists() {
-        tokio::fs::write(&path, bytes).await?;
+        let tmp = covers_dir.join(format!(".{}.tmp", filename));
+        tokio::fs::write(&tmp, bytes).await?;
+        tokio::fs::rename(&tmp, &path).await?;
     }
     Ok(filename)
 }

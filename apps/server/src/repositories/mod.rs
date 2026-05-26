@@ -1,3 +1,16 @@
+use uuid::Uuid;
+
+use crate::dto::request::SortDir;
+
+pub struct FindParams<S> {
+    pub limit: i32,
+    pub offset: i32,
+    pub sort: Option<S>,
+    pub dir: Option<SortDir>,
+    pub seed: Option<i64>,
+    pub user_id: Option<Uuid>,
+}
+
 pub mod album_collection_repository;
 pub mod album_repository;
 pub mod alias_repository;

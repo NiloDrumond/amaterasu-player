@@ -1,6 +1,7 @@
 use std::env;
+use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Config {
     pub database_url: String,
     pub server_host: String,
@@ -14,6 +15,9 @@ pub struct Config {
     pub admin_password: Option<String>,
     pub admin_name: Option<String>,
     pub skip_initial_scan: bool,
+    pub database_max_connections: u32,
+    pub trust_proxy_headers: bool,
+    pub cors_allowed_origins: Option<String>,
     pub musicbrainz: MusicBrainzConfig,
 }
 
@@ -71,6 +75,13 @@ impl Config {
             admin_password: optional_env("ADMIN_PASSWORD"),
             admin_name: optional_env("ADMIN_NAME"),
             skip_initial_scan: optional_env("SKIP_INITIAL_SCAN").unwrap_or_default() == "true",
+            database_max_connections: optional_env("DATABASE_MAX_CONNECTIONS")
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(10),
+            trust_proxy_headers: optional_env("TRUST_PROXY_HEADERS")
+                .map(|v| v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false),
+            cors_allowed_origins: optional_env("CORS_ALLOWED_ORIGINS"),
             musicbrainz,
         })
     }
@@ -80,5 +91,28 @@ fn optional_env(key: &str) -> Option<String> {
     match env::var(key) {
         Ok(val) if !val.trim().is_empty() => Some(val),
         _ => None,
+    }
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("database_url", &"[REDACTED]")
+            .field("server_host", &self.server_host)
+            .field("server_port", &self.server_port)
+            .field("library_path", &self.library_path)
+            .field("log_dir", &self.log_dir)
+            .field("data_dir", &self.data_dir)
+            .field("loki_url", &self.loki_url)
+            .field("grafana_url", &self.grafana_url)
+            .field("admin_email", &self.admin_email)
+            .field("admin_password", &"[REDACTED]")
+            .field("admin_name", &self.admin_name)
+            .field("skip_initial_scan", &self.skip_initial_scan)
+            .field("database_max_connections", &self.database_max_connections)
+            .field("trust_proxy_headers", &self.trust_proxy_headers)
+            .field("cors_allowed_origins", &self.cors_allowed_origins)
+            .field("musicbrainz", &self.musicbrainz)
+            .finish()
     }
 }

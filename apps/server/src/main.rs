@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use tokio::signal;
 use tower_governor::governor::GovernorConfigBuilder;
+use tower_governor::key_extractor::SmartIpKeyExtractor;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod auth;
@@ -68,7 +69,14 @@ async fn main() -> anyhow::Result<()> {
         config.server_port
     );
 
-    let db_pool = db::create_pool(&config.database_url).await?;
+    if !std::path::Path::new(&config.library_path).is_dir() {
+        tracing::warn!(
+            "LIBRARY_PATH '{}' does not exist or is not a directory",
+            config.library_path
+        );
+    }
+
+    let db_pool = db::create_pool(&config.database_url, config.database_max_connections).await?;
     tracing::info!("Database connected");
 
     bootstrap_admin(&db_pool, &config).await?;
@@ -162,6 +170,7 @@ async fn main() -> anyhow::Result<()> {
         grafana_proxy,
         mb_service,
         mb_lookup_sender,
+        config.trust_proxy_headers,
     );
 
     let tasks_state = app_state.clone();
@@ -169,21 +178,35 @@ async fn main() -> anyhow::Result<()> {
         initialize_background_tasks(tasks_state).await;
     });
 
-    let governor_conf = GovernorConfigBuilder::default()
+    let auth_governor = GovernorConfigBuilder::default()
+        .key_extractor(SmartIpKeyExtractor)
         .per_second(2)
         .burst_size(5)
         .finish()
         .unwrap();
-    let governor_limiter = governor_conf.limiter().clone();
+    let protected_governor = GovernorConfigBuilder::default()
+        .key_extractor(SmartIpKeyExtractor)
+        .per_second(30)
+        .burst_size(60)
+        .finish()
+        .unwrap();
+    let auth_limiter = auth_governor.limiter().clone();
+    let protected_limiter = protected_governor.limiter().clone();
     let interval = Duration::from_secs(60);
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(interval).await;
-            governor_limiter.retain_recent();
+            auth_limiter.retain_recent();
+            protected_limiter.retain_recent();
         }
     });
 
-    let app = routes::create_api_router(app_state, governor_conf);
+    let app = routes::create_api_router(
+        app_state,
+        auth_governor,
+        protected_governor,
+        config.cors_allowed_origins.as_deref(),
+    );
 
     let listener =
         tokio::net::TcpListener::bind(format!("{}:{}", config.server_host, config.server_port))
