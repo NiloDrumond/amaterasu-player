@@ -51,8 +51,19 @@ impl LibraryService {
         offset: i32,
         sort: Option<TrackSortKey>,
         dir: Option<SortDir>,
+        seed: Option<i64>,
     ) -> AppResult<(Vec<TrackWithRefs>, i64)> {
-        let tracks = TrackRepository::find(&self.pool, filter, limit, offset, sort, dir).await?;
+        let tracks = TrackRepository::find(
+            &self.pool,
+            filter,
+            limit,
+            offset,
+            sort,
+            dir,
+            seed,
+            Some(self.user_id),
+        )
+        .await?;
         let total = TrackRepository::count(&self.pool, filter).await?;
         let bundled = self.attach_refs(tracks).await?;
 
@@ -74,8 +85,19 @@ impl LibraryService {
         offset: i32,
         sort: Option<AlbumSortKey>,
         dir: Option<SortDir>,
+        seed: Option<i64>,
     ) -> AppResult<(Vec<AlbumWithRefs>, i64)> {
-        let albums = AlbumRepository::find(&self.pool, filter, limit, offset, sort, dir).await?;
+        let albums = AlbumRepository::find(
+            &self.pool,
+            filter,
+            limit,
+            offset,
+            sort,
+            dir,
+            seed,
+            Some(self.user_id),
+        )
+        .await?;
         let total = AlbumRepository::count(&self.pool, filter).await?;
         let bundled = self.bundle_albums(albums).await?;
         Ok((bundled, total))
@@ -99,10 +121,19 @@ impl LibraryService {
         offset: i32,
         sort: Option<ArtistSortKey>,
         dir: Option<SortDir>,
+        seed: Option<i64>,
     ) -> AppResult<(Vec<ArtistWithRefs>, i64)> {
-        let artists =
-            ArtistRepository::find_all_with_query(&self.pool, query, limit, offset, sort, dir)
-                .await?;
+        let artists = ArtistRepository::find_all_with_query(
+            &self.pool,
+            query,
+            limit,
+            offset,
+            sort,
+            dir,
+            seed,
+            Some(self.user_id),
+        )
+        .await?;
         let total = ArtistRepository::count_with_query(&self.pool, query).await?;
         let bundled = self.bundle_artists(artists).await?;
         Ok((bundled, total))

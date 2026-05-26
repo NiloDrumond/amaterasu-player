@@ -128,6 +128,7 @@ pub async fn list_collection_albums(
             params.offset,
             sort,
             params.dir,
+            params.seed,
         )
         .await?;
 

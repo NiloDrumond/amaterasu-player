@@ -5,7 +5,7 @@ import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
-	const { sort, dir } = extractSortFromUrl(url);
+	const { sort, dir, seed } = extractSortFromUrl(url);
 	const f = url.searchParams.get('f');
 	const { data: tracks, error: errorMessage } = await getTracks(fetch, {
 		limit,
@@ -13,6 +13,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		f,
 		sort,
 		dir,
+		seed,
 	});
 
 	if (errorMessage) {

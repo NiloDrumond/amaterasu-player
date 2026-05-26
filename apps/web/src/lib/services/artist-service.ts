@@ -13,6 +13,7 @@ export interface GetArtistsParams extends PaginationParams {
 	q?: string | null;
 	sort?: string | null;
 	dir?: SortDir | null;
+	seed?: number | null;
 }
 
 export function getArtists(
@@ -28,6 +29,7 @@ export function getArtists(
 		search.set('sort', params.sort);
 		search.set('dir', params.dir ?? 'asc');
 	}
+	if (params.seed != null) search.set('seed', String(params.seed));
 	return api<GetArtistsResponse>(fetch, `/api/artists?${search.toString()}`);
 }
 

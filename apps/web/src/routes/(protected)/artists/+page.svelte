@@ -3,9 +3,15 @@
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import ArtistRowContextMenu from '$lib/components/artists/artist-row-context-menu.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
+	import ShuffleButton from '$lib/components/filters/shuffle-button.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { applySortToUrl, extractSortFromUrl } from '$lib/utils/pagination';
+	import {
+		applyRandomSortToUrl,
+		applySortToUrl,
+		extractSortFromUrl,
+		generateSeed,
+	} from '$lib/utils/pagination';
 	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 
 	let { data } = $props();
@@ -32,11 +38,22 @@
 {:else}
 	<div class="flex flex-col gap-3 p-4">
 		<h1 class="tracking-widest uppercase">Artists</h1>
-		<SearchInput
-			value={page.url.searchParams.get('q') ?? ''}
-			onChange={onSearch}
-			placeholder="Search artists…"
-		/>
+		<div class="flex flex-row flex-wrap items-center gap-2">
+			<SearchInput
+				value={page.url.searchParams.get('q') ?? ''}
+				onChange={onSearch}
+				placeholder="Search artists…"
+			/>
+			<ShuffleButton
+				active={extractSortFromUrl(page.url).sort === 'random'}
+				onShuffle={() => {
+					goto(applyRandomSortToUrl(new URL(page.url), generateSeed()), {
+						keepFocus: true,
+						noScroll: true,
+					});
+				}}
+			/>
+		</div>
 		<DataTable
 			storageKey="artists"
 			data={data.artists.data}

@@ -83,7 +83,7 @@
 		defaultColumn: {
 			size: 50,
 		},
-		rowCount: 32,
+		rowCount: 50,
 		get manualSorting() {
 			return !!serverSort;
 		},
@@ -131,7 +131,7 @@
 		},
 		state: {
 			pagination: {
-				pageSize: 32,
+				pageSize: 50,
 				pageIndex: 0,
 			},
 			get columnFilters() {

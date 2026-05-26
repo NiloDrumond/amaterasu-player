@@ -4,7 +4,7 @@ use serde::Deserialize;
 use crate::filters::FilterNode;
 
 fn default_limit() -> i32 {
-    32
+    50
 }
 
 #[api_type("request/common")]
@@ -37,6 +37,9 @@ pub struct SearchPaginationParams {
     pub sort: Option<String>,
     #[serde(default)]
     pub dir: Option<SortDir>,
+    /// Seed used when `sort == "random"` for stable cross-page shuffles.
+    #[serde(default)]
+    pub seed: Option<i64>,
 }
 
 #[api_type("request/common")]
@@ -53,6 +56,9 @@ pub struct FilteredPaginationParams {
     pub sort: Option<String>,
     #[serde(default)]
     pub dir: Option<SortDir>,
+    /// Seed used when `sort == "random"` for stable cross-page shuffles.
+    #[serde(default)]
+    pub seed: Option<i64>,
 }
 
 impl FilteredPaginationParams {

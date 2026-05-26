@@ -18,7 +18,7 @@ type LoadData =
 
 export const load: PageServerLoad = async ({ fetch, url }): Promise<LoadData> => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
-	const { sort, dir } = extractSortFromUrl(url);
+	const { sort, dir, seed } = extractSortFromUrl(url);
 	const f = url.searchParams.get('f');
 	const { data: albums, error: errorMessage } = await getAlbums(fetch, {
 		limit,
@@ -26,6 +26,7 @@ export const load: PageServerLoad = async ({ fetch, url }): Promise<LoadData> =>
 		f,
 		sort,
 		dir,
+		seed,
 	});
 
 	if (errorMessage) {

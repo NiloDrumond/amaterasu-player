@@ -4,8 +4,9 @@ run = "mise tasks"
 
 [tasks."dev:web"]
 description = "Start web development environment"
+dir = "apps/web"
 run = """
-cd apps/web && bun run dev
+bun run dev
 """
 
 [tasks."dev:server"]

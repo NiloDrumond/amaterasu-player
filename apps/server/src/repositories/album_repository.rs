@@ -18,7 +18,9 @@ pub enum AlbumSortKey {
     Year,
     TrackCount,
     Time,
+    PlayCount,
     Recent,
+    Random,
 }
 
 impl FromStr for AlbumSortKey {
@@ -30,7 +32,9 @@ impl FromStr for AlbumSortKey {
             "year" => Ok(Self::Year),
             "trackCount" => Ok(Self::TrackCount),
             "time" => Ok(Self::Time),
+            "playCount" => Ok(Self::PlayCount),
             "recent" => Ok(Self::Recent),
+            "random" => Ok(Self::Random),
             other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
         }
     }
@@ -150,6 +154,8 @@ impl AlbumRepository {
         offset: i32,
         sort: Option<AlbumSortKey>,
         dir: Option<SortDir>,
+        seed: Option<i64>,
+        user_id: Option<Uuid>,
     ) -> AppResult<Vec<Album>> {
         let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
             "SELECT albums.* FROM albums \
@@ -161,6 +167,11 @@ impl AlbumRepository {
                GROUP BY album_id \
              ) agg ON agg.album_id = albums.id",
         );
+        if matches!(sort, Some(AlbumSortKey::PlayCount)) {
+            qb.push(" LEFT JOIN (SELECT context_album_id, COUNT(*) AS play_count FROM track_plays WHERE user_id = ");
+            qb.push_bind(user_id.unwrap_or(Uuid::nil()));
+            qb.push(" GROUP BY context_album_id) tp ON tp.context_album_id = albums.id");
+        }
         if let Some(filter) = filter {
             qb.push(" WHERE ");
             compile_albums_filter(&mut qb, filter)
@@ -196,8 +207,18 @@ impl AlbumRepository {
                     " ORDER BY agg.total_duration_ms {d} NULLS LAST, albums.sort_title, albums.id"
                 ));
             }
+            Some(AlbumSortKey::PlayCount) => {
+                qb.push(format!(
+                    " ORDER BY COALESCE(tp.play_count, 0) {d}, albums.sort_title, albums.id"
+                ));
+            }
             Some(AlbumSortKey::Recent) => {
                 qb.push(format!(" ORDER BY albums.created_at {d}, albums.id"));
+            }
+            Some(AlbumSortKey::Random) => {
+                qb.push(" ORDER BY md5(");
+                qb.push_bind(seed.unwrap_or(0).to_string());
+                qb.push(" || albums.id::text), albums.id");
             }
         };
         qb.push(" LIMIT ").push_bind(limit as i64);

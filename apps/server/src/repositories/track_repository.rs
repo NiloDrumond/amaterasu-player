@@ -18,6 +18,8 @@ pub enum TrackSortKey {
     Album,
     Artist,
     DurationMs,
+    PlayCount,
+    Random,
 }
 
 impl FromStr for TrackSortKey {
@@ -29,6 +31,8 @@ impl FromStr for TrackSortKey {
             "album" => Ok(Self::Album),
             "artist" => Ok(Self::Artist),
             "durationMs" => Ok(Self::DurationMs),
+            "playCount" => Ok(Self::PlayCount),
+            "random" => Ok(Self::Random),
             other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
         }
     }
@@ -620,13 +624,20 @@ WHERE id = $1
         offset: i32,
         sort: Option<TrackSortKey>,
         dir: Option<SortDir>,
+        seed: Option<i64>,
+        user_id: Option<Uuid>,
     ) -> AppResult<Vec<Track>> {
         let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
             "SELECT tracks.* FROM tracks \
              LEFT JOIN albums ON albums.id = tracks.album_id \
-             LEFT JOIN artists ON artists.id = tracks.artist_id \
-             WHERE tracks.deleted_at IS NULL",
+             LEFT JOIN artists ON artists.id = tracks.artist_id",
         );
+        if matches!(sort, Some(TrackSortKey::PlayCount)) {
+            qb.push(" LEFT JOIN (SELECT track_id, COUNT(*) AS play_count FROM track_plays WHERE user_id = ");
+            qb.push_bind(user_id.unwrap_or(Uuid::nil()));
+            qb.push(" GROUP BY track_id) tp ON tp.track_id = tracks.id");
+        }
+        qb.push(" WHERE tracks.deleted_at IS NULL");
         if let Some(filter) = filter {
             qb.push(" AND ");
             compile_tracks_filter(&mut qb, filter)
@@ -635,7 +646,7 @@ WHERE id = $1
         let d = dir.unwrap_or(SortDir::Asc).as_sql();
         match sort {
             None => {
-                qb.push(" ORDER BY tracks.disc, tracks.track_no, tracks.title, tracks.id");
+                qb.push(" ORDER BY tracks.sort_title, tracks.title, tracks.id");
             }
             Some(TrackSortKey::Title) => {
                 qb.push(format!(
@@ -661,6 +672,16 @@ WHERE id = $1
                 qb.push(format!(
                     " ORDER BY tracks.duration_ms {d} NULLS LAST, tracks.id"
                 ));
+            }
+            Some(TrackSortKey::PlayCount) => {
+                qb.push(format!(
+                    " ORDER BY COALESCE(tp.play_count, 0) {d}, tracks.id"
+                ));
+            }
+            Some(TrackSortKey::Random) => {
+                qb.push(" ORDER BY md5(");
+                qb.push_bind(seed.unwrap_or(0).to_string());
+                qb.push(" || tracks.id::text), tracks.id");
             }
         };
         qb.push(" LIMIT ").push_bind(limit as i64);

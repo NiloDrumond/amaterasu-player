@@ -37,6 +37,7 @@ pub async fn get_artists(
             params.offset,
             sort,
             params.dir,
+            params.seed,
         )
         .await?;
 

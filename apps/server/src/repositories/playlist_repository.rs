@@ -18,6 +18,7 @@ pub enum PlaylistSortKey {
     TrackCount,
     Duration,
     CreatedAt,
+    Random,
 }
 
 impl FromStr for PlaylistSortKey {
@@ -29,6 +30,7 @@ impl FromStr for PlaylistSortKey {
             "trackCount" => Ok(Self::TrackCount),
             "duration" => Ok(Self::Duration),
             "createdAt" => Ok(Self::CreatedAt),
+            "random" => Ok(Self::Random),
             other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
         }
     }
@@ -229,6 +231,7 @@ impl PlaylistRepository {
         }))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn list_by_user_with_query(
         pool: &PgPool,
         user_id: Uuid,
@@ -237,6 +240,7 @@ impl PlaylistRepository {
         offset: i32,
         sort: Option<PlaylistSortKey>,
         dir: Option<SortDir>,
+        seed: Option<i64>,
     ) -> AppResult<Vec<PlaylistStats>> {
         use sqlx::Row;
 
@@ -288,6 +292,11 @@ impl PlaylistRepository {
             )),
             Some(PlaylistSortKey::CreatedAt) => {
                 qb.push(format!(" ORDER BY p.created_at {d}, p.id"))
+            }
+            Some(PlaylistSortKey::Random) => {
+                qb.push(" ORDER BY md5(");
+                qb.push_bind(seed.unwrap_or(0).to_string());
+                qb.push(" || p.id::text), p.id")
             }
         };
         qb.push(" LIMIT ").push_bind(limit as i64);

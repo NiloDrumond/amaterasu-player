@@ -6,11 +6,17 @@
 	import FilterBar from '$lib/components/filters/filter-bar.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
 	import SaveAsAlbumCollection from '$lib/components/filters/save-as-album-collection.svelte';
+	import ShuffleButton from '$lib/components/filters/shuffle-button.svelte';
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { decodeFilter, encodeFilter, getTextSearch, setTextSearch } from '$lib/utils/filter-url';
-	import { applySortToUrl, extractSortFromUrl } from '$lib/utils/pagination';
+	import {
+		applyRandomSortToUrl,
+		applySortToUrl,
+		extractSortFromUrl,
+		generateSeed,
+	} from '$lib/utils/pagination';
 	import type { FilterNode } from '$lib/bindings/filter/filter-node';
 	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 
@@ -67,6 +73,15 @@
 				/>
 			{/snippet}
 			{#snippet trailing()}
+				<ShuffleButton
+					active={extractSortFromUrl(page.url).sort === 'random'}
+					onShuffle={() => {
+						goto(applyRandomSortToUrl(new URL(page.url), generateSeed()), {
+							keepFocus: true,
+							noScroll: true,
+						});
+					}}
+				/>
 				<SaveAsAlbumCollection {filter} />
 			{/snippet}
 		</FilterBar>

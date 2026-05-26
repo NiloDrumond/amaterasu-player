@@ -12,6 +12,7 @@ export interface GetAlbumsParams extends PaginationParams {
 	f?: string | null;
 	sort?: string | null;
 	dir?: SortDir | null;
+	seed?: number | null;
 }
 
 export function getAlbums(
@@ -27,6 +28,7 @@ export function getAlbums(
 		search.set('sort', params.sort);
 		search.set('dir', params.dir ?? 'asc');
 	}
+	if (params.seed != null) search.set('seed', String(params.seed));
 	return api<GetAlbumsResponse>(fetch, `/api/albums?${search.toString()}`);
 }
 

@@ -39,6 +39,7 @@ pub async fn get_albums(
             params.offset,
             sort,
             params.dir,
+            params.seed,
         )
         .await?;
 

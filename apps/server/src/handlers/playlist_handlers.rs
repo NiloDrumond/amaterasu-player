@@ -50,6 +50,7 @@ pub async fn list_playlists(
         params.offset,
         sort,
         params.dir,
+        params.seed,
     )
     .await?;
     let total = PlaylistRepository::count_by_user_with_query(

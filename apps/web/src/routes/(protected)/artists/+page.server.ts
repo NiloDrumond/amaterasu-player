@@ -17,7 +17,7 @@ type LoadData =
 	  };
 export const load: PageServerLoad = async ({ fetch, url }): Promise<LoadData> => {
 	const { limit, offset, page } = extractPaginationFromUrl(url);
-	const { sort, dir } = extractSortFromUrl(url);
+	const { sort, dir, seed } = extractSortFromUrl(url);
 	const q = url.searchParams.get('q');
 	const { data: artists, error: errorMessage } = await getArtists(fetch, {
 		limit,
@@ -25,6 +25,7 @@ export const load: PageServerLoad = async ({ fetch, url }): Promise<LoadData> =>
 		q,
 		sort,
 		dir,
+		seed,
 	});
 
 	if (errorMessage) {

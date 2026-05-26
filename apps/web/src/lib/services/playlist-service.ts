@@ -17,6 +17,7 @@ export interface GetPlaylistsParams extends PaginationParams {
 	q?: string | null;
 	sort?: string | null;
 	dir?: SortDir | null;
+	seed?: number | null;
 }
 
 export function getPlaylists(
@@ -32,6 +33,7 @@ export function getPlaylists(
 		search.set('sort', params.sort);
 		search.set('dir', params.dir ?? 'asc');
 	}
+	if (params.seed != null) search.set('seed', String(params.seed));
 	return api<GetPlaylistsResponse>(fetch, `/api/playlists?${search.toString()}`);
 }
 

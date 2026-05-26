@@ -3,13 +3,19 @@
 	import { page } from '$app/state';
 	import DataTable from '$lib/components/ui/data-table/data-table.svelte';
 	import SearchInput from '$lib/components/filters/search-input.svelte';
+	import ShuffleButton from '$lib/components/filters/shuffle-button.svelte';
 	import { getPlayer } from '$lib/player/player.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Field, FieldGroup, FieldLabel } from '$lib/components/ui/field/index.js';
 	import { playlistsColumns } from '$lib/components/playlists/columns.js';
 	import PlaylistRowContextMenu from '$lib/components/playlists/playlist-row-context-menu.svelte';
-	import { applySortToUrl, extractSortFromUrl } from '$lib/utils/pagination';
+	import {
+		applyRandomSortToUrl,
+		applySortToUrl,
+		extractSortFromUrl,
+		generateSeed,
+	} from '$lib/utils/pagination';
 	import type { SortDir } from '$lib/bindings/request/common/sort-dir';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { toast } from 'svelte-sonner';
@@ -74,6 +80,15 @@
 				value={page.url.searchParams.get('q') ?? ''}
 				onChange={onSearch}
 				placeholder="Search playlists…"
+			/>
+			<ShuffleButton
+				active={extractSortFromUrl(page.url).sort === 'random'}
+				onShuffle={() => {
+					goto(applyRandomSortToUrl(new URL(page.url), generateSeed()), {
+						keepFocus: true,
+						noScroll: true,
+					});
+				}}
 			/>
 			<div class="ml-auto"></div>
 			<Dialog.Root

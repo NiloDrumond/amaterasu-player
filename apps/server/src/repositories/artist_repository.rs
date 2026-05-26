@@ -14,6 +14,8 @@ pub enum ArtistSortKey {
     Name,
     AlbumCount,
     TrackCount,
+    PlayCount,
+    Random,
 }
 
 impl FromStr for ArtistSortKey {
@@ -23,6 +25,8 @@ impl FromStr for ArtistSortKey {
             "name" => Ok(Self::Name),
             "albumCount" => Ok(Self::AlbumCount),
             "trackCount" => Ok(Self::TrackCount),
+            "playCount" => Ok(Self::PlayCount),
+            "random" => Ok(Self::Random),
             other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
         }
     }
@@ -139,6 +143,8 @@ impl ArtistRepository {
         offset: i32,
         sort: Option<ArtistSortKey>,
         dir: Option<SortDir>,
+        seed: Option<i64>,
+        user_id: Option<Uuid>,
     ) -> Result<Vec<Artist>, AppError> {
         let pattern = query.map(|q| {
             format!(
@@ -154,9 +160,14 @@ impl ArtistRepository {
                SELECT artist_id, COUNT(DISTINCT album_id) AS album_count, COUNT(*) AS track_count \
                FROM tracks WHERE deleted_at IS NULL AND artist_id IS NOT NULL \
                GROUP BY artist_id \
-             ) agg ON agg.artist_id = artists.id \
-             WHERE (",
+             ) agg ON agg.artist_id = artists.id",
         );
+        if matches!(sort, Some(ArtistSortKey::PlayCount)) {
+            qb.push(" LEFT JOIN (SELECT t.artist_id, COUNT(*) AS play_count FROM track_plays tp JOIN tracks t ON t.id = tp.track_id WHERE tp.user_id = ");
+            qb.push_bind(user_id.unwrap_or(Uuid::nil()));
+            qb.push(" GROUP BY t.artist_id) pc ON pc.artist_id = artists.id");
+        }
+        qb.push(" WHERE (");
         qb.push_bind(pattern.clone());
         qb.push("::text IS NULL OR artists.name ILIKE ");
         qb.push_bind(pattern);
@@ -181,6 +192,16 @@ impl ArtistRepository {
                 qb.push(format!(
                     " ORDER BY agg.track_count {d} NULLS LAST, artists.sort_name, artists.id"
                 ));
+            }
+            Some(ArtistSortKey::PlayCount) => {
+                qb.push(format!(
+                    " ORDER BY COALESCE(pc.play_count, 0) {d}, artists.sort_name, artists.id"
+                ));
+            }
+            Some(ArtistSortKey::Random) => {
+                qb.push(" ORDER BY md5(");
+                qb.push_bind(seed.unwrap_or(0).to_string());
+                qb.push(" || artists.id::text), artists.id");
             }
         };
         qb.push(" LIMIT ").push_bind(limit as i64);

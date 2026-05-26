@@ -12,6 +12,7 @@ export interface GetTracksParams extends PaginationParams {
 	f?: string | null;
 	sort?: string | null;
 	dir?: SortDir | null;
+	seed?: number | null;
 }
 
 export function getTracks(
@@ -27,6 +28,7 @@ export function getTracks(
 		search.set('sort', params.sort);
 		search.set('dir', params.dir ?? 'asc');
 	}
+	if (params.seed != null) search.set('seed', String(params.seed));
 	return api<GetTracksResponse>(fetch, `/api/tracks?${search.toString()}`);
 }
 
