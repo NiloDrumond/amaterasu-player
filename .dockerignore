@@ -1,0 +1,10 @@
+target/
+node_modules/
+.git/
+data/
+logs/
+.claude/
+.cursor/
+docs/
+apps/web/build/
+apps/web/.svelte-kit/

@@ -69,9 +69,7 @@ pub fn create_api_router(
         .merge(auth_routes::public_routes())
         .layer(GovernorLayer::new(auth_governor));
 
-    let public_routes = Router::new()
-        .merge(rate_limited_routes)
-        .route("/health", get(health_check));
+    let public_routes = Router::new().merge(rate_limited_routes);
 
     let api_routes = Router::new()
         .merge(protected_routes)
@@ -114,6 +112,7 @@ pub fn create_api_router(
     };
 
     Router::new()
+        .route("/health", get(health_check))
         .nest("/api", api_routes)
         .merge(grafana_proxy_routes)
         .layer(cors)

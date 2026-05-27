@@ -1,6 +1,7 @@
 target
 logs/
 data/
+.sqlx
 
 .claude
 .cursor

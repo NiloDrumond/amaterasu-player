@@ -1,18 +1,66 @@
-# Production checklist
+# Production deployment
 
-Items below must be addressed before deploying. They are no-ops in local dev but become security/correctness issues in production.
+## Quick start
 
-## Logs / Grafana
+1. Edit `docker-compose.yml`: set your music library path, admin credentials, and database password
+2. `docker compose up -d`
+3. Open http://localhost:4534
 
-- **Drop the `3001:3000` port mapping on the `grafana` service** in `infra/docker-compose.yml` so Grafana is only reachable through the amaterasu server's `/admin/logs` reverse proxy. If Grafana stays directly exposed, anyone who can reach it can forge the `X-WEBAUTH-USER` header and walk in as admin.
-- **Set `GRAFANA_ROOT_URL`** in the deploy environment to the public URL, e.g. `https://music.example.com/admin/logs/`. This is read by docker-compose into `GF_SERVER_ROOT_URL`.
-- **Set `GRAFANA_URL`** in the server's environment to the internal address Grafana is reachable at from the server process. Once the server is also containerized, this is `http://grafana:3000`; while the server still runs on the host, keep `http://localhost:3001`.
-- **Optional hardening** (recommended once direct login is no longer needed):
-  - `GF_AUTH_DISABLE_LOGIN_FORM=true`
-  - `GF_AUTH_BASIC_ENABLED=false`
-  - `GF_AUTH_PROXY_WHITELIST=<server container IP / CIDR>` — restricts which upstreams Grafana will trust for the auth header.
-- **Set a real `GF_SECURITY_ADMIN_PASSWORD`** in the deploy environment. The compose file falls back to `admin` if unset.
+## Configuration
+
+Edit `docker-compose.yml` directly. Key settings in the `amaterasu` service:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string (match password with `db` service) |
+| `ADMIN_EMAIL` | Bootstrap admin email (only used on first startup) |
+| `ADMIN_PASSWORD` | Bootstrap admin password (only used on first startup) |
+| `MUSICBRAINZ_ENABLED` | Enable MusicBrainz metadata enrichment (default: `false`) |
+| `MUSICBRAINZ_USER_AGENT` | Required by MusicBrainz API policy when enabled |
+
+Under `volumes`, change `/path/to/your/music` to your music library directory.
+
+## Volumes
+
+| Container path | Purpose |
+|----------------|---------|
+| `/data` | Covers, search index, logs — persisted across restarts |
+| `/music` | Music library (mounted read-only) |
+
+## Monitoring (optional)
+
+Add Loki + Grafana for structured logging and dashboards:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+```
+
+Grafana is accessible at `http://localhost:4534/admin/logs` (proxied through the app, requires admin login).
+
+### Monitoring hardening
+
+- Set `GF_SECURITY_ADMIN_PASSWORD` in `.env` (defaults to `admin`)
+- Set `GRAFANA_ROOT_URL` to your public URL, e.g. `https://music.example.com/admin/logs/`
+- Grafana is not directly exposed — it's only reachable via the app's reverse proxy
+
+## Reverse proxy
+
+If running behind a reverse proxy (nginx, Caddy, Traefik), the app trusts `X-Forwarded-*` headers by default in Docker (`TRUST_PROXY_HEADERS=true`).
+
+## Database
+
+- PostgreSQL 16 runs as a separate container
+- Migrations run automatically on server startup
+- Database data is persisted in a Docker volume (`db_data`)
+
+## Architecture
+
+The `amaterasu` container runs three processes managed by an entrypoint script:
+
+- **nginx** (port 3000): Routes `/api/*` and `/health` to the Rust server, everything else to SvelteKit
+- **Rust server** (internal port 8080): API, audio streaming, Grafana proxy
+- **SvelteKit/Bun** (internal port 3001): Server-side rendered frontend
 
 ## Known limitations
 
-- The `/admin/logs` reverse proxy in `apps/server` forwards HTTP only. **Grafana Live (websockets) will not work through it.** Basic Explore, dashboards, and ad-hoc queries are unaffected. Add a websocket upgrade path if/when live-tail is needed.
+- The `/admin/logs` reverse proxy forwards HTTP only. Grafana Live (websockets) will not work through it.

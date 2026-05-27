@@ -64,10 +64,13 @@ impl Config {
 
         Ok(Config {
             database_url: env::var("DATABASE_URL")?,
-            server_host: env::var("SERVER_HOST")?,
-            server_port: env::var("SERVER_PORT")?.parse()?,
+            server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
+            server_port: env::var("SERVER_PORT")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(3000),
             library_path: env::var("LIBRARY_PATH")?,
-            data_dir: env::var("DATA_DIR")?,
+            data_dir: env::var("DATA_DIR").unwrap_or_else(|_| "./data".to_string()),
             log_dir: env::var("LOG_DIR").unwrap_or_else(|_| "./logs".to_string()),
             loki_url: optional_env("LOKI_URL"),
             grafana_url: optional_env("GRAFANA_URL"),

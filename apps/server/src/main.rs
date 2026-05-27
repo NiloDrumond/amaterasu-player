@@ -79,6 +79,9 @@ async fn main() -> anyhow::Result<()> {
     let db_pool = db::create_pool(&config.database_url, config.database_max_connections).await?;
     tracing::info!("Database connected");
 
+    sqlx::migrate!("./migrations").run(&db_pool).await?;
+    tracing::info!("Database migrations applied");
+
     bootstrap_admin(&db_pool, &config).await?;
 
     let covers_dir = std::path::PathBuf::from(&config.data_dir).join("covers");
