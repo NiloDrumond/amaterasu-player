@@ -4,6 +4,9 @@ import adapter from 'svelte-adapter-bun';
 const config = {
 	kit: {
 		adapter: adapter(),
+		csrf: {
+			trustedOrigins: ['*'],
+		},
 	},
 };
 

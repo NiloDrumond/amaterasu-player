@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 cleanup() {
@@ -16,7 +16,7 @@ SERVER_PID=$!
 
 # Start the SvelteKit Bun server
 cd /app/web
-PORT=3001 ORIGIN="${ORIGIN:-http://127.0.0.1:3000}" bun run index.js &
+PORT=3001 ORIGIN=http://127.0.0.1:3000 bun run index.js &
 WEB_PID=$!
 cd /
 

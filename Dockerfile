@@ -32,9 +32,10 @@ RUN mkdir -p apps/server/src libs/macros/src tools/dto-lint/src \
 COPY .sqlx .sqlx
 COPY apps/server apps/server
 COPY libs libs
+COPY tools tools
 
 ENV SQLX_OFFLINE=true
-RUN touch apps/server/src/main.rs && cargo build --release -p amaterasu-server
+RUN touch apps/server/src/main.rs libs/macros/src/lib.rs && cargo build --release -p amaterasu-server
 
 # Stage 2: Build SvelteKit app
 FROM oven/bun:1 AS web-builder
@@ -54,6 +55,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     nginx \
     libavcodec59 \
+    libavdevice59 \
     libavformat59 \
     libavutil57 \
     libswresample4 \
@@ -63,7 +65,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=web-builder /usr/local/bin/bun /usr/local/bin/bun
 RUN ln -s /usr/local/bin/bun /usr/local/bin/bunx
 
-RUN mkdir -p /data /music
+RUN mkdir -p /data /music /run/nginx
 
 COPY --from=rust-builder /app/target/release/amaterasu-server /usr/local/bin/amaterasu-server
 COPY --from=web-builder /app/build /app/web
