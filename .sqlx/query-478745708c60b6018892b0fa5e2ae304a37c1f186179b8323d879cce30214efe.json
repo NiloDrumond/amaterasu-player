@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE\n                albums\n            SET\n                cover_path = $2\n            WHERE\n                id = $1\n                AND cover_path IS NULL\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "478745708c60b6018892b0fa5e2ae304a37c1f186179b8323d879cce30214efe"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE album_aliases SET album_id = $2 WHERE album_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "01c4a8cb8bb99e112c7fe7937e605c21704716d3233c8de9d21f1315fd488912"
+}

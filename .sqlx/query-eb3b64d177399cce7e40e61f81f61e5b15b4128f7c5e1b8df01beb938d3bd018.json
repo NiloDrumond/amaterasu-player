@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, source_title, source_album_artist_id, album_id, created_at\n            FROM album_aliases\n            WHERE album_id = ANY($1)\n            ORDER BY album_id, created_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "source_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "source_album_artist_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "album_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "eb3b64d177399cce7e40e61f81f61e5b15b4128f7c5e1b8df01beb938d3bd018"
+}

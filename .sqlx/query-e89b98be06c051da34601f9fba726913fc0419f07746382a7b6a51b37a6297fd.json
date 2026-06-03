@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    albums\nSET\n    locked_at = NULL\nWHERE\n    id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e89b98be06c051da34601f9fba726913fc0419f07746382a7b6a51b37a6297fd"
+}

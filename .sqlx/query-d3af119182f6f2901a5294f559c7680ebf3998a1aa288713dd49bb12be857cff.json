@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE\n                playlist_tracks pt\n            SET\n                position = sub.new_pos\n            FROM (\n                SELECT\n                    id,\n                    ROW_NUMBER() OVER (ORDER BY position ASC) * 1000.0 AS new_pos\n                FROM\n                    playlist_tracks\n                WHERE\n                    playlist_id = $1) sub\n            WHERE\n                pt.id = sub.id\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d3af119182f6f2901a5294f559c7680ebf3998a1aa288713dd49bb12be857cff"
+}

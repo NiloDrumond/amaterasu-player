@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT album_id\n            FROM album_aliases\n            WHERE LOWER(source_title) = LOWER($1)\n                AND (source_album_artist_id = $2\n                    OR (source_album_artist_id IS NULL AND $2 IS NULL))\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "album_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "44d002368e3dbe806221b59a5ccb9ba4540c9040f46ec5aa9739b28da3aa8d1a"
+}

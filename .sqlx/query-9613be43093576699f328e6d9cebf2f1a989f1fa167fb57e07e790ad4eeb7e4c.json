@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                t.id              AS \"t_id!: Uuid\",\n                t.user_id         AS \"t_user_id!: Uuid\",\n                t.category_id     AS \"t_category_id?: Uuid\",\n                t.name            AS \"t_name!\",\n                t.color           AS \"t_color?\",\n                t.created_at      AS \"t_created_at!\",\n                t.updated_at      AS \"t_updated_at!\",\n                c.id              AS \"c_id?: Uuid\",\n                c.user_id         AS \"c_user_id?: Uuid\",\n                c.name            AS \"c_name?\",\n                c.color           AS \"c_color?\",\n                c.position        AS \"c_position?: i32\",\n                c.created_at      AS \"c_created_at?\",\n                c.updated_at      AS \"c_updated_at?\"\n            FROM\n                tags t\n            JOIN track_tags tt ON tt.tag_id = t.id\n            LEFT JOIN tag_categories c ON c.id = t.category_id\n            WHERE\n                tt.track_id = $1\n                AND t.user_id = $2\n            ORDER BY\n                c.position NULLS LAST,\n                c.name NULLS LAST,\n                t.name ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "t_id!: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "t_user_id!: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "t_category_id?: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "t_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "t_color?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "t_created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "t_updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "c_id?: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "c_user_id?: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "c_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "c_color?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "c_position?: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "c_created_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "c_updated_at?",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9613be43093576699f328e6d9cebf2f1a989f1fa167fb57e07e790ad4eeb7e4c"
+}

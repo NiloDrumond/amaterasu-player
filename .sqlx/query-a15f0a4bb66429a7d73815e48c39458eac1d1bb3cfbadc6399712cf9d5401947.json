@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM track_tags tt\n            USING tags t\n            WHERE\n                tt.tag_id = t.id\n                AND t.user_id = $3\n                AND tt.track_id = $1\n                AND tt.tag_id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a15f0a4bb66429a7d73815e48c39458eac1d1bb3cfbadc6399712cf9d5401947"
+}

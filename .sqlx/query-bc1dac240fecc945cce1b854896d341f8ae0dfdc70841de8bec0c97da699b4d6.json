@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                context_album_id AS \"album_id!\",\n                COUNT(*) AS \"play_count!\"\n            FROM track_plays\n            WHERE user_id = $1 AND context_album_id = ANY($2)\n            GROUP BY context_album_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "album_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "play_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "bc1dac240fecc945cce1b854896d341f8ae0dfdc70841de8bec0c97da699b4d6"
+}

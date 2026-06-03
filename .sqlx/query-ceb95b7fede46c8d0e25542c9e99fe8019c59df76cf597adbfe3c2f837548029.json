@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE metadata_suggestions\n            SET status = 'superseded', updated_at = NOW()\n            WHERE entity_type = $1 AND entity_id = $2 AND status = 'pending'\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ceb95b7fede46c8d0e25542c9e99fe8019c59df76cf597adbfe3c2f837548029"
+}

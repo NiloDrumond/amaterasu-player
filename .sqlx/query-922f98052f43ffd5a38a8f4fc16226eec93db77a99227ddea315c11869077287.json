@@ -1,0 +1,108 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                *\n            FROM\n                albums\n            WHERE\n                title ILIKE $1\n                AND ($2::uuid IS NULL\n                    OR artist_id = $2)\n            ORDER BY\n                sort_title,\n                title\n            LIMIT $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "artist_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "sort_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "mbid",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "replaygain_album_gain",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 7,
+        "name": "replaygain_album_peak",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "cover_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "locked_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "approved",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "mb_lookup_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "mb_lookup_attempted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "922f98052f43ffd5a38a8f4fc16226eec93db77a99227ddea315c11869077287"
+}

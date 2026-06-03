@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM albums\n            WHERE id = $1\n                AND NOT EXISTS (\n                    SELECT\n                        1\n                    FROM\n                        tracks\n                    WHERE\n                        album_id = $1\n                        AND deleted_at IS NULL)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b7c358e30adec545da4e78047a958a0191a67b0695c0028ad93608b431d6e42a"
+}

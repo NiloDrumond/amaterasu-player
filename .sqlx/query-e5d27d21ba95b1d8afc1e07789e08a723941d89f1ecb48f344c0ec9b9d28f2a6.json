@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, entity_type, entity_id, source, mbid, score, rank,\n                   proposed, raw, status, created_at, updated_at\n            FROM metadata_suggestions\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "entity_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "entity_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "source",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "mbid",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "score",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 6,
+        "name": "rank",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "proposed",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "raw",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e5d27d21ba95b1d8afc1e07789e08a723941d89f1ecb48f344c0ec9b9d28f2a6"
+}

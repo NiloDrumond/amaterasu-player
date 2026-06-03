@@ -1,0 +1,8 @@
+#!/bin/sh
+# Verify the committed .sqlx offline cache still covers all queries.
+# This mirrors what `docker build` does (SQLX_OFFLINE=true), so it catches a
+# stale cache before it breaks CI. No database required.
+#
+# If this fails after you changed SQL: start the DB (`mise run db:up`),
+# regenerate with `cargo sqlx prepare --workspace`, and `git add .sqlx`.
+exec mise run check:sqlx

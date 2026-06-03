@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    artists\nSET\n    locked_at = NULL\nWHERE\n    id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "100025781b92ae646735c75bbc775c9c470758a22ff7d81d745008b7f0645ca6"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT a.source_title\n            FROM album_aliases a\n            WHERE a.source_album_artist_id = $1\n              AND EXISTS (\n                  SELECT 1 FROM album_aliases b\n                  WHERE b.source_album_artist_id = $2\n                    AND LOWER(b.source_title) = LOWER(a.source_title)\n              )\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source_title",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d363dd6e4a7bafa7556b730b34d21034ba57fadbf496aa85d5819712f141a78b"
+}

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                artist_id AS \"artist_id!\",\n                COUNT(*) AS \"track_count!\"\n            FROM\n                tracks\n            WHERE\n                artist_id = ANY ($1)\n                AND deleted_at IS NULL\n            GROUP BY\n                artist_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "artist_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "track_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "4939610d9bc6f40a75a56c7da2ab742ed21a351ed09262c55f96d20d8b46e0ac"
+}

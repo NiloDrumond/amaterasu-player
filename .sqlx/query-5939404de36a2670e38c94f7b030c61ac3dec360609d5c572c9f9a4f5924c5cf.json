@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    tracks\nSET\n    deleted_at = NOW()\nWHERE\n    id = $1\n    AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5939404de36a2670e38c94f7b030c61ac3dec360609d5c572c9f9a4f5924c5cf"
+}

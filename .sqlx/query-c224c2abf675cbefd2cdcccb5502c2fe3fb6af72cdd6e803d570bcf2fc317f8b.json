@@ -1,0 +1,117 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO albums (id, artist_id, title, sort_title, date, mbid, cover_path, locked_at, replaygain_album_gain, replaygain_album_peak, created_at, updated_at)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n            RETURNING\n                *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "artist_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "sort_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "mbid",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "replaygain_album_gain",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 7,
+        "name": "replaygain_album_peak",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "cover_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "locked_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "approved",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "mb_lookup_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "mb_lookup_attempted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Date",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Float4",
+        "Float4",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c224c2abf675cbefd2cdcccb5502c2fe3fb6af72cdd6e803d570bcf2fc317f8b"
+}

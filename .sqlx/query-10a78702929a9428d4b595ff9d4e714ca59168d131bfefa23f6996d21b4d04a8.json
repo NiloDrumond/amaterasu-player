@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO metadata_suggestions\n                    (entity_type, entity_id, source, mbid, score, rank, proposed, raw)\n                VALUES ($1, $2, 'musicbrainz', $3, $4, $5, $6, $7)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text",
+        "Int2",
+        "Int2",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "10a78702929a9428d4b595ff9d4e714ca59168d131bfefa23f6996d21b4d04a8"
+}

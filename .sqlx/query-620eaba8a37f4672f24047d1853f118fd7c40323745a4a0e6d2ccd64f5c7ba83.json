@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE\n                tracks\n            SET\n                title = COALESCE($2, title),\n                sort_title = COALESCE($3, sort_title),\n                artist_id = CASE WHEN $4::bool THEN\n                    $5\n                ELSE\n                    artist_id\n                END,\n                album_id = CASE WHEN $6::bool THEN\n                    $7\n                ELSE\n                    album_id\n                END,\n                disc = CASE WHEN $8::bool THEN\n                    $9\n                ELSE\n                    disc\n                END,\n                track_no = CASE WHEN $10::bool THEN\n                    $11\n                ELSE\n                    track_no\n                END,\n                date = CASE WHEN $12::bool THEN\n                    $13\n                ELSE\n                    date\n                END,\n                composer = CASE WHEN $14::bool THEN\n                    $15\n                ELSE\n                    composer\n                END,\n                comment = CASE WHEN $16::bool THEN\n                    $17\n                ELSE\n                    comment\n                END,\n                locked_at = NOW(),\n                updated_at = NOW()\n            WHERE\n                id = ANY ($1)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Date",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "620eaba8a37f4672f24047d1853f118fd7c40323745a4a0e6d2ccd64f5c7ba83"
+}

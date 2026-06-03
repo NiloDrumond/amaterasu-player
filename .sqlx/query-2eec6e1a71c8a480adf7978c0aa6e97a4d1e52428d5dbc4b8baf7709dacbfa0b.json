@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM pinned_playlists WHERE user_id = $1 AND playlist_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2eec6e1a71c8a480adf7978c0aa6e97a4d1e52428d5dbc4b8baf7709dacbfa0b"
+}

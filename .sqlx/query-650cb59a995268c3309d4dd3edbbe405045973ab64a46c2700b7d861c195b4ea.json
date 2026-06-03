@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT\n                        position\n                    FROM\n                        playlist_tracks\n                    WHERE\n                        playlist_id = $1\n                        AND position > $2\n                    ORDER BY\n                        position ASC\n                    LIMIT 1\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "position",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "650cb59a995268c3309d4dd3edbbe405045973ab64a46c2700b7d861c195b4ea"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pinned_playlists SET position = $3 WHERE user_id = $1 AND playlist_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "51336637198d767a1e899a2f5aaeec144af3908579bae253461b88e387e98f5c"
+}

@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO playlists (user_id, name, type, filter_definition)\n                VALUES ($1, $2, $3, $4)\n            RETURNING\n                id, user_id, name, created_at, updated_at, type AS \"playlist_type\", filter_definition AS \"filter_definition: Json<FilterNode>\", cached_track_count, cached_total_duration_ms\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "playlist_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "filter_definition: Json<FilterNode>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "cached_track_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "cached_total_duration_ms",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "a4ebcaefff14934f15233c8b72a24b7f827c7793cd9bf5e092410deb0eff664b"
+}

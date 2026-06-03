@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH target AS (\n                SELECT entity_type, entity_id FROM metadata_suggestions WHERE id = $1\n            )\n            UPDATE metadata_suggestions s\n            SET status = CASE WHEN s.id = $1 THEN 'accepted' ELSE 'superseded' END,\n                updated_at = NOW()\n            FROM target t\n            WHERE s.entity_type = t.entity_type\n              AND s.entity_id = t.entity_id\n              AND (s.id = $1 OR s.status = 'pending')\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4bcf060c63de6708421a587b91b583f39e9762aeb45c0bf903b46be398a6cacc"
+}

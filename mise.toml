@@ -54,6 +54,11 @@ cargo clippy
 cd apps/web && bun run check && bun run lint
 """
 
+[tasks."check:sqlx"]
+description = "Verify queries resolve against the committed .sqlx cache (no database needed; mirrors the Docker/CI build)"
+env = { SQLX_OFFLINE = "true" }
+run = "cargo check -p amaterasu-server"
+
 [tasks.lint]
 description = "Check that all Serialize/Deserialize structs have rename_all"
 run = "cargo run --release -p dto-lint --quiet"

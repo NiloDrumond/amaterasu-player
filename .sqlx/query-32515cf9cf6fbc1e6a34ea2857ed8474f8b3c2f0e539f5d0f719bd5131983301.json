@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                t.id              AS \"t_id!: Uuid\",\n                t.user_id         AS \"t_user_id!: Uuid\",\n                t.category_id     AS \"t_category_id?: Uuid\",\n                t.name            AS \"t_name!\",\n                t.color           AS \"t_color?\",\n                t.created_at      AS \"t_created_at!\",\n                t.updated_at      AS \"t_updated_at!\",\n                c.id              AS \"c_id?: Uuid\",\n                c.user_id         AS \"c_user_id?: Uuid\",\n                c.name            AS \"c_name?\",\n                c.color           AS \"c_color?\",\n                c.position        AS \"c_position?: i32\",\n                c.created_at      AS \"c_created_at?\",\n                c.updated_at      AS \"c_updated_at?\",\n                COUNT(DISTINCT tt.track_id) AS \"track_count!: i64\",\n                COUNT(DISTINCT at.album_id) AS \"album_count!: i64\"\n            FROM\n                tags t\n            LEFT JOIN tag_categories c ON c.id = t.category_id\n            LEFT JOIN track_tags tt ON tt.tag_id = t.id\n            LEFT JOIN album_tags at ON at.tag_id = t.id\n            WHERE\n                t.user_id = $1\n            GROUP BY\n                t.id,\n                c.id\n            ORDER BY\n                c.position NULLS LAST,\n                c.name NULLS LAST,\n                t.name ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "t_id!: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "t_user_id!: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "t_category_id?: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "t_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "t_color?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "t_created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "t_updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "c_id?: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "c_user_id?: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "c_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "c_color?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "c_position?: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "c_created_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "c_updated_at?",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "track_count!: i64",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "album_count!: i64",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "32515cf9cf6fbc1e6a34ea2857ed8474f8b3c2f0e539f5d0f719bd5131983301"
+}

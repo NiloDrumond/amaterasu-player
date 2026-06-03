@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                p.id,\n                p.user_id,\n                p.name,\n                p.created_at,\n                p.updated_at,\n                p.type AS \"playlist_type!\",\n                p.filter_definition AS \"filter_definition: Json<FilterNode>\",\n                p.cached_track_count,\n                p.cached_total_duration_ms,\n                CASE WHEN p.type = 'dynamic' THEN\n                    p.cached_track_count::bigint\n                ELSE\n                    COUNT(pt.id)\n                END AS \"track_count!: i64\",\n                CASE WHEN p.type = 'dynamic' THEN\n                    p.cached_total_duration_ms\n                ELSE\n                    COALESCE(SUM(t.duration_ms), 0)::bigint\n                END AS \"total_duration_ms!: i64\",\n                pp.position AS \"position!\"\n            FROM pinned_playlists pp\n            JOIN playlists p ON p.id = pp.playlist_id\n            LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id\n            LEFT JOIN tracks t ON t.id = pt.track_id\n            WHERE pp.user_id = $1\n            GROUP BY p.id, pp.position\n            ORDER BY pp.position ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "playlist_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "filter_definition: Json<FilterNode>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "cached_track_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "cached_total_duration_ms",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "track_count!: i64",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "total_duration_ms!: i64",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "position!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "6dabd26246c30f9cc7cdb79f9d7a8a0e56e389a3a4568617fd6ed7ddef66edab"
+}

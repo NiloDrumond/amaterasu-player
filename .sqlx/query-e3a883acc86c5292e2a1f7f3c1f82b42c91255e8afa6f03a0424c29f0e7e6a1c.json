@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE albums\n            SET artist_id = $2,\n                updated_at = NOW()\n            WHERE artist_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e3a883acc86c5292e2a1f7f3c1f82b42c91255e8afa6f03a0424c29f0e7e6a1c"
+}

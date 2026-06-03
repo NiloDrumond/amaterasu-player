@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH owned AS (\n                SELECT id FROM tags WHERE id = $1 AND user_id = $3\n            ),\n            upsert AS (\n                INSERT INTO track_tags (track_id, tag_id)\n                SELECT $2, id FROM owned\n                ON CONFLICT (track_id, tag_id) DO NOTHING\n                RETURNING tag_id\n            )\n            SELECT EXISTS(SELECT 1 FROM owned) AS \"owned!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "owned!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3e411ce6184affe3e25df3db7181d24be1465d68718da046f4d80408f7950c3f"
+}

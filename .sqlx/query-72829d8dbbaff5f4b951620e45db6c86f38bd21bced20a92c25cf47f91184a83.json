@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                track_id AS \"track_id!\",\n                COUNT(*) AS \"play_count!\"\n            FROM track_plays\n            WHERE user_id = $1 AND track_id = ANY($2)\n            GROUP BY track_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "track_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "play_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "72829d8dbbaff5f4b951620e45db6c86f38bd21bced20a92c25cf47f91184a83"
+}

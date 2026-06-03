@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT context_album_id AS \"album_id!\", COUNT(*) AS \"plays!\"\n            FROM track_plays\n            WHERE user_id = $1 AND context_album_id IS NOT NULL\n            GROUP BY context_album_id\n            HAVING COUNT(*) >= 3 AND MAX(played_at) < NOW() - INTERVAL '30 days'\n            ORDER BY COUNT(*) DESC\n            LIMIT $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "album_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "plays!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "aa94cd2a0a3c0b1886f873aa53168fd45d7d0ded7812016ede63273532ce3028"
+}

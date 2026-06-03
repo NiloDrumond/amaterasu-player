@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE tracks\n            SET approved = TRUE, updated_at = NOW()\n            WHERE album_id = $1 AND deleted_at IS NULL AND approved = FALSE\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "84fc89a9336772c148a5976663c79fed30b805550debe7eaa322cef60756096a"
+}

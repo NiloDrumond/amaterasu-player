@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                tracks.artist_id AS \"artist_id!\",\n                COUNT(*) AS \"play_count!\"\n            FROM track_plays\n            JOIN tracks ON tracks.id = track_plays.track_id\n            WHERE track_plays.user_id = $1\n              AND tracks.artist_id = ANY($2)\n            GROUP BY tracks.artist_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "artist_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "play_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "f1968769cef8343f2013bf5a0e910c3e60533686345efae37227d4708ba0a7a3"
+}

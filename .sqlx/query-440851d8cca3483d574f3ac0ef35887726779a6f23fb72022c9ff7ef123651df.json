@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE\n                    playlists\n                SET\n                    cached_track_count = $1,\n                    cached_total_duration_ms = $2\n                WHERE\n                    id = $3\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "440851d8cca3483d574f3ac0ef35887726779a6f23fb72022c9ff7ef123651df"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE artists\n            SET mb_lookup_status = $2, mb_lookup_attempted_at = NOW(), updated_at = NOW()\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f6b0dca5640ecc9848da13ed00770b1b24f4368a6f5ccb40740bb0100f00908c"
+}

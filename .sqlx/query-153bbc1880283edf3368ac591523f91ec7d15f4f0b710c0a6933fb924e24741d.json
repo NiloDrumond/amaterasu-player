@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT a.id AS \"id!\"\n            FROM albums a\n            WHERE a.approved = FALSE\n               OR EXISTS (\n                    SELECT 1 FROM tracks t\n                    WHERE t.album_id = a.id\n                      AND t.approved = FALSE\n                      AND t.deleted_at IS NULL\n               )\n            ORDER BY a.created_at DESC\n            LIMIT $1 OFFSET $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "153bbc1880283edf3368ac591523f91ec7d15f4f0b710c0a6933fb924e24741d"
+}

@@ -1,0 +1,230 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE\n                tracks\n            SET\n                title = COALESCE($2, title),\n                sort_title = COALESCE($3, sort_title),\n                artist_id = CASE WHEN $4::bool THEN\n                    $5\n                ELSE\n                    artist_id\n                END,\n                album_id = CASE WHEN $6::bool THEN\n                    $7\n                ELSE\n                    album_id\n                END,\n                disc = CASE WHEN $8::bool THEN\n                    $9\n                ELSE\n                    disc\n                END,\n                track_no = CASE WHEN $10::bool THEN\n                    $11\n                ELSE\n                    track_no\n                END,\n                date = CASE WHEN $12::bool THEN\n                    $13\n                ELSE\n                    date\n                END,\n                composer = CASE WHEN $14::bool THEN\n                    $15\n                ELSE\n                    composer\n                END,\n                comment = CASE WHEN $16::bool THEN\n                    $17\n                ELSE\n                    comment\n                END,\n                locked_at = NOW(),\n                updated_at = NOW()\n            WHERE\n                id = $1\n            RETURNING\n                *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "audio_hash",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 2,
+        "name": "album_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "file_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "sort_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "artist_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "disc",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "track_no",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 10,
+        "name": "composer",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "comment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "duration_ms",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "format",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "codec",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "bitrate",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 16,
+        "name": "sample_rate",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 17,
+        "name": "channels",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 18,
+        "name": "file_size_bytes",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 19,
+        "name": "file_modified_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "replaygain_track_gain",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 21,
+        "name": "replaygain_track_peak",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 22,
+        "name": "metadata_modified_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 23,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 24,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 25,
+        "name": "original_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 26,
+        "name": "original_artist",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 27,
+        "name": "original_album",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 28,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 29,
+        "name": "locked_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 30,
+        "name": "approved",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 31,
+        "name": "mb_lookup_status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 32,
+        "name": "mb_lookup_attempted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Date",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "d2e36dc3dda97ccb2a015a59646082fbff99b8ec62eac3182d658076288a0003"
+}

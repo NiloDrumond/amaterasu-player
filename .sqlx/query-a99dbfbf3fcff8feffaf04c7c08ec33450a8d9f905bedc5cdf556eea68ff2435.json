@@ -1,0 +1,143 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                pt.id AS \"playlist_track_id!\",\n                pt.position AS \"position!\",\n                pt.added_at AS \"added_at!\",\n                t.id AS \"track_id!\",\n                t.title AS \"title!\",\n                t.sort_title AS \"sort_title!\",\n                t.artist_id,\n                t.album_id,\n                t.track_no,\n                t.disc,\n                t.duration_ms AS \"duration_ms!\",\n                t.format AS \"format!\",\n                t.codec AS \"codec!\",\n                t.bitrate,\n                t.file_path AS \"file_path!\",\n                t.original_title,\n                t.original_artist,\n                t.original_album,\n                ar.name AS \"artist_name?\",\n                al.title AS \"album_title?\",\n                al.cover_path AS \"album_cover_path?\"\n            FROM\n                playlist_tracks pt\n                JOIN playlists p ON p.id = pt.playlist_id\n                JOIN tracks t ON t.id = pt.track_id\n                LEFT JOIN artists ar ON ar.id = t.artist_id\n                LEFT JOIN albums al ON al.id = t.album_id\n            WHERE\n                pt.playlist_id = $1\n                AND p.user_id = $2\n            ORDER BY\n                pt.position ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "playlist_track_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "position!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "added_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "track_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "title!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "sort_title!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "artist_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "album_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "track_no",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "disc",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "duration_ms!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "format!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "codec!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "bitrate",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "file_path!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "original_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "original_artist",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "original_album",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "artist_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "album_title?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "album_cover_path?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "a99dbfbf3fcff8feffaf04c7c08ec33450a8d9f905bedc5cdf556eea68ff2435"
+}
