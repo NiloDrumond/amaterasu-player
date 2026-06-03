@@ -2,27 +2,31 @@ services:
   amaterasu:
     image: nilodrumond/amaterasu-player:latest
     ports:
-      - "${PORT:-4534}:3000"
+      - "4534:3000"
+    restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://amaterasu:${POSTGRES_PASSWORD}@db:5432/amaterasu
-      ADMIN_EMAIL: ${ADMIN_EMAIL}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      MUSICBRAINZ_ENABLED: ${MUSICBRAINZ_ENABLED:-false}
-      MUSICBRAINZ_USER_AGENT: ${MUSICBRAINZ_USER_AGENT:-}
+      # Keep this password in sync with POSTGRES_PASSWORD on the db service below
+      DATABASE_URL: postgres://amaterasu:CHANGE_ME_DB_PASSWORD@db:5432/amaterasu
+      # Initial admin user — created on first start only
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: CHANGE_ME_ADMIN_PASSWORD
+      # Optional: MusicBrainz metadata enrichment (a real contact is required)
+      # MUSICBRAINZ_ENABLED: "true"
+      # MUSICBRAINZ_USER_AGENT: "amaterasu-player/1.0 ( mailto:you@example.com )"
     volumes:
       - data:/data
-      - ${MUSIC_PATH}:/music:ro
+      - /path/to/your/music:/music:ro # change to your music library
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: amaterasu
       POSTGRES_USER: amaterasu
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: CHANGE_ME_DB_PASSWORD
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +34,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    restart: unless-stopped
 
 volumes:
   data:

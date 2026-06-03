@@ -2,20 +2,18 @@
 
 ## Quick start
 
-1. Download `docker-compose.yml` and `.env.example` into a directory (no clone needed)
-2. `cp .env.example .env` and set your music library path, admin credentials, and database password
+1. Copy the `docker-compose.yml` from the [README](README.md#using-docker-compose-recommended) into a directory (no clone needed)
+2. Edit it: music library path, admin credentials, and database password (in both services)
 3. `docker compose up -d`
 4. Open http://localhost:4534
 
 ## Configuration
 
-All configuration lives in `.env` (Compose loads it automatically). Key settings:
+All configuration is done through environment variables on the `amaterasu` service. Key settings:
 
 | Variable | Description |
 |----------|-------------|
-| `MUSIC_PATH` | Absolute host path to your music library |
-| `PORT` | Host port for the web UI (default `4534`) |
-| `POSTGRES_PASSWORD` | PostgreSQL password (shared by app and `db` service) |
+| `DATABASE_URL` | PostgreSQL connection string (match the password with the `db` service) |
 | `ADMIN_EMAIL` | Bootstrap admin email (only used on first startup) |
 | `ADMIN_PASSWORD` | Bootstrap admin password (only used on first startup) |
 | `MUSICBRAINZ_ENABLED` | Enable MusicBrainz metadata enrichment (default: `false`) |
@@ -43,8 +41,8 @@ Grafana is accessible at `http://localhost:4534/admin/logs` (proxied through the
 
 ### Monitoring hardening
 
-- Set `GF_SECURITY_ADMIN_PASSWORD` in `.env` (defaults to `admin`)
-- Set `GRAFANA_ROOT_URL` to your public URL, e.g. `https://music.example.com/admin/logs/`
+- Set `GF_SECURITY_ADMIN_PASSWORD` on the `grafana` service in `docker-compose.monitoring.yml` (defaults to `admin`)
+- Set `GF_SERVER_ROOT_URL` to your public URL, e.g. `https://music.example.com/admin/logs/`
 - Grafana is not directly exposed — it's only reachable via the app's reverse proxy
 
 ## Reverse proxy
