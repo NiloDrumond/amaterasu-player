@@ -2,23 +2,27 @@
 
 ## Quick start
 
-1. Edit `docker-compose.yml`: set your music library path, admin credentials, and database password
-2. `docker compose up -d`
-3. Open http://localhost:4534
+1. Download `docker-compose.yml` and `.env.example` into a directory (no clone needed)
+2. `cp .env.example .env` and set your music library path, admin credentials, and database password
+3. `docker compose up -d`
+4. Open http://localhost:4534
 
 ## Configuration
 
-Edit `docker-compose.yml` directly. Key settings in the `amaterasu` service:
+All configuration lives in `.env` (Compose loads it automatically). Key settings:
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string (match password with `db` service) |
+| `MUSIC_PATH` | Absolute host path to your music library |
+| `PORT` | Host port for the web UI (default `4534`) |
+| `POSTGRES_PASSWORD` | PostgreSQL password (shared by app and `db` service) |
 | `ADMIN_EMAIL` | Bootstrap admin email (only used on first startup) |
 | `ADMIN_PASSWORD` | Bootstrap admin password (only used on first startup) |
 | `MUSICBRAINZ_ENABLED` | Enable MusicBrainz metadata enrichment (default: `false`) |
 | `MUSICBRAINZ_USER_AGENT` | Required by MusicBrainz API policy when enabled |
 
-Under `volumes`, change `/path/to/your/music` to your music library directory.
+The compose file pulls `nilodrumond/amaterasu-player:latest`. Pin a release by changing the
+tag, e.g. `nilodrumond/amaterasu-player:1.0.0`.
 
 ## Volumes
 
@@ -64,3 +68,26 @@ The `amaterasu` container runs three processes managed by an entrypoint script:
 ## Known limitations
 
 - The `/admin/logs` reverse proxy forwards HTTP only. Grafana Live (websockets) will not work through it.
+
+## Releasing
+
+Images are built and published to Docker Hub (`nilodrumond/amaterasu-player`) by GitHub
+Actions (`.github/workflows/docker-publish.yml`). The source lives on Codeberg and is
+push-mirrored to GitHub, which is what triggers the workflow.
+
+- **Latest:** every push to `main` builds and pushes `:latest` (multi-arch: amd64 + arm64).
+- **Versioned release:** create and push a semver tag — the mirror forwards it to GitHub and
+  the workflow publishes `:1.0.0`, `:1.0`, `:1`, and `:latest`:
+  ```bash
+  git tag v1.0.0
+  git push origin v1.0.0
+  ```
+
+One-time setup:
+
+- Create a **public** GitHub repo and configure a **Push Mirror** on Codeberg
+  (Settings → Repository → Push Mirror) targeting it with a GitHub PAT. A public repo gives
+  free GitHub-hosted arm64 runners (`ubuntu-24.04-arm`); without them the workflow would fall
+  back to slow QEMU emulation for arm64.
+- Add repo secrets on GitHub: `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (a Docker Hub access
+  token, not the account password).

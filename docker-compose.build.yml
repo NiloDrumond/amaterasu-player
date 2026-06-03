@@ -1,0 +1,6 @@
+# Override for building the image from source instead of pulling it.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  amaterasu:
+    build: .

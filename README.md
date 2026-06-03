@@ -4,20 +4,37 @@ A self-hosted music player and library manager. Scans your local music collectio
 
 ## Quick start
 
-1. Clone the repository
-2. Edit `docker-compose.yml`:
-   - Set the path to your music library (replace `/path/to/your/music`)
-   - Change the admin credentials (`ADMIN_EMAIL`, `ADMIN_PASSWORD`)
-   - Change the database password (update both the `amaterasu` service `DATABASE_URL` and the `db` service `POSTGRES_PASSWORD`)
+No need to clone the repo — the image is published to Docker Hub. In an empty directory:
+
+1. Download the compose file and the example environment file:
+   ```bash
+   curl -O https://codeberg.org/NiloDrumond/amaterasu-player/raw/branch/main/docker-compose.yml
+   curl -o .env https://codeberg.org/NiloDrumond/amaterasu-player/raw/branch/main/.env.example
+   ```
+2. Edit `.env`:
+   - `MUSIC_PATH` — absolute path to your music library
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — initial admin user
+   - `POSTGRES_PASSWORD` — database password (used by both services)
 3. Start the stack:
    ```bash
    docker compose up -d
    ```
 4. Open http://localhost:4534
 
+The compose file pulls `nilodrumond/amaterasu-player:latest`. To pin a specific release,
+change the tag to a version, e.g. `nilodrumond/amaterasu-player:1.0.0`.
+
+### Building from source
+
+To build the image locally instead of pulling it:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+```
+
 ## Configuration
 
-All configuration is done through environment variables in `docker-compose.yml`.
+All configuration is done through environment variables in `.env` (see `.env.example`).
 
 ### App settings
 
@@ -51,11 +68,11 @@ The container runs three processes behind an internal nginx reverse proxy:
 
 ## MusicBrainz integration
 
-To enable automatic metadata enrichment from MusicBrainz, uncomment these lines in `docker-compose.yml`:
+To enable automatic metadata enrichment from MusicBrainz, set these in `.env`:
 
-```yaml
-MUSICBRAINZ_ENABLED: true
-MUSICBRAINZ_USER_AGENT: "amaterasu/1.0 ( mailto:you@example.com )"
+```bash
+MUSICBRAINZ_ENABLED=true
+MUSICBRAINZ_USER_AGENT=amaterasu-player/1.0 ( mailto:you@example.com )
 ```
 
 The user agent string is required by [MusicBrainz API policy](https://musicbrainz.org/doc/MusicBrainz_API#User_agent). Use a real contact email.
