@@ -13,6 +13,16 @@ export function scanLibrary(fetch: Fetch): Promise<Result<void>> {
 }
 
 // ============================================================
+// User admin
+// ============================================================
+
+export type CreateUserBody = { name: string; email: string; password: string };
+
+export function createUser(fetch: Fetch, body: CreateUserBody): Promise<Result<void>> {
+	return api<void>(fetch, '/api/admin/users', { method: 'POST', body });
+}
+
+// ============================================================
 // Track admin
 // ============================================================
 

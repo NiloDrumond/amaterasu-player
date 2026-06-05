@@ -165,15 +165,6 @@
 											Admin home <Icons.ExternalLink />
 										</DropdownMenu.Item>
 										<DropdownMenu.Item onclick={handleScanLibrary}>Scan library</DropdownMenu.Item>
-										<DropdownMenu.Sub>
-											<DropdownMenu.SubTrigger>Invite users</DropdownMenu.SubTrigger>
-											<DropdownMenu.SubContent>
-												<DropdownMenu.Item>Email</DropdownMenu.Item>
-												<DropdownMenu.Item>Message</DropdownMenu.Item>
-												<DropdownMenu.Separator />
-												<DropdownMenu.Item>More...</DropdownMenu.Item>
-											</DropdownMenu.SubContent>
-										</DropdownMenu.Sub>
 									</DropdownMenu.Group>
 								{/if}
 								<DropdownMenu.Separator />

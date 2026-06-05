@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Icons } from '$lib/components/ui/icons';
+	import CreateUserForm from '$lib/components/admin/create-user-form.svelte';
 	import { scanLibrary } from '$lib/services/admin-service';
 	import { toast } from 'svelte-sonner';
 
@@ -38,6 +39,14 @@
 			<Button onclick={handleScan}>Scan library</Button>
 			<Button variant="outline" href="/admin/tracks/deleted">Deleted tracks</Button>
 		</div>
+	</section>
+
+	<section class="space-y-2">
+		<h2>Users</h2>
+		<p class="text-sm text-muted-foreground">
+			Create a new user. They'll sign in with the email and password you set.
+		</p>
+		<CreateUserForm />
 	</section>
 
 	<section class="space-y-2">
