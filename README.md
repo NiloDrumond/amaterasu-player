@@ -134,13 +134,15 @@ When running behind nginx, Caddy, Traefik, or similar, the app trusts `X-Forward
 
 ## Monitoring (optional)
 
-Add Loki + Grafana for structured logging and dashboards. This overlay mounts config from the repo's `infra/` directory, so it requires a clone:
+Add Loki + Grafana for structured logging and a prebuilt logs dashboard. The overlay is self-contained — download it plus the dashboard JSON into the same folder as your `docker-compose.yml`:
 
 ```bash
+curl -O https://codeberg.org/NiloDrumond/amaterasu-player/raw/branch/main/docker-compose.monitoring.yml
+curl -O https://codeberg.org/NiloDrumond/amaterasu-player/raw/branch/main/infra/grafana/dashboards/amaterasu-server-logs.json
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 ```
 
-Grafana is accessible at <http://localhost:4534/admin/logs> (proxied through the app, requires admin login). It is not directly exposed — only reachable through the app's reverse proxy.
+Grafana is accessible at <http://localhost:4534/admin/logs> (proxied through the app, requires admin login). It is not directly exposed — only reachable through the app's reverse proxy, and your admin login is your Grafana login.
 
 | Variable | Where | Description |
 |----------|-------|-------------|

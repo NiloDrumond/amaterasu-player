@@ -1,3 +1,12 @@
+# Optional observability overlay: Loki (log storage) + Grafana (dashboards).
+#
+# Download this file plus amaterasu-server-logs.json into the same folder as
+# your docker-compose.yml, then run:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+#
+# Grafana is not exposed directly; reach it at http://<host>:4534/admin/logs
+# after logging in as an admin (the app proxies it with header auth).
 services:
   amaterasu:
     environment:
@@ -7,8 +16,10 @@ services:
   loki:
     image: grafana/loki:3.0.0
     command: -config.file=/etc/loki/loki-config.yaml
+    configs:
+      - source: loki_config
+        target: /etc/loki/loki-config.yaml
     volumes:
-      - ./infra/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki_data:/loki
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
@@ -32,10 +43,15 @@ services:
       GF_AUTH_PROXY_HEADERS: "Email:X-WEBAUTH-EMAIL Name:X-WEBAUTH-NAME"
       GF_AUTH_PROXY_SYNC_TTL: "60"
       GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN: "false"
+    configs:
+      - source: grafana_datasource_loki
+        target: /etc/grafana/provisioning/datasources/loki.yaml
+      - source: grafana_dashboards_provider
+        target: /etc/grafana/provisioning/dashboards/dashboards.yaml
     volumes:
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
+      # Dashboard JSON — download this into the same folder as this file.
+      - ./amaterasu-server-logs.json:/var/lib/grafana/dashboards/amaterasu-server-logs.json:ro
     depends_on:
       loki:
         condition: service_healthy
@@ -44,3 +60,82 @@ services:
 volumes:
   loki_data:
   grafana_data:
+
+configs:
+  loki_config:
+    content: |
+      auth_enabled: false
+
+      server:
+        http_listen_port: 3100
+        grpc_listen_port: 9096
+        log_level: warn
+
+      common:
+        instance_addr: 127.0.0.1
+        path_prefix: /loki
+        storage:
+          filesystem:
+            chunks_directory: /loki/chunks
+            rules_directory: /loki/rules
+        replication_factor: 1
+        ring:
+          kvstore:
+            store: inmemory
+
+      schema_config:
+        configs:
+          - from: 2024-01-01
+            store: tsdb
+            object_store: filesystem
+            schema: v13
+            index:
+              prefix: index_
+              period: 24h
+
+      limits_config:
+        retention_period: 168h
+        allow_structured_metadata: true
+        volume_enabled: true
+
+      compactor:
+        working_directory: /loki/compactor
+        delete_request_store: filesystem
+        retention_enabled: true
+
+      ruler:
+        alertmanager_url: http://localhost:9093
+
+      analytics:
+        reporting_enabled: false
+
+  grafana_datasource_loki:
+    content: |
+      apiVersion: 1
+
+      datasources:
+        - name: Loki
+          uid: loki
+          type: loki
+          access: proxy
+          url: http://loki:3100
+          isDefault: true
+          editable: false
+          jsonData:
+            maxLines: 5000
+
+  grafana_dashboards_provider:
+    content: |
+      apiVersion: 1
+
+      providers:
+        - name: amaterasu
+          orgId: 1
+          folder: Amaterasu
+          type: file
+          disableDeletion: false
+          allowUiUpdates: true
+          updateIntervalSeconds: 30
+          options:
+            path: /var/lib/grafana/dashboards
+            foldersFromFilesStructure: false
