@@ -51,10 +51,10 @@
           "unit": "short"
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "ERROR" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "WARN" },  "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "INFO" },  "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "DEBUG" }, "properties": [{ "id": "color", "value": { "fixedColor": "grey", "mode": "fixed" } }] }
+          { "matcher": { "id": "byName", "options": "error" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "warn" },  "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "info" },  "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "debug" }, "properties": [{ "id": "color", "value": { "fixedColor": "grey", "mode": "fixed" } }] }
         ]
       },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
@@ -67,7 +67,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "sum by (level) (count_over_time({service=\"amaterasu-server\"} | logfmt | level=~\".+\" [$__auto]))",
+          "expr": "sum by (level) (count_over_time({service=\"amaterasu-server\", level=~\"$level\"} [$__auto]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -94,7 +94,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "{service=\"amaterasu-server\"} $level_filter |~ \"$search\"",
+          "expr": "{service=\"amaterasu-server\", level=~\"$level\"} |~ \"$search\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -109,29 +109,28 @@
   "templating": {
     "list": [
       {
-        "current": { "selected": false, "text": "All", "value": "" },
-        "description": "Filter by log level (uses logfmt parsing on the line).",
-        "hide": 0,
+        "allValue": ".+",
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "description": "Filter by log level (matches the 'level' label).",
         "includeAll": true,
         "label": "Level",
         "multi": false,
-        "name": "level_filter",
+        "name": "level",
         "options": [
-          { "selected": true,  "text": "All",   "value": "" },
-          { "selected": false, "text": "ERROR", "value": "| logfmt | level=\"ERROR\"" },
-          { "selected": false, "text": "WARN",  "value": "| logfmt | level=\"WARN\"" },
-          { "selected": false, "text": "INFO",  "value": "| logfmt | level=\"INFO\"" },
-          { "selected": false, "text": "DEBUG", "value": "| logfmt | level=\"DEBUG\"" }
+          { "selected": true,  "text": "All",   "value": "$__all" },
+          { "selected": false, "text": "error", "value": "error" },
+          { "selected": false, "text": "warn",  "value": "warn" },
+          { "selected": false, "text": "info",  "value": "info" },
+          { "selected": false, "text": "debug", "value": "debug" }
         ],
-        "query": "All : ,ERROR : | logfmt | level=\"ERROR\",WARN : | logfmt | level=\"WARN\",INFO : | logfmt | level=\"INFO\",DEBUG : | logfmt | level=\"DEBUG\"",
+        "query": "error,warn,info,debug",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
       },
       {
         "current": { "selected": false, "text": "", "value": "" },
-        "description": "Substring to match anywhere in the log line.",
-        "hide": 0,
+        "description": "Substring/regex to match anywhere in the log line.",
         "label": "Search",
         "name": "search",
         "options": [{ "selected": true, "text": "", "value": "" }],
@@ -146,6 +145,6 @@
   "timezone": "",
   "title": "Amaterasu server logs",
   "uid": "amaterasu-server-logs",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
