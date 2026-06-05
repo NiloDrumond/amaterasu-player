@@ -128,9 +128,11 @@ MUSICBRAINZ_USER_AGENT: "amaterasu-player/1.0 ( mailto:you@example.com )"
 
 The user agent string is required by [MusicBrainz API policy](https://musicbrainz.org/doc/MusicBrainz_API#User_agent). Use a real contact email.
 
-## Reverse proxy
+## Reverse proxy & HTTPS
 
-When running behind nginx, Caddy, Traefik, or similar, the app trusts `X-Forwarded-*` headers by default (`TRUST_PROXY_HEADERS=true`).
+**Running behind an HTTPS reverse proxy (Caddy, Traefik, nginx, …) is the recommended setup.** The app trusts `X-Forwarded-*` headers by default (`TRUST_PROXY_HEADERS=true`), so just forward them; the proxy should set `X-Forwarded-Proto`.
+
+The session cookie's `Secure` flag follows the request scheme automatically: it's set over **HTTPS** (hardened) and omitted over plain **HTTP**, so logging in works on a LAN/localhost over HTTP too. For anything beyond your local network, use HTTPS — a `Secure` cookie over a real domain is what you want.
 
 ## Monitoring (optional)
 

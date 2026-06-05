@@ -46,6 +46,25 @@ fn real_client_ip(
     connect_info.0.ip()
 }
 
+/// Whether the original client request reached us over HTTPS. The server always
+/// listens on plain HTTP behind nginx, so we rely on the `X-Forwarded-Proto`
+/// header (set by the proxy chain) when proxy headers are trusted. This decides
+/// the session cookie's `Secure` flag: a `Secure` cookie is silently dropped by
+/// browsers over HTTP, so we must not set it unless the request was HTTPS.
+/// HTTPS deployments still get a hardened `Secure` cookie; plain-HTTP/LAN setups
+/// can still log in.
+fn request_is_secure(headers: &HeaderMap, trust_proxy: bool) -> bool {
+    if !trust_proxy {
+        return false;
+    }
+    headers
+        .get("x-forwarded-proto")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim().eq_ignore_ascii_case("https"))
+        .unwrap_or(false)
+}
+
 pub async fn sign_in_email(
     State(state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
@@ -66,7 +85,7 @@ pub async fn sign_in_email(
     let cookie = Cookie::build((SESSION_COOKIE_NAME, session.id))
         .path("/")
         .http_only(true)
-        .secure(true)
+        .secure(request_is_secure(&headers, state.trust_proxy_headers))
         .same_site(axum_extra::extract::cookie::SameSite::Lax)
         .max_age(time::Duration::seconds(max_age as i64));
 
@@ -75,6 +94,7 @@ pub async fn sign_in_email(
 
 pub async fn sign_out(
     State(state): State<AppState>,
+    headers: HeaderMap,
     auth_user: AuthUser,
 ) -> AppResult<impl IntoResponse> {
     let service = AuthService::new(state.db.clone());
@@ -83,7 +103,7 @@ pub async fn sign_out(
     let cookie = Cookie::build((SESSION_COOKIE_NAME, ""))
         .path("/")
         .http_only(true)
-        .secure(true)
+        .secure(request_is_secure(&headers, state.trust_proxy_headers))
         .same_site(axum_extra::extract::cookie::SameSite::Lax)
         .max_age(time::Duration::ZERO);
 
