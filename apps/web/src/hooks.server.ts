@@ -25,6 +25,14 @@ export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 		const xfProto = event.request.headers.get('x-forwarded-proto');
 		if (xfProto) headers.set('x-forwarded-proto', xfProto);
 
+		// Propagate the real client IP. Without this every server-side API call
+		// reaches the backend as 127.0.0.1 (the Bun process), so the per-IP rate
+		// limiter (SmartIpKeyExtractor) buckets *all* users together and trips
+		// for everyone at once. nginx appends 127.0.0.1 to this on the /api hop,
+		// and the extractor keeps the leftmost (real) address.
+		const xfFor = event.request.headers.get('x-forwarded-for');
+		if (xfFor) headers.set('x-forwarded-for', xfFor);
+
 		return fetch(new Request(request, { headers }));
 	}
 

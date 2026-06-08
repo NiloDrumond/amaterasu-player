@@ -10,12 +10,15 @@ type LoadData = {
 	recentPlaylists: RecentPlaylistResponse[];
 };
 export const load: LayoutServerLoad = async ({ fetch, url }): Promise<LoadData> => {
-	const { data: user, error: errorMessage } = await getCurrentUser(fetch);
-	if (errorMessage) {
+	const { data: user, error: errorMessage, status } = await getCurrentUser(fetch);
+	// Only a genuine 401 means "not logged in" — redirect to the login page.
+	// Any other failure (e.g. a transient 429 from the rate limiter, or a 5xx)
+	// must NOT log the user out, or a momentary blip bounces them to /login.
+	if (status === 401) {
 		redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
-	if (!user) {
-		error(500, 'Failed to load user');
+	if (errorMessage || !user) {
+		error(status && status >= 400 ? status : 500, errorMessage ?? 'Failed to load user');
 	}
 	const { data: recent } = await getRecentPlaylists(fetch, 10);
 	return { user, recentPlaylists: recent ?? [] };

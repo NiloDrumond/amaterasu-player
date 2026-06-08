@@ -189,15 +189,19 @@ async fn main() -> anyhow::Result<()> {
         initialize_background_tasks(tasks_state).await;
     });
 
+    // NOTE: tower_governor's `period` is the interval to replenish ONE token,
+    // NOT a per-second rate. (`per_second(30)` means "1 token every 30s", which
+    // throttled normal browsing to a crawl.) Express the intended rates as the
+    // replenish period instead.
     let auth_governor = GovernorConfigBuilder::default()
         .key_extractor(SmartIpKeyExtractor)
-        .per_second(2)
+        .period(Duration::from_millis(500)) // ~2 req/s
         .burst_size(5)
         .finish()
         .unwrap();
     let protected_governor = GovernorConfigBuilder::default()
         .key_extractor(SmartIpKeyExtractor)
-        .per_second(30)
+        .period(Duration::from_nanos(1_000_000_000 / 30)) // ~30 req/s
         .burst_size(60)
         .finish()
         .unwrap();
@@ -205,7 +209,7 @@ async fn main() -> anyhow::Result<()> {
     // flushing logs can't exhaust the (much tighter) sign-in budget for its IP.
     let client_log_governor = GovernorConfigBuilder::default()
         .key_extractor(SmartIpKeyExtractor)
-        .per_second(5)
+        .period(Duration::from_millis(200)) // ~5 req/s
         .burst_size(20)
         .finish()
         .unwrap();
