@@ -1,3 +1,6 @@
+import { browser } from '$app/environment';
+import { logger } from './logger';
+
 export type Result<T> =
 	| { data: T; error: null; status: number }
 	| { data: null; error: string; status: number | null };
@@ -9,6 +12,7 @@ export async function api<T>(
 	url: string,
 	options?: { method?: string; body?: unknown },
 ): Promise<Result<T>> {
+	const method = options?.method ?? 'GET';
 	try {
 		const fetchOptions: RequestInit = {};
 		if (options?.method) fetchOptions.method = options.method;
@@ -29,6 +33,12 @@ export async function api<T>(
 				errorMessage = res.statusText;
 			}
 
+			// Server-side failures are actionable; client 4xx (auth, validation)
+			// are expected flow and would just be noise.
+			if (browser && res.status >= 500) {
+				logger.error('API request failed', { url, method, status: res.status, error: errorMessage });
+			}
+
 			return {
 				data: null,
 				error: errorMessage,
@@ -42,6 +52,9 @@ export async function api<T>(
 		const data = (await res.json()) as T;
 		return { data, error: null, status: res.status };
 	} catch {
+		if (browser) {
+			logger.error('API network error', { url, method });
+		}
 		return {
 			data: null,
 			error: 'Network error',

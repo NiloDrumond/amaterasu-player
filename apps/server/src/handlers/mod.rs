@@ -3,6 +3,7 @@ pub mod album_collection_handlers;
 pub mod albums_handlers;
 pub mod artists_handlers;
 pub mod auth_handlers;
+pub mod client_log_handlers;
 pub mod covers_handlers;
 pub mod grafana_proxy_handlers;
 pub mod home_handlers;

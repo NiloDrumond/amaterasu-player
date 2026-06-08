@@ -16,6 +16,9 @@ pub struct AppState {
     pub covers_dir: PathBuf,
     pub search: Arc<SearchIndex>,
     pub grafana_proxy: Option<crate::handlers::grafana_proxy_handlers::GrafanaProxy>,
+    /// `None` when `LOKI_URL` is unset; frontend logs then fall back to the
+    /// server's own tracing output.
+    pub client_log: Option<crate::handlers::client_log_handlers::LokiIngest>,
     /// `None` when MUSICBRAINZ_ENABLED=false.
     pub mb_service: Option<MetadataSuggestionService>,
     pub mb_lookup_sender: Option<LookupSender>,
@@ -35,6 +38,7 @@ impl AppState {
         covers_dir: PathBuf,
         search: Arc<SearchIndex>,
         grafana_proxy: Option<crate::handlers::grafana_proxy_handlers::GrafanaProxy>,
+        client_log: Option<crate::handlers::client_log_handlers::LokiIngest>,
         mb_service: Option<MetadataSuggestionService>,
         mb_lookup_sender: Option<LookupSender>,
         trust_proxy_headers: bool,
@@ -45,6 +49,7 @@ impl AppState {
             covers_dir,
             search,
             grafana_proxy,
+            client_log,
             mb_service,
             mb_lookup_sender,
             recommendation_cache: Arc::new(RecommendationCache::new()),

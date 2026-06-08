@@ -4,6 +4,7 @@ use crate::routes::admin_routes::admin_routes;
 use crate::routes::album_collection_routes::album_collection_routes;
 use crate::routes::album_routes::albums_routes;
 use crate::routes::artist_routes::artists_routes;
+use crate::routes::client_log_routes::client_log_routes;
 use crate::routes::cover_routes::covers_routes;
 use crate::routes::home_routes::home_routes;
 use crate::routes::playlist_routes::playlist_routes;
@@ -31,6 +32,7 @@ mod album_collection_routes;
 mod album_routes;
 mod artist_routes;
 mod auth_routes;
+mod client_log_routes;
 mod cover_routes;
 mod home_routes;
 mod playlist_routes;
@@ -43,6 +45,7 @@ pub fn create_api_router(
     state: AppState,
     auth_governor: GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware<QuantaInstant>>,
     protected_governor: GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware<QuantaInstant>>,
+    client_log_governor: GovernorConfig<SmartIpKeyExtractor, NoOpMiddleware<QuantaInstant>>,
     cors_origins: Option<&str>,
 ) -> Router {
     let admin_subtree = Router::new()
@@ -69,7 +72,13 @@ pub fn create_api_router(
         .merge(auth_routes::public_routes())
         .layer(GovernorLayer::new(auth_governor));
 
-    let public_routes = Router::new().merge(rate_limited_routes);
+    let client_log_route = Router::new()
+        .merge(client_log_routes())
+        .layer(GovernorLayer::new(client_log_governor));
+
+    let public_routes = Router::new()
+        .merge(rate_limited_routes)
+        .merge(client_log_route);
 
     let api_routes = Router::new()
         .merge(protected_routes)

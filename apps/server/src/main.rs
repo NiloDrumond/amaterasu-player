@@ -165,12 +165,20 @@ async fn main() -> anyhow::Result<()> {
         .as_ref()
         .map(|url| handlers::grafana_proxy_handlers::GrafanaProxy::new(url.clone()));
 
+    let client_log = config.loki_url.as_ref().map(|url| {
+        handlers::client_log_handlers::LokiIngest::new(
+            url.clone(),
+            std::env::var("APP_ENV").unwrap_or_else(|_| "dev".into()),
+        )
+    });
+
     let app_state = AppState::new(
         db_pool,
         library_scanner,
         covers_dir,
         search_index,
         grafana_proxy,
+        client_log,
         mb_service,
         mb_lookup_sender,
         config.trust_proxy_headers,
@@ -193,14 +201,24 @@ async fn main() -> anyhow::Result<()> {
         .burst_size(60)
         .finish()
         .unwrap();
+    // Frontend log ingest gets its own limiter so a misbehaving/erroring page
+    // flushing logs can't exhaust the (much tighter) sign-in budget for its IP.
+    let client_log_governor = GovernorConfigBuilder::default()
+        .key_extractor(SmartIpKeyExtractor)
+        .per_second(5)
+        .burst_size(20)
+        .finish()
+        .unwrap();
     let auth_limiter = auth_governor.limiter().clone();
     let protected_limiter = protected_governor.limiter().clone();
+    let client_log_limiter = client_log_governor.limiter().clone();
     let interval = Duration::from_secs(60);
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(interval).await;
             auth_limiter.retain_recent();
             protected_limiter.retain_recent();
+            client_log_limiter.retain_recent();
         }
     });
 
@@ -208,6 +226,7 @@ async fn main() -> anyhow::Result<()> {
         app_state,
         auth_governor,
         protected_governor,
+        client_log_governor,
         config.cors_allowed_origins.as_deref(),
     );
 
