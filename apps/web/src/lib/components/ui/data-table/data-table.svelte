@@ -81,9 +81,9 @@
 			return columns;
 		},
 		defaultColumn: {
-			size: 50,
+			size: 9999,
 		},
-		rowCount: 50,
+		rowCount: 9999,
 		get manualSorting() {
 			return !!serverSort;
 		},
