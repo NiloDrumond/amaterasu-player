@@ -16,7 +16,7 @@ SERVER_PID=$!
 
 # Start the SvelteKit Bun server
 cd /app/web
-PORT=3001 ORIGIN=http://127.0.0.1:3000 API_ORIGIN=http://127.0.0.1:8080 bun run index.js &
+PORT=3001 ORIGIN=http://127.0.0.1:3000 bun run index.js &
 WEB_PID=$!
 cd /
 

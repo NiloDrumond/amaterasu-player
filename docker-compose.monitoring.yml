@@ -1,7 +1,8 @@
 # Optional observability overlay: Loki (log storage) + Grafana (dashboards).
 #
-# Download this file plus amaterasu-server-logs.json into the same folder as
-# your docker-compose.yml, then run:
+# Download this file plus the dashboard JSON files (amaterasu-server-logs.json
+# and amaterasu-web-logs.json) into the same folder as your docker-compose.yml,
+# then run:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 #
@@ -50,8 +51,9 @@ services:
         target: /etc/grafana/provisioning/dashboards/dashboards.yaml
     volumes:
       - grafana_data:/var/lib/grafana
-      # Dashboard JSON — download this into the same folder as this file.
+      # Dashboard JSON — download these into the same folder as this file.
       - ./amaterasu-server-logs.json:/var/lib/grafana/dashboards/amaterasu-server-logs.json:ro
+      - ./amaterasu-web-logs.json:/var/lib/grafana/dashboards/amaterasu-web-logs.json:ro
     depends_on:
       loki:
         condition: service_healthy
