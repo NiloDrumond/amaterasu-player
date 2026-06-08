@@ -1,4 +1,38 @@
-import type { HandleServerError } from '@sveltejs/kit';
+import type { HandleFetch, HandleServerError } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
+
+// Direct address of the Rust API inside the container / dev box.
+const API_ORIGIN = env.API_ORIGIN ?? 'http://127.0.0.1:8080';
+
+// Route server-side `/api` (and `/admin/logs`) fetches straight to the backend
+// and forward the session cookie + proxy headers explicitly. SvelteKit's
+// implicit same-origin cookie forwarding breaks in production because the Bun
+// server is pinned to ORIGIN=http://127.0.0.1:3000 while the real request comes
+// in as https://music.akaiamaterasu.com — so authenticated server-side calls
+// (e.g. /api/auth/me in the protected layout load) arrived unauthenticated and
+// bounced the user back to /login. Forwarding explicitly removes that
+// dependency on ORIGIN / scheme / same-origin heuristics.
+export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
+	const url = new URL(request.url);
+
+	if (url.pathname.startsWith('/api') || url.pathname.startsWith('/admin/logs')) {
+		const target = API_ORIGIN + url.pathname + url.search;
+		const proxied = new Request(target, request);
+
+		const cookie = event.request.headers.get('cookie');
+		if (cookie) proxied.headers.set('cookie', cookie);
+
+		const xfProto = event.request.headers.get('x-forwarded-proto');
+		if (xfProto) proxied.headers.set('x-forwarded-proto', xfProto);
+
+		const xfFor = event.request.headers.get('x-forwarded-for');
+		if (xfFor) proxied.headers.set('x-forwarded-for', xfFor);
+
+		return fetch(proxied);
+	}
+
+	return fetch(request);
+};
 
 // SSR errors run in the SvelteKit (Bun) server, whose stdout is not shipped to
 // Loki. Forward them to the backend ingest endpoint so they land in the same
