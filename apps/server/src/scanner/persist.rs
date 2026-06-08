@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::db::entities::{Album, Artist, Track};
 use crate::error::AppError;
 use crate::repositories::{AlbumRepository, AliasRepository, ArtistRepository, TrackRepository};
+use crate::services::cover_storage;
 
 use super::scan_artist::ScannedArtistMetadata;
 use super::scan_cover::ScannedCover;
@@ -17,6 +18,7 @@ pub async fn persist_scanned_file(
     pool: &PgPool,
     covers_dir: &Path,
     scanned: ScannedFile,
+    folder_cover: Option<&Path>,
 ) -> Result<Option<Track>, AppError> {
     // Scan-once: if the file's audio_hash already corresponds to a track, just
     // sync the file_path and return. Skipping the artist/album lookup keeps
@@ -61,9 +63,33 @@ pub async fn persist_scanned_file(
 
     let album = find_or_create_album(&mut tx, &scanned, album_artist_id).await?;
 
-    if let Some(cover) = &scanned.cover {
-        if album.cover_path.is_none() {
-            persist_album_cover(&mut tx, covers_dir, album.id, cover).await?;
+    if album.cover_path.is_none() {
+        // Folder-level cover art takes priority over embedded art. We only read
+        // the image bytes here (at most once per album, since the next track
+        // re-fetches the album and sees a non-null cover_path).
+        let mut stored = false;
+        if let Some(path) = folder_cover {
+            match tokio::fs::read(path).await {
+                Ok(bytes) => match cover_storage::store_cover_bytes(covers_dir, &bytes).await {
+                    Ok(filename) => {
+                        AlbumRepository::update_cover_path(&mut *tx, album.id, &filename).await?;
+                        stored = true;
+                    }
+                    Err(e) => tracing::warn!(
+                        path = %path.display(),
+                        "folder cover rejected ({e}); falling back to embedded"
+                    ),
+                },
+                Err(e) => tracing::warn!(
+                    path = %path.display(),
+                    "failed to read folder cover ({e}); falling back to embedded"
+                ),
+            }
+        }
+        if !stored {
+            if let Some(cover) = &scanned.cover {
+                persist_album_cover(&mut tx, covers_dir, album.id, cover).await?;
+            }
         }
     }
 

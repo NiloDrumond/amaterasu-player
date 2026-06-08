@@ -46,11 +46,7 @@ impl LokiIngest {
         }
     }
 
-    async fn push(
-        &self,
-        entries: &[ClientLogEntry],
-        identity: &Identity,
-    ) -> anyhow::Result<()> {
+    async fn push(&self, entries: &[ClientLogEntry], identity: &Identity) -> anyhow::Result<()> {
         // `level` is a stream label, so values must be grouped by level.
         let mut by_level: BTreeMap<&'static str, Vec<[String; 2]>> = BTreeMap::new();
 

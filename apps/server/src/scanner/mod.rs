@@ -1,5 +1,6 @@
 mod audio_hash;
 mod error;
+mod folder_cover;
 mod library_scanner;
 mod persist;
 mod scan_album;

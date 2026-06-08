@@ -32,6 +32,7 @@ fn is_system_junk(entry: &DirEntry) -> bool {
 }
 
 use crate::musicbrainz::{LookupJob, LookupSender};
+use crate::scanner::folder_cover::find_folder_cover;
 use crate::scanner::persist::persist_scanned_file;
 use crate::scanner::scan_file::ScannedFile;
 use crate::scanner::scan_track::parse_numeric_prefix;
@@ -159,7 +160,10 @@ impl LibraryScanner {
         }
 
         // Phase 3: Album gate + persist (sequential, per folder).
-        for (_parent, mut scanned_files) in scanned_by_folder {
+        for (parent, mut scanned_files) in scanned_by_folder {
+            // Resolve a folder-level cover image once per folder; it takes
+            // priority over embedded art when present.
+            let folder_cover = find_folder_cover(&parent);
             let album_gate = scanned_files.len() >= 2
                 && scanned_files
                     .iter()
@@ -177,7 +181,14 @@ impl LibraryScanner {
 
             for scanned_file in scanned_files {
                 let display_path = scanned_file.file_path().to_string();
-                match persist_scanned_file(&self.pool, &self.covers_dir, scanned_file).await {
+                match persist_scanned_file(
+                    &self.pool,
+                    &self.covers_dir,
+                    scanned_file,
+                    folder_cover.as_deref(),
+                )
+                .await
+                {
                     Ok(Some(track)) => {
                         scanned += 1;
                         if let Some(sender) = &self.mb_lookup_sender {

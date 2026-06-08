@@ -36,7 +36,12 @@ export async function api<T>(
 			// Server-side failures are actionable; client 4xx (auth, validation)
 			// are expected flow and would just be noise.
 			if (browser && res.status >= 500) {
-				logger.error('API request failed', { url, method, status: res.status, error: errorMessage });
+				logger.error('API request failed', {
+					url,
+					method,
+					status: res.status,
+					error: errorMessage,
+				});
 			}
 
 			return {
