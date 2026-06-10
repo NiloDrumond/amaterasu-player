@@ -95,6 +95,8 @@ impl LibraryScanner {
     pub async fn run_scan(&self, _permit: ScanPermit) -> Result<(), anyhow::Error> {
         ffmpeg_next::init()?;
 
+        tracing::info!("Starting library scan of {}", self.library_path);
+
         let mut scanned: u64 = 0;
         let mut failed: u64 = 0;
         let mut enqueued_albums: HashSet<Uuid> = HashSet::new();
@@ -121,6 +123,13 @@ impl LibraryScanner {
             by_folder.entry(parent).or_default().push(path);
         }
 
+        let total_files: usize = by_folder.values().map(|v| v.len()).sum();
+        tracing::info!(
+            "Library walk complete: {} audio files in {} folders",
+            total_files,
+            by_folder.len()
+        );
+
         // Phase 2: Scan files in parallel across all folders.
         let max_parallel = std::thread::available_parallelism()
             .map(|n| n.get())
@@ -143,6 +152,7 @@ impl LibraryScanner {
         }
 
         let mut scanned_by_folder: BTreeMap<PathBuf, Vec<ScannedFile>> = BTreeMap::new();
+        let mut decoded: usize = 0;
         while let Some(res) = join_set.join_next().await {
             match res {
                 Ok((parent, _, Ok(f))) => {
@@ -156,6 +166,10 @@ impl LibraryScanner {
                     tracing::warn!("Scan task panicked: {}", e);
                     failed += 1;
                 }
+            }
+            decoded += 1;
+            if decoded % 250 == 0 {
+                tracing::info!("Scan progress: {}/{} files decoded", decoded, total_files);
             }
         }
 
