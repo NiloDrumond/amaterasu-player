@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Icons } from '$lib/components/ui/icons';
-	import CreateUserForm from '$lib/components/admin/create-user-form.svelte';
 	import { scanLibrary } from '$lib/services/admin-service';
 	import { toast } from 'svelte-sonner';
 
@@ -43,10 +42,8 @@
 
 	<section class="space-y-2">
 		<h2>Users</h2>
-		<p class="text-sm text-muted-foreground">
-			Create a new user. They'll sign in with the email and password you set.
-		</p>
-		<CreateUserForm />
+		<p class="text-sm text-muted-foreground">Create and manage users.</p>
+		<Button variant="outline" href="/admin/users">Manage users</Button>
 	</section>
 
 	<section class="space-y-2">

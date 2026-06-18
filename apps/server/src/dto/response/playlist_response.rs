@@ -15,6 +15,7 @@ pub struct PlaylistResponse {
     pub track_count: i64,
     pub total_duration_ms: i64,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     /// 'manual' or 'dynamic'.
     pub playlist_type: String,
     pub filter_definition: Option<FilterNode>,
@@ -29,6 +30,7 @@ impl PlaylistResponse {
             track_count: value.track_count,
             total_duration_ms: value.total_duration_ms,
             created_at: value.playlist.created_at,
+            updated_at: value.playlist.updated_at,
             playlist_type: value.playlist.playlist_type,
             filter_definition: value.playlist.filter_definition.map(|j| j.0),
             play_count,

@@ -10,7 +10,15 @@ use crate::{
 
 pub fn admin_routes() -> Router<AppState> {
     Router::new()
-        .route("/admin/users", post(admin_handlers::create_user))
+        .route(
+            "/admin/users",
+            post(admin_handlers::create_user).get(admin_handlers::list_users),
+        )
+        .route("/admin/users/{id}", delete(admin_handlers::delete_user))
+        .route(
+            "/admin/users/{id}/reset-password",
+            post(admin_handlers::reset_user_password),
+        )
         .route("/admin/scan-library", post(admin_handlers::scan_library))
         .route(
             "/admin/tracks/deleted",

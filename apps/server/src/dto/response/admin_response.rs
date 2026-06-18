@@ -3,7 +3,8 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::db::entities::{Album, Artist, Track};
+use crate::db::entities::{Album, Artist, Track, User};
+use crate::dto::response::common_response::PaginatedResponse;
 use crate::repositories::{AlbumAliasRow, ArtistAliasRow};
 
 #[api_type("response/admin")]
@@ -39,6 +40,32 @@ impl From<AlbumAliasRow> for AlbumAliasResponse {
         }
     }
 }
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+pub struct AdminUserResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub email: String,
+    pub role: String,
+    pub created_at: DateTime<Utc>,
+}
+
+impl From<User> for AdminUserResponse {
+    fn from(u: User) -> Self {
+        Self {
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            created_at: u.created_at,
+        }
+    }
+}
+
+#[api_type("response/admin")]
+#[derive(Debug, Serialize)]
+struct GetUsersResponse(PaginatedResponse<AdminUserResponse>);
 
 #[api_type("response/admin")]
 #[derive(Debug, Serialize)]

@@ -7,11 +7,9 @@
 	import { Icons } from '$lib/components/ui/icons';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 	import type { PlaylistResponse } from '$lib/bindings/response/playlist/playlist-response';
-	import {
-		getPlaylists,
-		createPlaylist,
-		addTracksToPlaylist,
-	} from '$lib/services/playlist-service';
+	import { invalidateAll } from '$app/navigation';
+	import { createPlaylist, addTracksToPlaylist } from '$lib/services/playlist-service';
+	import { loadPlaylists, invalidatePlaylistsCache } from '$lib/state/playlists-cache.svelte';
 
 	let {
 		tracks,
@@ -28,17 +26,27 @@
 	let submitting = $state(false);
 	let showNewPlaylistInput = $state(false);
 	let newPlaylistName = $state('');
+	let search = $state('');
 
 	async function fetchPlaylists() {
 		loading = true;
-		const { data, error } = await getPlaylists(fetch);
-		if (error) {
-			toast.error('Failed to load playlists');
-		} else if (data) {
-			playlists = data.data;
-		}
+		playlists = await loadPlaylists(fetch);
 		loading = false;
 	}
+
+	const RECENT_COUNT = 4;
+
+	const recent = $derived(
+		[...playlists].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, RECENT_COUNT),
+	);
+
+	const alphabetical = $derived([...playlists].sort((a, b) => a.name.localeCompare(b.name)));
+
+	const filtered = $derived(
+		alphabetical.filter((p) => p.name.toLowerCase().includes(search.trim().toLowerCase())),
+	);
+
+	const isSearching = $derived(search.trim().length > 0);
 
 	async function addTracksToPlaylistById(playlistId: string): Promise<boolean> {
 		submitting = true;
@@ -50,6 +58,8 @@
 			submitting = false;
 			return false;
 		}
+		invalidatePlaylistsCache();
+		void invalidateAll();
 		toast.success('Added to playlist');
 		open = false;
 		submitting = false;
@@ -83,10 +93,25 @@
 		} else {
 			showNewPlaylistInput = false;
 			newPlaylistName = '';
+			search = '';
 			onClose();
 		}
 	});
 </script>
+
+{#snippet playlistRow(playlist: PlaylistResponse)}
+	<button
+		type="button"
+		disabled={submitting}
+		class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted disabled:opacity-50"
+		onclick={() => addTracksToPlaylistById(playlist.id)}
+	>
+		<span class="truncate font-medium">{playlist.name}</span>
+		<span class="ml-2 shrink-0 text-xs text-muted-foreground">
+			{playlist.trackCount} tracks
+		</span>
+	</button>
+{/snippet}
 
 <Dialog.Root bind:open>
 	<Dialog.Content>
@@ -142,20 +167,27 @@
 			{:else if playlists.length === 0}
 				<p class="py-4 text-center text-sm text-muted-foreground">No playlists yet.</p>
 			{:else}
+				<Input bind:value={search} placeholder="Search playlists…" autocomplete="off" />
 				<div class="flex max-h-64 flex-col gap-1 overflow-y-auto">
-					{#each playlists as playlist (playlist.id)}
-						<button
-							type="button"
-							disabled={submitting}
-							class="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-muted disabled:opacity-50"
-							onclick={() => addTracksToPlaylistById(playlist.id)}
-						>
-							<span class="truncate font-medium">{playlist.name}</span>
-							<span class="ml-2 shrink-0 text-xs text-muted-foreground">
-								{playlist.trackCount} tracks
-							</span>
-						</button>
-					{/each}
+					{#if isSearching}
+						{#if filtered.length === 0}
+							<p class="py-4 text-center text-sm text-muted-foreground">No matches.</p>
+						{:else}
+							{#each filtered as playlist (playlist.id)}
+								{@render playlistRow(playlist)}
+							{/each}
+						{/if}
+					{:else}
+						<p class="px-3 pt-1 text-xs font-medium text-muted-foreground">Recently modified</p>
+						{#each recent as playlist (playlist.id)}
+							{@render playlistRow(playlist)}
+						{/each}
+						<div class="my-1 border-t"></div>
+						<p class="px-3 pt-1 text-xs font-medium text-muted-foreground">All playlists</p>
+						{#each alphabetical as playlist (playlist.id)}
+							{@render playlistRow(playlist)}
+						{/each}
+					{/if}
 				</div>
 			{/if}
 		</div>

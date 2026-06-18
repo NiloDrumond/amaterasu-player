@@ -120,7 +120,12 @@
 		storageKey="album:tracks"
 		data={data.tracks}
 		columns={albumColumns}
+		groupBy={(track) => track.disc}
 		onRowClick={(_, index) => player.playQueue(data.tracks, index, { albumId: data.album.id })}
 		isRowPlaying={(row) => row.id === player.currentTrack?.id}
-	/>
+	>
+		{#snippet groupHeader(disc)}
+			Disc {disc ?? '—'}
+		{/snippet}
+	</DataTable>
 </div>

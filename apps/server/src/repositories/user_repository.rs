@@ -71,6 +71,63 @@ impl UserRepository {
         Ok(user)
     }
 
+    pub async fn list_paginated(
+        executor: impl PgExecutor<'_>,
+        limit: i32,
+        offset: i32,
+    ) -> AppResult<Vec<User>> {
+        let users = sqlx::query_as!(
+            User,
+            r#"
+        SELECT
+            *
+        FROM
+            users
+        ORDER BY
+            created_at DESC
+        LIMIT $1 OFFSET $2
+        "#,
+            limit as i64,
+            offset as i64
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(users)
+    }
+
+    pub async fn count(executor: impl PgExecutor<'_>) -> AppResult<i64> {
+        let count = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM users"#)
+            .fetch_one(executor)
+            .await?;
+
+        Ok(count)
+    }
+
+    pub async fn update_password(
+        executor: impl PgExecutor<'_>,
+        id: Uuid,
+        password_hash: &str,
+    ) -> AppResult<bool> {
+        let result = sqlx::query!(
+            r#"UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2"#,
+            password_hash,
+            id
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid) -> AppResult<bool> {
+        let result = sqlx::query!(r#"DELETE FROM users WHERE id = $1"#, id)
+            .execute(executor)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
     pub async fn count_admins(executor: impl PgExecutor<'_>) -> AppResult<i64> {
         let count =
             sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM users WHERE role = 'admin'"#)

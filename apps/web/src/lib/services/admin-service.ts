@@ -1,4 +1,5 @@
 import type { AdminTrackResponse } from '$lib/bindings/response/admin/admin-track-response';
+import type { GetUsersResponse } from '$lib/bindings/response/admin/get-users-response';
 import type { AdminAlbumResponse } from '$lib/bindings/response/admin/admin-album-response';
 import type { AdminArtistResponse } from '$lib/bindings/response/admin/admin-artist-response';
 import type { AdminDeletedTrackResponse } from '$lib/bindings/response/admin/admin-deleted-track-response';
@@ -20,6 +21,29 @@ export type CreateUserBody = { name: string; email: string; password: string };
 
 export function createUser(fetch: Fetch, body: CreateUserBody): Promise<Result<void>> {
 	return api<void>(fetch, '/api/admin/users', { method: 'POST', body });
+}
+
+export function getAdminUsers(
+	fetch: Fetch,
+	{ limit, offset }: { limit: number; offset: number },
+): Promise<Result<GetUsersResponse>> {
+	const search = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+	return api<GetUsersResponse>(fetch, `/api/admin/users?${search.toString()}`);
+}
+
+export function resetUserPassword(
+	fetch: Fetch,
+	id: string,
+	password: string,
+): Promise<Result<void>> {
+	return api<void>(fetch, `/api/admin/users/${id}/reset-password`, {
+		method: 'POST',
+		body: { password },
+	});
+}
+
+export function deleteAdminUser(fetch: Fetch, id: string): Promise<Result<void>> {
+	return api<void>(fetch, `/api/admin/users/${id}`, { method: 'DELETE' });
 }
 
 // ============================================================

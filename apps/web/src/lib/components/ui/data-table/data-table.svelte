@@ -43,6 +43,8 @@
 		onSelectionChange?: (rows: TData[]) => void;
 		storageKey?: string;
 		isRowPlaying?: (row: TData) => boolean;
+		groupBy?: (row: TData) => unknown;
+		groupHeader?: Snippet<[unknown]>;
 	};
 
 	let {
@@ -56,6 +58,8 @@
 		onSelectionChange,
 		storageKey,
 		isRowPlaying,
+		groupBy,
+		groupHeader,
 	}: DataTableProps<TData, TValue> = $props();
 
 	function handleRowClick(event: MouseEvent, row: TData, index: number) {
@@ -148,6 +152,15 @@
 			},
 		},
 	});
+
+	const rows = $derived(table.getRowModel().rows);
+	// Resolve each row's group key once so the template never calls groupBy directly.
+	const groupKeys = $derived.by(() => {
+		const fn = groupBy;
+		return fn ? rows.map((r) => fn(r.original)) : null;
+	});
+	// Only show group separators when there is more than one distinct group.
+	const showGroups = $derived(!!groupKeys && new Set(groupKeys).size > 1);
 </script>
 
 <div class="rounded-md border">
@@ -221,7 +234,20 @@
 			{/each}
 		</Table.Header>
 		<Table.Body>
-			{#each table.getRowModel().rows as row (row.id)}
+			{#each rows as row, i (row.id)}
+				{#if showGroups && groupHeader && groupKeys}
+					{@const group = groupKeys[i]}
+					{#if i === 0 || group !== groupKeys[i - 1]}
+						<Table.Row class="hover:bg-transparent">
+							<Table.Cell
+								colspan={row.getVisibleCells().length}
+								class="bg-muted/40 py-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+							>
+								{@render groupHeader(group)}
+							</Table.Cell>
+						</Table.Row>
+					{/if}
+				{/if}
 				{#snippet rowTrigger({ props: triggerProps }: { props: Record<string, unknown> })}
 					<Table.Row
 						{...triggerProps}

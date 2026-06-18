@@ -7,6 +7,7 @@ export type PlaylistResponse = {
 	trackCount: bigint;
 	totalDurationMs: bigint;
 	createdAt: string;
+	updatedAt: string;
 	/**
 	 * 'manual' or 'dynamic'.
 	 */

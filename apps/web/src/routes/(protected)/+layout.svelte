@@ -27,7 +27,15 @@
 		const v = player.volume;
 		if (v !== getVolume()) setVolume(v);
 	});
+
+	const pageTitle = $derived(
+		player.currentTrack ? `Amaterasu Player - ${player.currentTrack.title}` : 'Amaterasu Player',
+	);
 </script>
+
+<svelte:head>
+	<title>{pageTitle}</title>
+</svelte:head>
 
 <Sidebar.Provider>
 	<AppSidebar

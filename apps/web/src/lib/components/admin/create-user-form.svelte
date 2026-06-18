@@ -5,6 +5,8 @@
 	import { createUser } from '$lib/services/admin-service';
 	import { toast } from 'svelte-sonner';
 
+	let { onCreated }: { onCreated?: () => void } = $props();
+
 	const id = $props.id();
 
 	let name = $state('');
@@ -33,6 +35,7 @@
 		name = '';
 		email = '';
 		password = '';
+		onCreated?.();
 	}
 </script>
 

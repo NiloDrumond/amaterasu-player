@@ -8,24 +8,26 @@ use uuid::Uuid;
 
 use crate::{
     auth::middleware::AdminUser,
+    auth::password_hash::hash_password,
     db::entities::{Album, Artist},
     dto::{
         request::{
             BatchUpdateTracksParams, BatchUpdateTracksResponse, CreateAlbumParams,
             CreateArtistParams, HardDeleteQuery, MergeAlbumParams, MergeArtistParams,
-            RegisterEmailParams, UpdateAlbumParams, UpdateArtistParams, UpdateTrackParams,
+            RegisterEmailParams, ResetPasswordParams, SearchPaginationParams, UpdateAlbumParams,
+            UpdateArtistParams, UpdateTrackParams,
         },
         response::{
             AdminAlbumResponse, AdminArtistResponse, AdminDeletedTrackResponse, AdminTrackResponse,
-            ReviewQueueAlbumGroup, ReviewQueueCounts, ReviewQueueResponse,
-            ReviewQueueStandaloneArtist, SearchEntityType,
+            AdminUserResponse, PaginatedResponse, ReviewQueueAlbumGroup, ReviewQueueCounts,
+            ReviewQueueResponse, ReviewQueueStandaloneArtist, SearchEntityType,
         },
     },
     error::{AppError, AppResult},
     repositories::track_repository::TrackUpdate,
     repositories::{
         AlbumRepository, AliasRepository, ArtistRepository, MetadataSuggestionRepository,
-        SuggestionEntityType, TrackRepository,
+        SuggestionEntityType, TrackRepository, UserRepository,
     },
     search::indexers,
     services::auth_service::AuthService,
@@ -58,6 +60,64 @@ pub async fn create_user(
         .register_email(body.email, body.name, body.password)
         .await?;
     Ok(StatusCode::CREATED)
+}
+
+pub async fn list_users(
+    State(state): State<AppState>,
+    _admin: AdminUser,
+    Query(params): Query<SearchPaginationParams>,
+) -> AppResult<Json<PaginatedResponse<AdminUserResponse>>> {
+    let users = UserRepository::list_paginated(&state.db, params.limit, params.offset).await?;
+    let total = UserRepository::count(&state.db).await?;
+    Ok(Json(PaginatedResponse {
+        data: users.into_iter().map(Into::into).collect(),
+        total,
+        limit: params.limit,
+        offset: params.offset,
+    }))
+}
+
+pub async fn reset_user_password(
+    State(state): State<AppState>,
+    _admin: AdminUser,
+    Path(id): Path<Uuid>,
+    Garde(Json(body)): Garde<Json<ResetPasswordParams>>,
+) -> AppResult<StatusCode> {
+    let password_hash = hash_password(&body.password)?;
+    let updated = UserRepository::update_password(&state.db, id, &password_hash).await?;
+    if updated {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(AppError::NotFound)
+    }
+}
+
+pub async fn delete_user(
+    State(state): State<AppState>,
+    admin: AdminUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<StatusCode> {
+    if admin.0.user.id == id {
+        return Err(AppError::BadRequest(
+            "You cannot delete your own account".into(),
+        ));
+    }
+
+    let user = UserRepository::find_by_id(&state.db, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    // Refuse to remove the final admin -- the app would be left unmanageable.
+    if user.role == "admin" && UserRepository::count_admins(&state.db).await? <= 1 {
+        return Err(AppError::BadRequest("Cannot delete the last admin".into()));
+    }
+
+    let deleted = UserRepository::delete(&state.db, id).await?;
+    if deleted {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(AppError::NotFound)
+    }
 }
 
 pub async fn scan_library(State(state): State<AppState>) -> StatusCode {

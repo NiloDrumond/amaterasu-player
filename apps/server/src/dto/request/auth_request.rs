@@ -26,6 +26,13 @@ pub struct SignInEmailParams {
 
 #[api_type("request/auth")]
 #[derive(Serialize, Deserialize, Validate)]
+pub struct ResetPasswordParams {
+    #[garde(length(min = 6, max = 100))]
+    pub password: String,
+}
+
+#[api_type("request/auth")]
+#[derive(Serialize, Deserialize, Validate)]
 pub struct UpdatePreferencesParams {
     #[garde(skip)]
     pub preferences: UserPreferences,

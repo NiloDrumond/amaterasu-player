@@ -90,6 +90,13 @@
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}
+							<a href="/admin/users" {...props}>Users</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
 							<a href="/admin/review" {...props}>
 								<span>Review</span>
 								{#if pendingTotal > 0n}

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Icons } from '$lib/components/ui/icons';
 	import { toast } from 'svelte-sonner';
 	import {
-		getTags,
 		createTag,
 		getTrackTags,
 		attachTrackTag,
@@ -14,6 +14,7 @@
 		attachAlbumTag,
 		detachAlbumTag,
 	} from '$lib/services/tag-service';
+	import { loadTags, invalidateTagsCache } from '$lib/state/tags-cache.svelte';
 	import type { TagResponse } from '$lib/bindings/response/tag/tag-response';
 	import type { TagSummaryResponse } from '$lib/bindings/response/tag/tag-summary-response';
 	import { resolveTagColor, tagForegroundColor } from './tag-color';
@@ -30,6 +31,8 @@
 	let attached = $state<TagSummaryResponse[]>([]);
 	let query = $state('');
 	let loading = $state(true);
+	let focused = $state(false);
+	let blurTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function listFn() {
 		return entity === 'track' ? getTrackTags : getAlbumTags;
@@ -42,8 +45,8 @@
 	}
 
 	async function refresh() {
-		const [allRes, attachedRes] = await Promise.all([getTags(fetch), listFn()(fetch, entityId)]);
-		if (allRes.data) allTags = allRes.data;
+		const [tags, attachedRes] = await Promise.all([loadTags(fetch), listFn()(fetch, entityId)]);
+		allTags = tags;
 		if (attachedRes.data) attached = attachedRes.data;
 		loading = false;
 	}
@@ -53,14 +56,11 @@
 	const attachedIds = $derived(new Set(attached.map((t) => t.id)));
 
 	const suggestions = $derived(
-		query.trim()
-			? allTags
-					.filter(
-						(t) =>
-							!attachedIds.has(t.id) && t.name.toLowerCase().includes(query.trim().toLowerCase()),
-					)
-					.slice(0, 8)
-			: [],
+		allTags.filter((t) => {
+			if (attachedIds.has(t.id)) return false;
+			const q = query.trim().toLowerCase();
+			return q ? t.name.toLowerCase().includes(q) : true;
+		}),
 	);
 
 	const exactMatch = $derived(
@@ -74,7 +74,9 @@
 			return;
 		}
 		query = '';
+		invalidateTagsCache();
 		await refresh();
+		void invalidateAll();
 	}
 
 	async function detachTag(tagId: string) {
@@ -83,7 +85,9 @@
 			toast.error(error);
 			return;
 		}
+		invalidateTagsCache();
 		await refresh();
+		void invalidateAll();
 	}
 
 	async function createAndAttach() {
@@ -133,6 +137,15 @@
 			bind:value={query}
 			placeholder="Add a tag…"
 			autocomplete="off"
+			onfocus={() => {
+				if (blurTimer) clearTimeout(blurTimer);
+				focused = true;
+			}}
+			onblur={() => {
+				blurTimer = setTimeout(() => {
+					focused = false;
+				}, 120);
+			}}
 			onkeydown={(e: KeyboardEvent) => {
 				if (e.key === 'Enter') {
 					e.preventDefault();
@@ -144,7 +157,7 @@
 				}
 			}}
 		/>
-		{#if query.trim() && (suggestions.length > 0 || !exactMatch)}
+		{#if focused && (suggestions.length > 0 || (query.trim() && !exactMatch))}
 			<div
 				class="absolute top-full right-0 left-0 z-10 mt-1 max-h-60 overflow-auto rounded-md border bg-popover p-1 shadow-md"
 			>
