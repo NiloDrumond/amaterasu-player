@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -7,9 +7,10 @@ use crate::db::entities::{Album, Artist, Track};
 use crate::dto::request::SortDir;
 use crate::error::AppResult;
 use crate::filters::FilterNode;
+use crate::repositories::tag_repository::TagWithCategory;
 use crate::repositories::{
-    AlbumRepository, AlbumSortKey, ArtistRepository, ArtistSortKey, FindParams,
-    TrackPlayRepository, TrackRepository, TrackSortKey,
+    AlbumRepository, AlbumSortKey, ArtistRepository, ArtistSortKey, FindParams, TagRepository,
+    TrackFavoriteRepository, TrackPlayRepository, TrackRepository, TrackSortKey,
 };
 
 pub struct TrackWithRefs {
@@ -17,6 +18,8 @@ pub struct TrackWithRefs {
     pub album: Option<Album>,
     pub artist: Option<Artist>,
     pub play_count: i64,
+    pub tags: Vec<TagWithCategory>,
+    pub favorite: bool,
 }
 
 pub struct AlbumWithRefs {
@@ -66,7 +69,7 @@ impl LibraryService {
             },
         )
         .await?;
-        let total = TrackRepository::count(&self.pool, filter).await?;
+        let total = TrackRepository::count(&self.pool, filter, self.user_id).await?;
         let bundled = self.attach_refs(tracks).await?;
 
         Ok((bundled, total))
@@ -246,10 +249,16 @@ impl LibraryService {
         let play_counts =
             TrackPlayRepository::play_counts_for_tracks(&self.pool, self.user_id, &track_ids)
                 .await?;
+        let mut tags_by_id =
+            TagRepository::tags_for_tracks(&self.pool, self.user_id, &track_ids).await?;
+        let favorited_ids =
+            TrackFavoriteRepository::favorited_track_ids(&self.pool, self.user_id, &track_ids)
+                .await?;
 
         let albums_by_id: HashMap<Uuid, Album> = albums.into_iter().map(|a| (a.id, a)).collect();
         let artists_by_id: HashMap<Uuid, Artist> = artists.into_iter().map(|a| (a.id, a)).collect();
         let plays_by_id: HashMap<Uuid, i64> = play_counts.into_iter().collect();
+        let favorited: HashSet<Uuid> = favorited_ids.into_iter().collect();
 
         Ok(tracks
             .into_iter()
@@ -259,11 +268,15 @@ impl LibraryService {
                     .artist_id
                     .and_then(|id| artists_by_id.get(&id).cloned());
                 let play_count = plays_by_id.get(&track.id).copied().unwrap_or(0);
+                let tags = tags_by_id.remove(&track.id).unwrap_or_default();
+                let favorite = favorited.contains(&track.id);
                 TrackWithRefs {
                     track,
                     album,
                     artist,
                     play_count,
+                    tags,
+                    favorite,
                 }
             })
             .collect())

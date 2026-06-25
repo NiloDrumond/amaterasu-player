@@ -58,6 +58,12 @@
 	async function pickField(spec: FieldSpec) {
 		chosenSpec = spec;
 		draft = defaultLeafForField(spec);
+		// Boolean facets (e.g. Favorite) have no value to pick — commit at once.
+		if (spec.editor === 'bool') {
+			draftLabel = 'Yes';
+			commit();
+			return;
+		}
 		stage = 'pick-value';
 		if (spec.editor === 'tag') {
 			const { data } = await getTags(fetch);

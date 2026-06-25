@@ -26,7 +26,7 @@ export function playlistsColumns(onDeleted: () => void): ColumnDef<PlaylistRespo
 			size: 90,
 			maxSize: 90,
 			accessorFn: (row) => row.playlistType,
-			cell: ({ row }) => (row.original.playlistType === 'dynamic' ? '✨ Dynamic' : 'Manual'),
+			cell: ({ row }) => (row.original.playlistType === 'dynamic' ? 'Dynamic' : 'Manual'),
 		},
 		{
 			id: 'trackCount',

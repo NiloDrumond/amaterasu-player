@@ -693,7 +693,7 @@ WHERE id = $1
         qb.push(" WHERE tracks.deleted_at IS NULL");
         if let Some(filter) = filter {
             qb.push(" AND ");
-            compile_tracks_filter(&mut qb, filter)
+            compile_tracks_filter(&mut qb, filter, user_id.unwrap_or(Uuid::nil()))
                 .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
         }
         let d = dir.unwrap_or(SortDir::Asc).as_sql();
@@ -744,12 +744,16 @@ WHERE id = $1
         Ok(tracks)
     }
 
-    pub async fn count(pool: &PgPool, filter: Option<&FilterNode>) -> AppResult<i64> {
+    pub async fn count(
+        pool: &PgPool,
+        filter: Option<&FilterNode>,
+        user_id: Uuid,
+    ) -> AppResult<i64> {
         let mut qb: QueryBuilder<Postgres> =
             QueryBuilder::new("SELECT COUNT(*) FROM tracks WHERE tracks.deleted_at IS NULL");
         if let Some(filter) = filter {
             qb.push(" AND ");
-            compile_tracks_filter(&mut qb, filter)
+            compile_tracks_filter(&mut qb, filter, user_id)
                 .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
         }
         let row: (i64,) = qb.build_query_as().fetch_one(pool).await?;

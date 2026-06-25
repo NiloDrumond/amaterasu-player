@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
     db::entities::{Album, Artist},
-    dto::response::common_response::PaginatedResponse,
+    dto::response::{common_response::PaginatedResponse, tag_response::TagSummaryResponse},
     services::library_service::TrackWithRefs,
 };
 
@@ -60,6 +60,8 @@ pub struct TrackResponse {
     pub original_artist: Option<String>,
     pub original_album: Option<String>,
     pub play_count: i64,
+    pub tags: Vec<TagSummaryResponse>,
+    pub favorite: bool,
 }
 
 impl From<TrackWithRefs> for TrackResponse {
@@ -69,6 +71,8 @@ impl From<TrackWithRefs> for TrackResponse {
             album,
             artist,
             play_count,
+            tags,
+            favorite,
         } = value;
 
         Self {
@@ -87,6 +91,8 @@ impl From<TrackWithRefs> for TrackResponse {
             original_artist: track.original_artist,
             original_album: track.original_album,
             play_count,
+            tags: tags.into_iter().map(Into::into).collect(),
+            favorite,
         }
     }
 }

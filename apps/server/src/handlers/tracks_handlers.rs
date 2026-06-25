@@ -7,7 +7,7 @@ use crate::{
         response::{PaginatedResponse, TrackResponse},
     },
     error::{AppError, AppResult},
-    repositories::{TrackPlayRepository, TrackSortKey},
+    repositories::{TrackFavoriteRepository, TrackPlayRepository, TrackSortKey},
     services::LibraryService,
     state::AppState,
 };
@@ -64,6 +64,24 @@ pub async fn get_track(
         .ok_or(AppError::NotFound)?;
 
     Ok(Json(track.into()))
+}
+
+pub async fn favorite_track(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<StatusCode> {
+    TrackFavoriteRepository::favorite(&state.db, auth_user.user.id, id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn unfavorite_track(
+    State(state): State<AppState>,
+    auth_user: AuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<StatusCode> {
+    TrackFavoriteRepository::unfavorite(&state.db, auth_user.user.id, id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn scrobble_track(

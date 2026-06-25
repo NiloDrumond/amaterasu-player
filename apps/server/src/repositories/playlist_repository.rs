@@ -440,6 +440,7 @@ impl PlaylistRepository {
         pool: &PgPool,
         playlist_id: Uuid,
         filter: &FilterNode,
+        user_id: Uuid,
     ) -> AppResult<Vec<PlaylistTrackRow>> {
         let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"
@@ -467,7 +468,7 @@ impl PlaylistRepository {
             LEFT JOIN albums al ON al.id = tracks.album_id
             WHERE tracks.deleted_at IS NULL AND "#,
         );
-        compile_tracks_filter(&mut qb, filter)
+        compile_tracks_filter(&mut qb, filter, user_id)
             .map_err(|e| crate::error::AppError::BadRequest(e.to_string()))?;
         qb.push(" ORDER BY tracks.disc NULLS LAST, tracks.track_no NULLS LAST, tracks.title");
 

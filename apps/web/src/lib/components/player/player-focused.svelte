@@ -8,6 +8,7 @@
 	import PlayerVolume from './player-volume.svelte';
 	import PlayerSeek from './player-seek.svelte';
 	import TrackActions from '$lib/components/tracks/track-actions.svelte';
+	import FavoriteButton from '$lib/components/tracks/favorite-button.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Icons } from '$lib/components/ui/icons';
 
@@ -88,7 +89,12 @@
 		{/if}
 
 		<div class="flex flex-col items-center gap-1 text-center">
-			<span class="text-3xl font-semibold">{player.currentTrack.title}</span>
+			<div class="flex items-center gap-2">
+				<span class="text-3xl font-semibold">{player.currentTrack.title}</span>
+				{#key player.currentTrack.id}
+					<FavoriteButton track={player.currentTrack} class="size-9 shrink-0" />
+				{/key}
+			</div>
 			{#if player.currentTrack.artist}
 				<span class="text-lg text-muted-foreground">
 					{player.currentTrack.artist.name}

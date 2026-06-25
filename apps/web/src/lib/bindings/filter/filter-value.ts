@@ -4,4 +4,5 @@ export type FilterValue =
 	| { kind: 'text'; value: string }
 	| { kind: 'id'; value: string }
 	| { kind: 'ids'; value: Array<string> }
-	| { kind: 'intRange'; min: bigint | null; max: bigint | null };
+	| { kind: 'intRange'; min: bigint | null; max: bigint | null }
+	| { kind: 'bool'; value: boolean };

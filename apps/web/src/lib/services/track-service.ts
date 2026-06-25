@@ -36,6 +36,14 @@ export function getTrack(fetch: Fetch, id: string): Promise<Result<TrackResponse
 	return api<TrackResponse>(fetch, `/api/tracks/${id}`);
 }
 
+export function favoriteTrack(fetch: Fetch, id: string): Promise<Result<void>> {
+	return api<void>(fetch, `/api/tracks/${id}/favorite`, { method: 'PUT' });
+}
+
+export function unfavoriteTrack(fetch: Fetch, id: string): Promise<Result<void>> {
+	return api<void>(fetch, `/api/tracks/${id}/favorite`, { method: 'DELETE' });
+}
+
 export function scrobbleTrack(
 	fetch: Fetch,
 	id: string,

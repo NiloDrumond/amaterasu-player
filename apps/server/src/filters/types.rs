@@ -19,6 +19,8 @@ pub enum Field {
     Artist,
     Year,
     DurationMs,
+    /// Whether the current user has favorited the track. Tracks only.
+    Favorite,
 }
 
 #[api_type("filter")]
@@ -47,6 +49,9 @@ pub enum FilterValue {
     IntRange {
         min: Option<i64>,
         max: Option<i64>,
+    },
+    Bool {
+        value: bool,
     },
 }
 

@@ -11,7 +11,26 @@
 	import { toast } from 'svelte-sonner';
 	import { signOut } from '$lib/services/auth-service';
 	import { scanLibrary } from '$lib/services/admin-service';
+	import { encodeFilter } from '$lib/utils/filter-url';
+	import type { FilterNode } from '$lib/bindings/filter/filter-node';
 	import { Icons } from './ui/icons';
+
+	// Links to the tracks page with the "favorited" filter pre-applied.
+	const FAVORITES_FILTER: FilterNode = {
+		kind: 'group',
+		op: 'and',
+		negate: false,
+		children: [
+			{
+				kind: 'leaf',
+				field: 'favorite',
+				op: 'eq',
+				value: { kind: 'bool', value: true },
+				negate: false,
+			},
+		],
+	};
+	const favoritesHref = `/tracks?f=${encodeFilter(FAVORITES_FILTER) ?? ''}`;
 
 	let {
 		user,
@@ -79,6 +98,13 @@
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}
+							<a href={favoritesHref} {...props}>Favorites</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
 							<a href="/albums" {...props}>Albums</a>
 						{/snippet}
 					</Sidebar.MenuButton>
@@ -126,6 +152,9 @@
 									class={(props.class ?? '') + ' pl-6 text-muted-foreground'}
 									title={p.name}
 								>
+									{#if p.playlistType === 'dynamic'}
+										<Icons.Sparkle class="size-4 shrink-0" />
+									{/if}
 									<span class="truncate">{p.name}</span>
 								</a>
 							{/snippet}

@@ -10,13 +10,14 @@ export interface FieldSpec {
 	label: string;
 	/** Default operator for the field. */
 	defaultOp: Operator;
-	/** Kind of value editor to show. */
-	editor: 'text' | 'tag' | 'album' | 'artist' | 'intRange' | 'yearRange';
+	/** Kind of value editor to show. `bool` commits immediately with no editor. */
+	editor: 'text' | 'tag' | 'album' | 'artist' | 'intRange' | 'yearRange' | 'bool';
 }
 
 // `text` is not listed here — text search lives in the always-visible
 // SearchInput, not as a chip in the FilterBar popover.
 export const TRACK_FIELDS: FieldSpec[] = [
+	{ field: 'favorite', label: 'Favorite', defaultOp: 'eq', editor: 'bool' },
 	{ field: 'tag', label: 'Tag', defaultOp: 'eq', editor: 'tag' },
 	{ field: 'album', label: 'Album', defaultOp: 'eq', editor: 'album' },
 	{ field: 'artist', label: 'Artist', defaultOp: 'eq', editor: 'artist' },
@@ -65,6 +66,9 @@ export function defaultLeafForField(spec: FieldSpec): LeafNode {
 		case 'intRange':
 		case 'yearRange':
 			value = { kind: 'intRange', min: null, max: null };
+			break;
+		case 'bool':
+			value = { kind: 'bool', value: true };
 			break;
 	}
 	return {

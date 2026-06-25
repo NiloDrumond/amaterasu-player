@@ -3,7 +3,7 @@ use crate::{
     state::AppState,
 };
 use axum::{
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 
@@ -15,5 +15,9 @@ pub fn tracks_routes() -> Router<AppState> {
         .route(
             "/tracks/{id}/scrobble",
             post(tracks_handlers::scrobble_track),
+        )
+        .route(
+            "/tracks/{id}/favorite",
+            put(tracks_handlers::favorite_track).delete(tracks_handlers::unfavorite_track),
         )
 }

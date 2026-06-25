@@ -123,26 +123,37 @@ impl TrackPlayRepository {
         executor: impl PgExecutor<'_>,
         user_id: Uuid,
         limit: i64,
-    ) -> AppResult<Vec<(Uuid, String)>> {
-        let rows = sqlx::query!(
-            r#"
-            SELECT
-                p.id AS "id!",
-                p.name AS "name!"
-            FROM playlists p
-            LEFT JOIN track_plays tp
-                ON tp.context_playlist_id = p.id AND tp.user_id = $1
-            WHERE p.user_id = $1
-            GROUP BY p.id, p.name, p.updated_at
-            ORDER BY GREATEST(COALESCE(MAX(tp.played_at), p.updated_at), p.updated_at) DESC
-            LIMIT $2
-            "#,
-            user_id,
-            limit,
-        )
-        .fetch_all(executor)
-        .await?;
-        Ok(rows.into_iter().map(|r| (r.id, r.name)).collect())
+    ) -> AppResult<Vec<(Uuid, String, String)>> {
+        use sqlx::{Postgres, QueryBuilder, Row};
+
+        // Built with QueryBuilder (not the checked `query!` macro) so adding the
+        // `p.type` column doesn't require regenerating the offline .sqlx cache.
+        let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT p.id AS id, p.name AS name, p.type AS playlist_type \
+             FROM playlists p \
+             LEFT JOIN track_plays tp \
+                 ON tp.context_playlist_id = p.id AND tp.user_id = ",
+        );
+        qb.push_bind(user_id);
+        qb.push(" WHERE p.user_id = ");
+        qb.push_bind(user_id);
+        qb.push(
+            " GROUP BY p.id, p.name, p.type, p.updated_at \
+              ORDER BY GREATEST(COALESCE(MAX(tp.played_at), p.updated_at), p.updated_at) DESC \
+              LIMIT ",
+        );
+        qb.push_bind(limit);
+
+        let rows = qb.build().fetch_all(executor).await?;
+        let mut out = Vec::with_capacity(rows.len());
+        for r in rows {
+            out.push((
+                r.try_get("id")?,
+                r.try_get("name")?,
+                r.try_get("playlist_type")?,
+            ));
+        }
+        Ok(out)
     }
 
     pub async fn play_counts_for_playlists(

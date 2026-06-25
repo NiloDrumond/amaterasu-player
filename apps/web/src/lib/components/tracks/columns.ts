@@ -7,6 +7,7 @@ import { Checkbox } from '../ui/checkbox';
 import { cn } from 'tailwind-variants';
 import AlbumCell from './album-cell.svelte';
 import TrackTitleCell from './track-title-cell.svelte';
+import TrackTagsCell from './track-tags-cell.svelte';
 import { createRawSnippet } from 'svelte';
 import { formatMilliseconds } from '$lib/utils/date';
 import { page } from '$app/state';
@@ -78,6 +79,16 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 		},
 	},
 	{
+		id: 'tags',
+		header: 'TAGS',
+		size: 180,
+		maxSize: 180,
+		enableSorting: false,
+		cell: ({ row }) => {
+			return renderComponent(TrackTagsCell, { track: row.original });
+		},
+	},
+	{
 		id: 'quality',
 		header: 'QUALITY',
 		size: 90,
@@ -106,8 +117,8 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 	},
 	{
 		id: 'actions',
-		size: 50,
-		maxSize: 50,
+		size: 80,
+		maxSize: 80,
 		enableHiding: false,
 		enableSorting: false,
 		meta: {

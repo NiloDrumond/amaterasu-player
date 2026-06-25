@@ -152,7 +152,12 @@
 			<p class="text-xs font-medium tracking-widest text-muted-foreground uppercase">
 				{isDynamic ? 'Dynamic Playlist' : 'Playlist'}
 			</p>
-			<h1 class="truncate text-3xl">{data.playlist.name}</h1>
+			<h1 class="flex items-center gap-2 truncate text-3xl">
+				{#if isDynamic}
+					<Icons.Sparkle class="size-6 shrink-0" />
+				{/if}
+				<span class="truncate">{data.playlist.name}</span>
+			</h1>
 			<p class="text-sm text-muted-foreground">
 				{[`${trackCount} tracks`, duration].filter(Boolean).join(' · ')}
 			</p>
@@ -162,14 +167,15 @@
 	{#if isDynamic}
 		<div class="flex flex-col gap-2">
 			<p class="text-xs tracking-widest text-muted-foreground uppercase">Filters</p>
-			<div class="flex flex-row flex-wrap items-center gap-2">
-				<SearchInput
-					value={getTextSearch(dynamicFilter)}
-					onChange={(q) => onDynamicFilterChange(setTextSearch(dynamicFilter, q))}
-					placeholder="Search tracks…"
-				/>
-				<FilterBar entity="tracks" filter={dynamicFilter} onChange={onDynamicFilterChange} />
-			</div>
+			<FilterBar entity="tracks" filter={dynamicFilter} onChange={onDynamicFilterChange}>
+				{#snippet leading()}
+					<SearchInput
+						value={getTextSearch(dynamicFilter)}
+						onChange={(q) => onDynamicFilterChange(setTextSearch(dynamicFilter, q))}
+						placeholder="Search tracks…"
+					/>
+				{/snippet}
+			</FilterBar>
 		</div>
 	{/if}
 
@@ -201,7 +207,7 @@
 		<DataTable
 			storageKey="playlist:tracks"
 			data={tracksAsResponse}
-			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}
+			columns={tracksColumns.filter((col) => col.id !== 'trackNo' && col.id !== 'playCount')}
 			onRowClick={(_row, index) =>
 				player.playQueue(tracksAsResponse, index, { playlistId: data.playlist.id })}
 			isRowPlaying={(row) => row.id === player.currentTrack?.id}

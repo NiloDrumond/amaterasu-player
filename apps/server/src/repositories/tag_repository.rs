@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
@@ -464,6 +466,92 @@ impl TagRepository {
                 },
             })
             .collect())
+    }
+
+    pub async fn tags_for_tracks(
+        executor: impl PgExecutor<'_>,
+        user_id: Uuid,
+        track_ids: &[Uuid],
+    ) -> AppResult<HashMap<Uuid, Vec<TagWithCategory>>> {
+        if track_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                tt.track_id       AS "track_id!: Uuid",
+                t.id              AS "t_id!: Uuid",
+                t.user_id         AS "t_user_id!: Uuid",
+                t.category_id     AS "t_category_id?: Uuid",
+                t.name            AS "t_name!",
+                t.color           AS "t_color?",
+                t.created_at      AS "t_created_at!",
+                t.updated_at      AS "t_updated_at!",
+                c.id              AS "c_id?: Uuid",
+                c.user_id         AS "c_user_id?: Uuid",
+                c.name            AS "c_name?",
+                c.color           AS "c_color?",
+                c.position        AS "c_position?: i32",
+                c.created_at      AS "c_created_at?",
+                c.updated_at      AS "c_updated_at?"
+            FROM
+                tags t
+            JOIN track_tags tt ON tt.tag_id = t.id
+            LEFT JOIN tag_categories c ON c.id = t.category_id
+            WHERE
+                tt.track_id = ANY($1)
+                AND t.user_id = $2
+            ORDER BY
+                c.position NULLS LAST,
+                c.name NULLS LAST,
+                t.name ASC
+            "#,
+            track_ids,
+            user_id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        let mut by_track: HashMap<Uuid, Vec<TagWithCategory>> = HashMap::new();
+        for r in rows {
+            let tag_with_category = TagWithCategory {
+                tag: Tag {
+                    id: r.t_id,
+                    user_id: r.t_user_id,
+                    category_id: r.t_category_id,
+                    name: r.t_name,
+                    color: r.t_color,
+                    created_at: r.t_created_at,
+                    updated_at: r.t_updated_at,
+                },
+                category: match (
+                    r.c_id,
+                    r.c_user_id,
+                    r.c_name,
+                    r.c_position,
+                    r.c_created_at,
+                    r.c_updated_at,
+                ) {
+                    (Some(id), Some(user_id), Some(name), Some(position), Some(ca), Some(ua)) => {
+                        Some(TagCategory {
+                            id,
+                            user_id,
+                            name,
+                            color: r.c_color,
+                            position,
+                            created_at: ca,
+                            updated_at: ua,
+                        })
+                    }
+                    _ => None,
+                },
+            };
+            by_track
+                .entry(r.track_id)
+                .or_default()
+                .push(tag_with_category);
+        }
+        Ok(by_track)
     }
 
     pub async fn list_album_tags(

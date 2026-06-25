@@ -29,6 +29,7 @@ import SparkleIcon from 'phosphor-svelte/lib/SparkleIcon';
 import ListPlusIcon from 'phosphor-svelte/lib/ListPlusIcon';
 import FolderPlusIcon from 'phosphor-svelte/lib/FolderPlusIcon';
 import ArrowSquareOutIcon from 'phosphor-svelte/lib/ArrowSquareOutIcon';
+import HeartIcon from 'phosphor-svelte/lib/HeartIcon';
 
 // Lucide fallbacks (no clean phosphor equivalent)
 import ListStartIcon from '@lucide/svelte/icons/list-start';
@@ -54,6 +55,7 @@ export const Icons = {
 	More: DotsThreeIcon,
 	Grip: DotsSixVerticalIcon,
 	Sidebar: SidebarIcon,
+	Heart: HeartIcon,
 
 	// Player controls
 	Play: PlayIcon,

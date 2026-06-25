@@ -6,6 +6,7 @@
 	import TagPickerDialog from '$lib/components/tags/tag-picker-dialog.svelte';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 	import TrackActionItems from './track-action-items.svelte';
+	import FavoriteButton from './favorite-button.svelte';
 
 	let { track }: { track: TrackResponse } = $props();
 
@@ -21,20 +22,23 @@
 
 <TagPickerDialog entity="track" entityId={track.id} bind:open={tagsOpen} />
 
-<DropdownMenu.Root>
-	<DropdownMenu.Trigger>
-		{#snippet child({ props })}
-			<Button {...props} variant="ghost" size="icon" class="relative size-8 p-0">
-				<span class="sr-only">Open menu</span>
-				<Icons.More />
-			</Button>
-		{/snippet}
-	</DropdownMenu.Trigger>
-	<DropdownMenu.Content>
-		<TrackActionItems
-			{track}
-			onAddToPlaylist={() => (addToPlaylistOpen = true)}
-			onEditTags={() => (tagsOpen = true)}
-		/>
-	</DropdownMenu.Content>
-</DropdownMenu.Root>
+<div class="flex items-center justify-end gap-0.5">
+	<FavoriteButton {track} class="size-8" />
+	<DropdownMenu.Root>
+		<DropdownMenu.Trigger>
+			{#snippet child({ props })}
+				<Button {...props} variant="ghost" size="icon" class="relative size-8 p-0">
+					<span class="sr-only">Open menu</span>
+					<Icons.More />
+				</Button>
+			{/snippet}
+		</DropdownMenu.Trigger>
+		<DropdownMenu.Content>
+			<TrackActionItems
+				{track}
+				onAddToPlaylist={() => (addToPlaylistOpen = true)}
+				onEditTags={() => (tagsOpen = true)}
+			/>
+		</DropdownMenu.Content>
+	</DropdownMenu.Root>
+</div>

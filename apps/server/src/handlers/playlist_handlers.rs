@@ -114,7 +114,11 @@ pub async fn recent_playlists(
         TrackPlayRepository::recent_playlists_for_user(&state.db, auth_user.user.id, limit).await?;
     Ok(Json(
         rows.into_iter()
-            .map(|(id, name)| RecentPlaylistResponse { id, name })
+            .map(|(id, name, playlist_type)| RecentPlaylistResponse {
+                id,
+                name,
+                playlist_type,
+            })
             .collect(),
     ))
 }
@@ -203,7 +207,8 @@ pub async fn list_playlist_tracks(
     let tracks = if stats.playlist.playlist_type == "dynamic" {
         match stats.playlist.filter_definition.as_ref() {
             Some(filter) => {
-                PlaylistRepository::list_dynamic_tracks(&state.db, id, &filter.0).await?
+                PlaylistRepository::list_dynamic_tracks(&state.db, id, &filter.0, auth_user.user.id)
+                    .await?
             }
             None => Vec::new(),
         }

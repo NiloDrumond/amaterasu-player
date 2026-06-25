@@ -43,6 +43,8 @@ impl PlaylistResponse {
 pub struct RecentPlaylistResponse {
     pub id: Uuid,
     pub name: String,
+    /// 'manual' or 'dynamic'.
+    pub playlist_type: String,
 }
 
 #[api_type("response/playlist")]

@@ -52,9 +52,17 @@ fn validate_limits(node: &FilterNode) -> Result<(), FilterCompileError> {
 pub fn compile_tracks_filter(
     qb: &mut QueryBuilder<'_, Postgres>,
     node: &FilterNode,
+    user_id: Uuid,
 ) -> Result<(), FilterCompileError> {
     validate_limits(node)?;
-    compile_node(qb, node, EntityCtx::Tracks)
+    compile_node(
+        qb,
+        node,
+        Ctx {
+            entity: EntityCtx::Tracks,
+            user_id,
+        },
+    )
 }
 
 /// Compiles a filter tree against the `albums` table.
@@ -63,7 +71,15 @@ pub fn compile_albums_filter(
     node: &FilterNode,
 ) -> Result<(), FilterCompileError> {
     validate_limits(node)?;
-    compile_node(qb, node, EntityCtx::Albums)
+    compile_node(
+        qb,
+        node,
+        Ctx {
+            entity: EntityCtx::Albums,
+            // Albums have no user-scoped fields; never read.
+            user_id: Uuid::nil(),
+        },
+    )
 }
 
 #[derive(Clone, Copy)]
@@ -72,10 +88,16 @@ enum EntityCtx {
     Albums,
 }
 
+#[derive(Clone, Copy)]
+struct Ctx {
+    entity: EntityCtx,
+    user_id: Uuid,
+}
+
 fn compile_node(
     qb: &mut QueryBuilder<'_, Postgres>,
     node: &FilterNode,
-    ctx: EntityCtx,
+    ctx: Ctx,
 ) -> Result<(), FilterCompileError> {
     match node {
         FilterNode::Group {
@@ -125,9 +147,9 @@ fn compile_leaf(
     field: Field,
     op: Operator,
     value: &FilterValue,
-    ctx: EntityCtx,
+    ctx: Ctx,
 ) -> Result<(), FilterCompileError> {
-    match (ctx, field) {
+    match (ctx.entity, field) {
         (EntityCtx::Tracks, Field::Text) => match (op, value) {
             (Operator::Contains, FilterValue::Text { value: v }) => {
                 qb.push("(tracks.title ILIKE ");
@@ -188,6 +210,13 @@ fn compile_leaf(
             }
             _ => Err(FilterCompileError::ValueTypeMismatch { field, op }),
         },
+        (EntityCtx::Tracks, Field::Favorite) => match (op, value) {
+            (Operator::Eq, FilterValue::Bool { value: want }) => {
+                push_track_favorite_exists(qb, ctx.user_id, *want);
+                Ok(())
+            }
+            _ => Err(FilterCompileError::ValueTypeMismatch { field, op }),
+        },
 
         (EntityCtx::Albums, Field::Text) => match (op, value) {
             (Operator::Contains, FilterValue::Text { value: v }) => {
@@ -233,6 +262,7 @@ fn compile_leaf(
         (EntityCtx::Albums, Field::DurationMs) => {
             Err(FilterCompileError::UnsupportedField { field })
         }
+        (EntityCtx::Albums, Field::Favorite) => Err(FilterCompileError::UnsupportedField { field }),
     }
 }
 
@@ -269,6 +299,19 @@ fn push_track_tag_exists(qb: &mut QueryBuilder<'_, Postgres>, ids: &[Uuid]) {
     )
     .push_bind(ids.to_vec())
     .push("))");
+}
+
+/// Emits an `EXISTS` (or `NOT EXISTS` when `want` is false) check against the
+/// current user's favorites for the track.
+fn push_track_favorite_exists(qb: &mut QueryBuilder<'_, Postgres>, user_id: Uuid, want: bool) {
+    if !want {
+        qb.push("NOT ");
+    }
+    qb.push(
+        "EXISTS (SELECT 1 FROM track_favorites tf WHERE tf.track_id = tracks.id AND tf.user_id = ",
+    )
+    .push_bind(user_id)
+    .push(")");
 }
 
 fn push_album_tag_exists(qb: &mut QueryBuilder<'_, Postgres>, ids: &[Uuid]) {
@@ -364,7 +407,7 @@ mod tests {
 
     fn compile_to_sql(node: &FilterNode) -> String {
         let mut qb = QueryBuilder::<Postgres>::new("SELECT 1 WHERE ");
-        compile_tracks_filter(&mut qb, node).unwrap();
+        compile_tracks_filter(&mut qb, node, Uuid::nil()).unwrap();
         qb.into_sql()
     }
 
@@ -418,6 +461,41 @@ mod tests {
         let sql = compile_to_sql(&n);
         assert!(sql.contains(" AND "));
         assert!(sql.contains("NOT ("));
+    }
+
+    #[test]
+    fn favorite_true_emits_exists() {
+        let n = leaf(
+            Field::Favorite,
+            Operator::Eq,
+            FilterValue::Bool { value: true },
+        );
+        let sql = compile_to_sql(&n);
+        assert!(sql.contains("EXISTS (SELECT 1 FROM track_favorites"));
+        assert!(!sql.contains("NOT EXISTS"));
+    }
+
+    #[test]
+    fn favorite_false_emits_not_exists() {
+        let n = leaf(
+            Field::Favorite,
+            Operator::Eq,
+            FilterValue::Bool { value: false },
+        );
+        let sql = compile_to_sql(&n);
+        assert!(sql.contains("NOT EXISTS (SELECT 1 FROM track_favorites"));
+    }
+
+    #[test]
+    fn favorite_rejected_for_albums() {
+        let mut qb = QueryBuilder::<Postgres>::new("");
+        let n = leaf(
+            Field::Favorite,
+            Operator::Eq,
+            FilterValue::Bool { value: true },
+        );
+        let err = compile_albums_filter(&mut qb, &n).unwrap_err();
+        assert!(matches!(err, FilterCompileError::UnsupportedField { .. }));
     }
 
     #[test]

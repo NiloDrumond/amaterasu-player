@@ -35,6 +35,8 @@
 				if (v.min !== null) return `≥ ${v.min}`;
 				if (v.max !== null) return `≤ ${v.max}`;
 				return 'any';
+			case 'bool':
+				return v.value ? 'Yes' : 'No';
 		}
 	});
 
