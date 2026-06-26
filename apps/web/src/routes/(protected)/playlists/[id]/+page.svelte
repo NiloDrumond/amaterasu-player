@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { reorderPlaylistTrack, updatePlaylistFilter } from '$lib/services/playlist-service';
+	import { pinPlaylist } from '$lib/services/pin-service';
 	import { getPlayer } from '$lib/player/player.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { formatMilliseconds } from '$lib/utils/date';
@@ -80,6 +81,15 @@
 
 	function playLater() {
 		player.playLater(tracks.map(asTrackResponse), { playlistId: data.playlist.id });
+	}
+
+	async function handlePin() {
+		const { error } = await pinPlaylist(fetch, data.playlist.id);
+		if (error) {
+			toast.error(error);
+		} else {
+			toast.success('Pinned to home');
+		}
 	}
 
 	// For dynamic playlists, the server returns 0 for these aggregates (they're
@@ -196,6 +206,10 @@
 		<Button variant="ghost" onclick={playLater} class="gap-2">
 			<Icons.AddToQueue class="size-4" />
 			Play Later
+		</Button>
+		<Button variant="ghost" onclick={handlePin} class="gap-2">
+			<Icons.Pin class="size-4" />
+			Pin to home
 		</Button>
 	</div>
 
