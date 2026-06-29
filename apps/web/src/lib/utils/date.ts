@@ -1,4 +1,10 @@
-import { intervalToDuration } from 'date-fns';
+import { format, intervalToDuration } from 'date-fns';
+
+export function formatDate(iso: string): string {
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return '';
+	return format(date, 'dd MMM yyyy');
+}
 
 export function formatMilliseconds(ms: number): string {
 	const duration = intervalToDuration({ start: 0, end: ms });

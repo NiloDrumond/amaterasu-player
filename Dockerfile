@@ -29,7 +29,8 @@ RUN mkdir -p apps/server/src libs/macros/src tools/dto-lint/src \
     && rm -rf apps/ libs/ tools/
 
 # Build the actual server
-COPY .sqlx .sqlx
+# Note: the sqlx offline cache lives at apps/server/.sqlx and is copied in
+# with the line below; sqlx resolves it relative to the crate's manifest dir.
 COPY apps/server apps/server
 COPY libs libs
 COPY tools tools

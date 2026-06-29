@@ -6,7 +6,7 @@ import { renderComponent, renderSnippet } from '../ui/data-table';
 import { Checkbox } from '../ui/checkbox';
 import { cn } from 'tailwind-variants';
 import { createRawSnippet } from 'svelte';
-import { formatMilliseconds } from '$lib/utils/date';
+import { formatDate, formatMilliseconds } from '$lib/utils/date';
 import { page } from '$app/state';
 
 export const albumsColumns: ColumnDef<AlbumResponse>[] = [
@@ -100,6 +100,16 @@ export const albumsColumns: ColumnDef<AlbumResponse>[] = [
 		maxSize: 80,
 		accessorFn: (row) => Number(row.totalDurationMs),
 		cell: ({ row }) => formatMilliseconds(Number(row.original.totalDurationMs)),
+	},
+	{
+		id: 'addedAt',
+		header: 'ADDED',
+		size: 110,
+		maxSize: 110,
+		meta: {
+			defaultHidden: true,
+		},
+		cell: ({ row }) => formatDate(row.original.createdAt),
 	},
 	{
 		id: 'actions',

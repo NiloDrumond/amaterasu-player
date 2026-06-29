@@ -70,8 +70,18 @@
 	}
 
 	let columnFilters = $state<ColumnFiltersState>([]);
+	// Columns flagged `defaultHidden` start collapsed; the user's stored preference
+	// (set when they toggle a column) takes precedence over these defaults.
+	function initialColumnVisibility(): VisibilityState {
+		const defaults: VisibilityState = {};
+		for (const col of columns) {
+			if (col.meta?.defaultHidden && col.id) defaults[col.id] = false;
+		}
+		const stored = storageKey ? getColumnVisibility(storageKey) : {};
+		return { ...defaults, ...stored };
+	}
 	// svelte-ignore state_referenced_locally
-	let columnVisibility = $state<VisibilityState>(storageKey ? getColumnVisibility(storageKey) : {});
+	let columnVisibility = $state<VisibilityState>(initialColumnVisibility());
 
 	const sorting = $derived<SortingState>(
 		serverSort?.sort ? [{ id: serverSort.sort, desc: serverSort.dir === 'desc' }] : [],

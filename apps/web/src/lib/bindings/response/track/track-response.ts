@@ -21,4 +21,5 @@ export type TrackResponse = {
 	playCount: bigint;
 	tags: Array<TagSummaryResponse>;
 	favorite: boolean;
+	createdAt: string;
 };

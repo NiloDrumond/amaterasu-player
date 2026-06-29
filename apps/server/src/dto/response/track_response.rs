@@ -1,4 +1,5 @@
 use amaterasu_macros::api_type;
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -62,6 +63,7 @@ pub struct TrackResponse {
     pub play_count: i64,
     pub tags: Vec<TagSummaryResponse>,
     pub favorite: bool,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<TrackWithRefs> for TrackResponse {
@@ -93,6 +95,7 @@ impl From<TrackWithRefs> for TrackResponse {
             play_count,
             tags: tags.into_iter().map(Into::into).collect(),
             favorite,
+            created_at: track.created_at,
         }
     }
 }

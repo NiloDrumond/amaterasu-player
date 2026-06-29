@@ -33,7 +33,7 @@ impl FromStr for AlbumSortKey {
             "trackCount" => Ok(Self::TrackCount),
             "time" => Ok(Self::Time),
             "playCount" => Ok(Self::PlayCount),
-            "recent" => Ok(Self::Recent),
+            "recent" | "addedAt" => Ok(Self::Recent),
             "random" => Ok(Self::Random),
             other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
         }
@@ -183,7 +183,7 @@ impl AlbumRepository {
         let d = dir.unwrap_or(SortDir::Asc).as_sql();
         match sort {
             None => {
-                qb.push(" ORDER BY albums.sort_title, albums.title, albums.id");
+                qb.push(" ORDER BY albums.created_at DESC, albums.id");
             }
             Some(AlbumSortKey::Title) => {
                 qb.push(format!(

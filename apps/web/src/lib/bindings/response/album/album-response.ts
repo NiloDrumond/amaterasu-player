@@ -10,4 +10,5 @@ export type AlbumResponse = {
 	trackCount: bigint;
 	totalDurationMs: bigint;
 	playCount: bigint;
+	createdAt: string;
 };

@@ -1,5 +1,5 @@
 use amaterasu_macros::api_type;
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -35,6 +35,7 @@ pub struct AlbumResponse {
     pub track_count: i64,
     pub total_duration_ms: i64,
     pub play_count: i64,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<AlbumWithRefs> for AlbumResponse {
@@ -56,6 +57,7 @@ impl From<AlbumWithRefs> for AlbumResponse {
             track_count,
             total_duration_ms,
             play_count,
+            created_at: album.created_at,
         }
     }
 }

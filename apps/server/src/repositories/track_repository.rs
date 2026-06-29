@@ -19,6 +19,7 @@ pub enum TrackSortKey {
     Artist,
     DurationMs,
     PlayCount,
+    AddedAt,
     Random,
 }
 
@@ -32,6 +33,7 @@ impl FromStr for TrackSortKey {
             "artist" => Ok(Self::Artist),
             "durationMs" => Ok(Self::DurationMs),
             "playCount" => Ok(Self::PlayCount),
+            "addedAt" => Ok(Self::AddedAt),
             "random" => Ok(Self::Random),
             other => Err(AppError::BadRequest(format!("invalid sort key: {other}"))),
         }
@@ -699,7 +701,7 @@ WHERE id = $1
         let d = dir.unwrap_or(SortDir::Asc).as_sql();
         match sort {
             None => {
-                qb.push(" ORDER BY tracks.sort_title, tracks.title, tracks.id");
+                qb.push(" ORDER BY tracks.created_at DESC, tracks.id");
             }
             Some(TrackSortKey::Title) => {
                 qb.push(format!(
@@ -730,6 +732,9 @@ WHERE id = $1
                 qb.push(format!(
                     " ORDER BY COALESCE(tp.play_count, 0) {d}, tracks.id"
                 ));
+            }
+            Some(TrackSortKey::AddedAt) => {
+                qb.push(format!(" ORDER BY tracks.created_at {d}, tracks.id"));
             }
             Some(TrackSortKey::Random) => {
                 qb.push(" ORDER BY md5(");

@@ -12,7 +12,7 @@
 	// (e.g. the player bar), the parent wraps this in `{#key track.id}` so a
 	// fresh instance — and a fresh initial value — mounts per song.
 	// svelte-ignore state_referenced_locally
-		let favorited = $state(track.favorite);
+	let favorited = $state(track.favorite);
 	let pending = $state(false);
 
 	async function toggle(event: MouseEvent) {

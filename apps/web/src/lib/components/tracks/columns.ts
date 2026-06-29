@@ -9,7 +9,7 @@ import AlbumCell from './album-cell.svelte';
 import TrackTitleCell from './track-title-cell.svelte';
 import TrackTagsCell from './track-tags-cell.svelte';
 import { createRawSnippet } from 'svelte';
-import { formatMilliseconds } from '$lib/utils/date';
+import { formatDate, formatMilliseconds } from '$lib/utils/date';
 import { page } from '$app/state';
 
 export const tracksColumns: ColumnDef<TrackResponse>[] = [
@@ -114,6 +114,16 @@ export const tracksColumns: ColumnDef<TrackResponse>[] = [
 		cell: ({ row }) => {
 			return formatMilliseconds(row.original.durationMs);
 		},
+	},
+	{
+		id: 'addedAt',
+		header: 'ADDED',
+		size: 110,
+		maxSize: 110,
+		meta: {
+			defaultHidden: true,
+		},
+		cell: ({ row }) => formatDate(row.original.createdAt),
 	},
 	{
 		id: 'actions',
