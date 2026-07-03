@@ -145,7 +145,7 @@
 		},
 		state: {
 			pagination: {
-				pageSize: 50,
+				pageSize: 9999,
 				pageIndex: 0,
 			},
 			get columnFilters() {
