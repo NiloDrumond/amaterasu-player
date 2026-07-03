@@ -2,6 +2,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { toast } from 'svelte-sonner';
 	import { deletePlaylist, getPlaylistTracks } from '$lib/services/playlist-service';
+	import { invalidatePlaylistsCache } from '$lib/state/playlists-cache.svelte';
 	import { pinPlaylist } from '$lib/services/pin-service';
 	import { getPlayer } from '$lib/player/player.svelte';
 	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
@@ -41,6 +42,7 @@
 		if (error) {
 			toast.error(error);
 		} else {
+			invalidatePlaylistsCache();
 			toast.success('Playlist deleted');
 			onDeleted?.();
 		}

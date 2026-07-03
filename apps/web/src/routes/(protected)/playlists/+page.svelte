@@ -20,6 +20,7 @@
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { toast } from 'svelte-sonner';
 	import { Icons } from '$lib/components/ui/icons';
+	import { invalidatePlaylistsCache } from '$lib/state/playlists-cache.svelte';
 
 	let { data } = $props();
 	const player = getPlayer();
@@ -39,6 +40,7 @@
 				body: JSON.stringify({ name: newPlaylistName.trim(), filterDefinition: null }),
 			});
 			if (res.ok) {
+				invalidatePlaylistsCache();
 				toast.success('Playlist created');
 				dialogOpen = false;
 				newPlaylistName = '';

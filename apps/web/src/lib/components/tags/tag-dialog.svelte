@@ -72,6 +72,7 @@
 				return;
 			}
 
+			invalidateTagsCache();
 			toast.success(isEdit ? 'Tag updated' : 'Tag created');
 			open = false;
 			onSaved();

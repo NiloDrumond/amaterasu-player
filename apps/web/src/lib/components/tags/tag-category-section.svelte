@@ -6,6 +6,7 @@
 	import { toast } from 'svelte-sonner';
 	import { createTag } from '$lib/services/tag-service';
 	import { deleteTagCategory } from '$lib/services/tag-category-service';
+	import { invalidateTagsCache } from '$lib/state/tags-cache.svelte';
 	import type { TagResponse } from '$lib/bindings/response/tag/tag-response';
 	import type { TagCategoryResponse } from '$lib/bindings/response/tag-category/tag-category-response';
 	import TagChip from './tag-chip.svelte';
@@ -68,6 +69,7 @@
 				toast.error(error);
 				return;
 			}
+			invalidateTagsCache();
 			newName = '';
 			onChanged();
 			queueMicrotask(() => inputEl?.focus());
@@ -82,6 +84,7 @@
 		if (error) {
 			toast.error(error);
 		} else {
+			invalidateTagsCache();
 			toast.success('Category deleted');
 			onChanged();
 		}

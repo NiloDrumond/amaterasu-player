@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { reorderPlaylistTrack, updatePlaylistFilter } from '$lib/services/playlist-service';
+	import { invalidatePlaylistsCache } from '$lib/state/playlists-cache.svelte';
 	import { pinPlaylist } from '$lib/services/pin-service';
 	import { getPlayer } from '$lib/player/player.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -41,6 +42,7 @@
 			toast.error('Failed to update filter');
 			return;
 		}
+		invalidatePlaylistsCache();
 		await invalidateAll();
 	}
 

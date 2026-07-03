@@ -5,6 +5,7 @@
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { toast } from 'svelte-sonner';
 	import { createTagCategory, updateTagCategory } from '$lib/services/tag-category-service';
+	import { invalidateTagsCache } from '$lib/state/tags-cache.svelte';
 	import type { TagCategoryResponse } from '$lib/bindings/response/tag-category/tag-category-response';
 	import ColorPicker from './color-picker.svelte';
 
@@ -52,6 +53,7 @@
 				return;
 			}
 
+			invalidateTagsCache();
 			toast.success(isEdit ? 'Category updated' : 'Category created');
 			open = false;
 			onSaved();

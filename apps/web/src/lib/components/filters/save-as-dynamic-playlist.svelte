@@ -5,6 +5,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Icons } from '$lib/components/ui/icons';
 	import { createPlaylist } from '$lib/services/playlist-service';
+	import { invalidatePlaylistsCache } from '$lib/state/playlists-cache.svelte';
 	import { toast } from 'svelte-sonner';
 	import type { FilterNode } from '$lib/bindings/filter/filter-node';
 
@@ -30,6 +31,7 @@
 			toast.error(error ?? 'Failed to save playlist');
 			return;
 		}
+		invalidatePlaylistsCache();
 		toast.success(`Saved as "${data.name}"`);
 		open = false;
 		name = '';
