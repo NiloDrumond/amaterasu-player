@@ -64,6 +64,9 @@ pub struct PlaylistTrackRow {
     pub original_title: Option<String>,
     pub original_artist: Option<String>,
     pub original_album: Option<String>,
+    /// When the track entered the library — distinct from `added_at`, which is
+    /// when it entered this playlist.
+    pub track_created_at: chrono::DateTime<chrono::Utc>,
     // artist / album names for the response
     pub artist_name: Option<String>,
     pub album_title: Option<String>,
@@ -460,6 +463,7 @@ impl PlaylistRepository {
                 tracks.original_title,
                 tracks.original_artist,
                 tracks.original_album,
+                tracks.created_at   AS track_created_at,
                 ar.name             AS artist_name,
                 al.title            AS album_title,
                 al.cover_path       AS album_cover_path
@@ -524,6 +528,7 @@ impl PlaylistRepository {
                 original_title: r.try_get("original_title")?,
                 original_artist: r.try_get("original_artist")?,
                 original_album: r.try_get("original_album")?,
+                track_created_at: r.try_get("track_created_at")?,
                 artist_name: r.try_get("artist_name")?,
                 album_title: r.try_get("album_title")?,
                 album_cover_path: r.try_get("album_cover_path")?,
@@ -658,6 +663,7 @@ impl PlaylistRepository {
                 t.original_title,
                 t.original_artist,
                 t.original_album,
+                t.created_at AS "track_created_at!",
                 ar.name AS "artist_name?",
                 al.title AS "album_title?",
                 al.cover_path AS "album_cover_path?"
@@ -700,6 +706,7 @@ impl PlaylistRepository {
                 original_title: r.original_title,
                 original_artist: r.original_artist,
                 original_album: r.original_album,
+                track_created_at: r.track_created_at,
                 artist_name: r.artist_name,
                 album_title: r.album_title,
                 album_cover_path: r.album_cover_path,

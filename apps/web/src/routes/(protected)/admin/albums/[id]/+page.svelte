@@ -165,7 +165,7 @@
 				data={data.tracks}
 				columns={tracksColumns.filter((col) => col.id !== 'album')}
 				bind:rowSelection={trackSelection}
-				onSelectionChange={(rows) => (selectedTracks = rows as TrackResponse[])}
+				onSelectionChange={(rows) => (selectedTracks = rows)}
 				onRowClick={(row) => goto(`/admin/tracks/${row.id}`)}
 			/>
 		{/if}

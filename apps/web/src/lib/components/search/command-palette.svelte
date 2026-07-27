@@ -11,8 +11,7 @@
 		type SearchEntityType,
 		type SearchHit,
 	} from '$lib/services/search-service';
-	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
-	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
+	import { asTrackResponse } from '$lib/utils/playlist-track';
 	import { Kbd } from '../ui/kbd';
 	import { useShortcut } from '$lib/shortcuts/shortcuts.svelte';
 
@@ -144,22 +143,6 @@
 				// Artists and collections have no direct play action — fall back to navigate.
 				navigateTo(hit);
 		}
-	}
-
-	function asTrackResponse(t: PlaylistTrackResponse): TrackResponse {
-		const {
-			playlistTrackId: _playlistTrackId,
-			position: _position,
-			addedAt: _addedAt,
-			artist,
-			album,
-			...rest
-		} = t;
-		return {
-			...rest,
-			artist: artist ? { id: artist.id, name: artist.name } : null,
-			album: album ? { id: album.id, title: album.title, coverUrl: album.coverUrl ?? null } : null,
-		} as TrackResponse;
 	}
 
 	function onInputKeydown(e: KeyboardEvent) {

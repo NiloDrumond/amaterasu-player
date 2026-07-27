@@ -22,6 +22,31 @@ pub struct TrackWithRefs {
     pub favorite: bool,
 }
 
+/// The per-track, user-scoped extras that don't live on the `tracks` row.
+/// Loaded in bulk so hydrating a list costs three queries total, not three
+/// per track.
+pub struct TrackRefs {
+    play_counts: HashMap<Uuid, i64>,
+    tags: HashMap<Uuid, Vec<TagWithCategory>>,
+    favorites: HashSet<Uuid>,
+}
+
+impl TrackRefs {
+    pub fn play_count(&self, track_id: Uuid) -> i64 {
+        self.play_counts.get(&track_id).copied().unwrap_or(0)
+    }
+
+    /// Moves the track's tags out of the map. Each track is visited once while
+    /// building responses, so taking avoids cloning the tag vectors.
+    pub fn take_tags(&mut self, track_id: Uuid) -> Vec<TagWithCategory> {
+        self.tags.remove(&track_id).unwrap_or_default()
+    }
+
+    pub fn favorite(&self, track_id: Uuid) -> bool {
+        self.favorites.contains(&track_id)
+    }
+}
+
 pub struct AlbumWithRefs {
     pub album: Album,
     pub artist: Option<Artist>,
@@ -239,6 +264,25 @@ impl LibraryService {
             .collect())
     }
 
+    /// Bulk-loads the user-scoped extras for `track_ids`. Callers that already
+    /// have their own track rows (e.g. playlist joins) use this directly rather
+    /// than going through [`Self::attach_refs`].
+    pub async fn track_refs(&self, track_ids: &[Uuid]) -> AppResult<TrackRefs> {
+        let play_counts =
+            TrackPlayRepository::play_counts_for_tracks(&self.pool, self.user_id, track_ids)
+                .await?;
+        let tags = TagRepository::tags_for_tracks(&self.pool, self.user_id, track_ids).await?;
+        let favorites =
+            TrackFavoriteRepository::favorited_track_ids(&self.pool, self.user_id, track_ids)
+                .await?;
+
+        Ok(TrackRefs {
+            play_counts: play_counts.into_iter().collect(),
+            tags,
+            favorites: favorites.into_iter().collect(),
+        })
+    }
+
     async fn attach_refs(&self, tracks: Vec<Track>) -> AppResult<Vec<TrackWithRefs>> {
         let album_ids: Vec<Uuid> = tracks.iter().filter_map(|t| t.album_id).collect();
         let artist_ids: Vec<Uuid> = tracks.iter().filter_map(|t| t.artist_id).collect();
@@ -246,19 +290,10 @@ impl LibraryService {
 
         let albums = AlbumRepository::find_by_ids(&self.pool, &album_ids).await?;
         let artists = ArtistRepository::find_by_ids(&self.pool, &artist_ids).await?;
-        let play_counts =
-            TrackPlayRepository::play_counts_for_tracks(&self.pool, self.user_id, &track_ids)
-                .await?;
-        let mut tags_by_id =
-            TagRepository::tags_for_tracks(&self.pool, self.user_id, &track_ids).await?;
-        let favorited_ids =
-            TrackFavoriteRepository::favorited_track_ids(&self.pool, self.user_id, &track_ids)
-                .await?;
+        let mut refs = self.track_refs(&track_ids).await?;
 
         let albums_by_id: HashMap<Uuid, Album> = albums.into_iter().map(|a| (a.id, a)).collect();
         let artists_by_id: HashMap<Uuid, Artist> = artists.into_iter().map(|a| (a.id, a)).collect();
-        let plays_by_id: HashMap<Uuid, i64> = play_counts.into_iter().collect();
-        let favorited: HashSet<Uuid> = favorited_ids.into_iter().collect();
 
         Ok(tracks
             .into_iter()
@@ -267,9 +302,9 @@ impl LibraryService {
                 let artist = track
                     .artist_id
                     .and_then(|id| artists_by_id.get(&id).cloned());
-                let play_count = plays_by_id.get(&track.id).copied().unwrap_or(0);
-                let tags = tags_by_id.remove(&track.id).unwrap_or_default();
-                let favorite = favorited.contains(&track.id);
+                let play_count = refs.play_count(track.id);
+                let tags = refs.take_tags(track.id);
+                let favorite = refs.favorite(track.id);
                 TrackWithRefs {
                     track,
                     album,

@@ -5,28 +5,11 @@
 	import { invalidatePlaylistsCache } from '$lib/state/playlists-cache.svelte';
 	import { pinPlaylist } from '$lib/services/pin-service';
 	import { getPlayer } from '$lib/player/player.svelte';
-	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
-	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
+	import { asTrackResponse } from '$lib/utils/playlist-track';
 
 	let { id, onDeleted }: { id: string; onDeleted?: () => void } = $props();
 
 	const player = getPlayer();
-
-	function asTrackResponse(t: PlaylistTrackResponse): TrackResponse {
-		const {
-			playlistTrackId: _playlistTrackId,
-			position: _position,
-			addedAt: _addedAt,
-			artist,
-			album,
-			...rest
-		} = t;
-		return {
-			...rest,
-			artist: artist ? { id: artist.id, name: artist.name } : null,
-			album: album ? { id: album.id, title: album.title, coverUrl: album.coverUrl ?? null } : null,
-		} as TrackResponse;
-	}
 
 	async function play() {
 		const { data } = await getPlaylistTracks(fetch, id);

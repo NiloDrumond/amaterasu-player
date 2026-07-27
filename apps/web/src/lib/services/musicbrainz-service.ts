@@ -13,46 +13,82 @@ type Fetch = typeof fetch;
 // actually put in there per `entityType`.
 // ------------------------------------------------------------------
 
+// Every field is nullable: the payload is whatever MusicBrainz returned when
+// the suggestion was enqueued, and nothing validates it on the way in. The
+// readers below narrow at runtime so a missing or wrong-typed field surfaces
+// as `null` here rather than as `undefined` at a call site.
 export type AlbumProposal = {
-	mbid: string;
-	releaseGroupMbid: string;
-	title?: string | null;
-	sortTitle?: string | null;
-	date?: string | null;
-	artistMbid?: string | null;
-	artistName?: string | null;
-	primaryReleaseMbid: string;
-	primaryReleaseCountry?: string | null;
+	mbid: string | null;
+	releaseGroupMbid: string | null;
+	title: string | null;
+	sortTitle: string | null;
+	date: string | null;
+	artistMbid: string | null;
+	artistName: string | null;
+	primaryReleaseMbid: string | null;
+	primaryReleaseCountry: string | null;
 };
 
 export type ArtistProposal = {
-	mbid: string;
-	name?: string | null;
-	sortName?: string | null;
-	country?: string | null;
-	disambiguation?: string | null;
+	mbid: string | null;
+	name: string | null;
+	sortName: string | null;
+	country: string | null;
+	disambiguation: string | null;
 };
 
 export type TrackProposal = {
-	mbid: string;
-	title?: string | null;
-	artistMbid?: string | null;
-	artistName?: string | null;
-	releaseMbid?: string | null;
-	releaseTitle?: string | null;
-	lengthMs?: number | null;
+	mbid: string | null;
+	title: string | null;
+	artistMbid: string | null;
+	artistName: string | null;
+	releaseMbid: string | null;
+	releaseTitle: string | null;
+	lengthMs: number | null;
 };
 
+function str(v: unknown): string | null {
+	return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
+function num(v: unknown): number | null {
+	return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
 export function asAlbumProposal(p: Record<string, unknown>): AlbumProposal {
-	return p as unknown as AlbumProposal;
+	return {
+		mbid: str(p.mbid),
+		releaseGroupMbid: str(p.releaseGroupMbid),
+		title: str(p.title),
+		sortTitle: str(p.sortTitle),
+		date: str(p.date),
+		artistMbid: str(p.artistMbid),
+		artistName: str(p.artistName),
+		primaryReleaseMbid: str(p.primaryReleaseMbid),
+		primaryReleaseCountry: str(p.primaryReleaseCountry),
+	};
 }
 
 export function asArtistProposal(p: Record<string, unknown>): ArtistProposal {
-	return p as unknown as ArtistProposal;
+	return {
+		mbid: str(p.mbid),
+		name: str(p.name),
+		sortName: str(p.sortName),
+		country: str(p.country),
+		disambiguation: str(p.disambiguation),
+	};
 }
 
 export function asTrackProposal(p: Record<string, unknown>): TrackProposal {
-	return p as unknown as TrackProposal;
+	return {
+		mbid: str(p.mbid),
+		title: str(p.title),
+		artistMbid: str(p.artistMbid),
+		artistName: str(p.artistName),
+		releaseMbid: str(p.releaseMbid),
+		releaseTitle: str(p.releaseTitle),
+		lengthMs: num(p.lengthMs),
+	};
 }
 
 // ------------------------------------------------------------------

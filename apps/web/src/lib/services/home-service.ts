@@ -36,7 +36,7 @@ export async function getRecentlyAddedAlbums(
 	});
 	const result = await api<GetAlbumsResponse>(fetch, `/api/albums?${search.toString()}`);
 	if (result.error !== null) {
-		return result as Result<AlbumResponse[]>;
+		return result;
 	}
 	return { data: result.data.data, error: null, status: result.status };
 }

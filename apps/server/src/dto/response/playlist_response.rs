@@ -3,9 +3,10 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::dto::response::PaginatedResponse;
+use crate::dto::response::{tag_response::TagSummaryResponse, PaginatedResponse};
 use crate::filters::FilterNode;
 use crate::repositories::playlist_repository::{PlaylistStats, PlaylistTrackRow};
+use crate::services::library_service::TrackRefs;
 
 #[api_type("response/playlist")]
 #[derive(Debug, Serialize)]
@@ -79,6 +80,10 @@ pub struct PlaylistTrackResponse {
     pub original_title: Option<String>,
     pub original_artist: Option<String>,
     pub original_album: Option<String>,
+    pub play_count: i64,
+    pub tags: Vec<TagSummaryResponse>,
+    pub favorite: bool,
+    pub created_at: DateTime<Utc>,
     // Playlist-specific fields
     pub playlist_track_id: Uuid,
     pub position: f64,
@@ -90,8 +95,13 @@ pub struct PlaylistTrackResponse {
 #[allow(dead_code)]
 struct GetPlaylistsResponse(PaginatedResponse<PlaylistResponse>);
 
-impl From<PlaylistTrackRow> for PlaylistTrackResponse {
-    fn from(r: PlaylistTrackRow) -> Self {
+impl PlaylistTrackResponse {
+    /// `refs` carries the user-scoped extras (plays, tags, favorite) that the
+    /// playlist join can't supply on its own. This deliberately isn't a `From`
+    /// impl: the row alone is not enough to build a complete response, and the
+    /// frontend widens these into a `TrackResponse` for playback.
+    pub fn from_row(r: PlaylistTrackRow, refs: &mut TrackRefs) -> Self {
+        let track_id = r.track_id;
         let artist = r
             .artist_id
             .zip(r.artist_name)
@@ -121,6 +131,14 @@ impl From<PlaylistTrackRow> for PlaylistTrackResponse {
             original_title: r.original_title,
             original_artist: r.original_artist,
             original_album: r.original_album,
+            play_count: refs.play_count(track_id),
+            tags: refs
+                .take_tags(track_id)
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            favorite: refs.favorite(track_id),
+            created_at: r.track_created_at,
             playlist_track_id: r.playlist_track_id,
             position: r.position,
             added_at: r.added_at,

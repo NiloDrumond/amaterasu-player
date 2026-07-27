@@ -95,7 +95,7 @@
 							{#if p.primaryReleaseCountry}· {p.primaryReleaseCountry}{/if}
 						</p>
 						<p class="truncate font-mono text-[10px] text-muted-foreground">
-							mbid: {p.mbid}
+							mbid: {p.mbid ?? '—'}
 						</p>
 					</div>
 					<div class="flex shrink-0 gap-1">
@@ -125,7 +125,7 @@
 							{#if p.disambiguation}· {p.disambiguation}{/if}
 						</p>
 						<p class="truncate font-mono text-[10px] text-muted-foreground">
-							mbid: {p.mbid}
+							mbid: {p.mbid ?? '—'}
 						</p>
 					</div>
 					<div class="flex shrink-0 gap-1">
@@ -154,7 +154,7 @@
 							{#if p.releaseTitle}· {p.releaseTitle}{/if}
 						</p>
 						<p class="truncate font-mono text-[10px] text-muted-foreground">
-							mbid: {p.mbid}
+							mbid: {p.mbid ?? '—'}
 						</p>
 					</div>
 					<div class="flex shrink-0 gap-1">

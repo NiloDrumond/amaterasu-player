@@ -10,7 +10,7 @@
 	import { toast } from 'svelte-sonner';
 	import { draggable, droppable, type DragDropState } from '@thisux/sveltednd';
 	import type { PlaylistTrackResponse } from '$lib/bindings/response/playlist/playlist-track-response';
-	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
+	import { asTrackResponse } from '$lib/utils/playlist-track';
 	import type { FilterNode } from '$lib/bindings/filter/filter-node';
 	import PlaylistTrackActions from '$lib/components/playlists/playlist-track-actions.svelte';
 	import PlaylistTrackRowContextMenu from '$lib/components/playlists/playlist-track-row-context-menu.svelte';
@@ -50,22 +50,6 @@
 	let localTracks = $state<PlaylistTrackResponse[] | null>(null);
 
 	const tracks = $derived(localTracks ?? data.tracks);
-
-	function asTrackResponse(t: PlaylistTrackResponse): TrackResponse {
-		const {
-			playlistTrackId: _playlistTrackId,
-			position: _position,
-			addedAt: _addedAt,
-			artist,
-			album,
-			...rest
-		} = t;
-		return {
-			...rest,
-			artist: artist ? { id: artist.id, name: artist.name } : null,
-			album: album ? { id: album.id, title: album.title, coverUrl: album.coverUrl ?? null } : null,
-		} as TrackResponse;
-	}
 
 	function play() {
 		player.playQueue(tracks.map(asTrackResponse), 0, { playlistId: data.playlist.id });
@@ -223,7 +207,7 @@
 		<DataTable
 			storageKey="playlist:tracks"
 			data={tracksAsResponse}
-			columns={tracksColumns.filter((col) => col.id !== 'trackNo' && col.id !== 'playCount')}
+			columns={tracksColumns.filter((col) => col.id !== 'trackNo')}
 			onRowClick={(_row, index) =>
 				player.playQueue(tracksAsResponse, index, { playlistId: data.playlist.id })}
 			isRowPlaying={(row) => row.id === player.currentTrack?.id}

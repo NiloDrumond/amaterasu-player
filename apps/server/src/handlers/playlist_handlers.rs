@@ -23,6 +23,7 @@ use crate::{
     error::{AppError, AppResult},
     repositories::{PlaylistRepository, PlaylistSortKey, TrackPlayRepository},
     search::indexers,
+    services::library_service::LibraryService,
     state::AppState,
 };
 
@@ -216,7 +217,19 @@ pub async fn list_playlist_tracks(
         PlaylistRepository::list_tracks(&state.db, id, auth_user.user.id).await?
     };
 
-    Ok(Json(tracks.into_iter().map(Into::into).collect()))
+    // Plays, tags and favorites are user-scoped and live outside the playlist
+    // join, so hydrate them in bulk. Without this the frontend can't widen a
+    // playlist track into a full track for the player and the tracks table.
+    let track_ids: Vec<Uuid> = tracks.iter().map(|t| t.track_id).collect();
+    let service = LibraryService::new(state.db.clone(), auth_user.user.id);
+    let mut refs = service.track_refs(&track_ids).await?;
+
+    Ok(Json(
+        tracks
+            .into_iter()
+            .map(|t| PlaylistTrackResponse::from_row(t, &mut refs))
+            .collect(),
+    ))
 }
 
 pub async fn update_playlist_filter(

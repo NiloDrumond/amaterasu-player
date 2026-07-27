@@ -80,7 +80,6 @@
 		const stored = storageKey ? getColumnVisibility(storageKey) : {};
 		return { ...defaults, ...stored };
 	}
-	// svelte-ignore state_referenced_locally
 	let columnVisibility = $state<VisibilityState>(initialColumnVisibility());
 
 	const sorting = $derived<SortingState>(
