@@ -4,15 +4,20 @@
 	import { Icons } from '$lib/components/ui/icons';
 	import { cn } from '$lib/utils';
 	import { favoriteTrack, unfavoriteTrack } from '$lib/services/track-service';
+	import {
+		clearFavoriteOverride,
+		isFavorited,
+		setFavoriteOverride,
+	} from '$lib/state/favorites.svelte';
 	import type { TrackResponse } from '$lib/bindings/response/track/track-response';
 
 	let { track, class: className }: { track: TrackResponse; class?: string } = $props();
 
-	// Optimistic local state. Where the same instance can outlive a track change
-	// (e.g. the player bar), the parent wraps this in `{#key track.id}` so a
-	// fresh instance — and a fresh initial value — mounts per song.
-	// svelte-ignore state_referenced_locally
-	let favorited = $state(track.favorite);
+	// Derived from the prop, so an instance that outlives a track change — the
+	// player bar's — follows the new song instead of keeping the old heart.
+	// Toggles go to a shared store rather than local state so the other buttons
+	// showing the same track update with it.
+	const favorited = $derived(isFavorited(track));
 	let pending = $state(false);
 
 	async function toggle(event: MouseEvent) {
@@ -20,15 +25,14 @@
 		event.stopPropagation();
 		if (pending) return;
 
+		const id = track.id;
 		const next = !favorited;
-		favorited = next;
+		setFavoriteOverride(id, next);
 		pending = true;
-		const { error } = next
-			? await favoriteTrack(fetch, track.id)
-			: await unfavoriteTrack(fetch, track.id);
+		const { error } = next ? await favoriteTrack(fetch, id) : await unfavoriteTrack(fetch, id);
 		pending = false;
 		if (error) {
-			favorited = !next;
+			clearFavoriteOverride(id);
 			toast.error(error);
 		}
 	}

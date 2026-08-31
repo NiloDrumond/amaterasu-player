@@ -33,17 +33,13 @@ export function usePlayerShortcuts(player: PlayerState): void {
 		{
 			id: 'player.volume-down',
 			keys: 'j',
-			handler: () => {
-				player.volume = Math.max(0, +(player.volume - VOLUME_STEP).toFixed(2));
-			},
+			handler: () => player.adjustVolume(-VOLUME_STEP),
 			description: 'Volume down',
 		},
 		{
 			id: 'player.volume-up',
 			keys: 'k',
-			handler: () => {
-				player.volume = Math.min(1, +(player.volume + VOLUME_STEP).toFixed(2));
-			},
+			handler: () => player.adjustVolume(VOLUME_STEP),
 			description: 'Volume up',
 		},
 		{

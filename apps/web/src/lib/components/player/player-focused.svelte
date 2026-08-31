@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getPlayer } from '$lib/player/player.svelte';
+	import { createVolumeWheelHandler } from '$lib/player/volume-wheel';
 	import { fade } from 'svelte/transition';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import { cn } from '$lib/utils';
@@ -13,6 +14,7 @@
 	import { Icons } from '$lib/components/ui/icons';
 
 	const player = getPlayer();
+	const onVolumeWheel = createVolumeWheelHandler(player);
 
 	const IDLE_MS = 5000;
 	let idle = $state(false);
@@ -62,6 +64,7 @@
 		onmousemove={resetIdle}
 		onpointerdown={resetIdle}
 		onclick={onBackdropClick}
+		onwheel={onVolumeWheel}
 		role="presentation"
 		transition:fade={{ duration: 150 }}
 	>
@@ -91,9 +94,7 @@
 		<div class="flex flex-col items-center gap-1 text-center">
 			<div class="flex items-center gap-2">
 				<span class="text-3xl font-semibold">{player.currentTrack.title}</span>
-				{#key player.currentTrack.id}
-					<FavoriteButton track={player.currentTrack} class="size-9 shrink-0" />
-				{/key}
+				<FavoriteButton track={player.currentTrack} class="size-9 shrink-0" />
 			</div>
 			{#if player.currentTrack.artist}
 				<span class="text-lg text-muted-foreground">

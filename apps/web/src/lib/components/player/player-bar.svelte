@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getPlayer } from '$lib/player/player.svelte';
+	import { createVolumeWheelHandler } from '$lib/player/volume-wheel';
 	import { Button } from '$lib/components/ui/button';
 	import { formatMilliseconds } from '$lib/utils/date';
 	import QueueDrawer from './queue-drawer.svelte';
@@ -12,6 +13,7 @@
 	import { Icons } from '$lib/components/ui/icons';
 
 	const player = getPlayer();
+	const onVolumeWheel = createVolumeWheelHandler(player);
 	let audioEl = $state<HTMLAudioElement | null>(null);
 
 	$effect(() => {
@@ -46,6 +48,7 @@
 	<footer
 		class="fixed inset-x-0 bottom-0 z-50 flex h-20 cursor-pointer items-center gap-4 border-t bg-background px-4"
 		onclick={onBarClick}
+		onwheel={onVolumeWheel}
 		role="presentation"
 	>
 		<audio
@@ -82,9 +85,7 @@
 					</a>
 				{/if}
 			</div>
-			{#key player.currentTrack.id}
-				<FavoriteButton track={player.currentTrack} class="size-8 shrink-0" />
-			{/key}
+			<FavoriteButton track={player.currentTrack} class="size-8 shrink-0" />
 		</div>
 
 		<div class="flex items-center gap-1">

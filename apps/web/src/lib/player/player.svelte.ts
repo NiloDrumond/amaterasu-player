@@ -193,6 +193,17 @@ export class PlayerState {
 		this.stopAfterCurrent = !this.stopAfterCurrent;
 	}
 
+	/** Clamps to 0..1 and remembers the last audible level for unmuting. */
+	setVolume(value: number) {
+		const clamped = Math.min(1, Math.max(0, value));
+		this.volume = +clamped.toFixed(2);
+		if (this.volume > 0) this.previousVolume = this.volume;
+	}
+
+	adjustVolume(delta: number) {
+		this.setVolume(this.volume + delta);
+	}
+
 	toggleMute() {
 		if (this.volume > 0) {
 			this.previousVolume = this.volume;

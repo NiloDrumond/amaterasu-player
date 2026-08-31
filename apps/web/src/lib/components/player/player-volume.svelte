@@ -24,7 +24,7 @@
 	max={1}
 	step={0.01}
 	value={player.volume}
-	oninput={(e) => (player.volume = +(e.currentTarget as HTMLInputElement).value)}
+	oninput={(e) => player.setVolume(+(e.currentTarget as HTMLInputElement).value)}
 	aria-label="Volume"
 	class="w-24"
 />
